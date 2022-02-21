@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home Page
+{% endblock %}
+
+{% block main %}
+
+    {% if not session.user_id %}
+
+        <h2>Sabacc</h2>
+        <p>Sabacc is a very fun space card game which is a combination of <i>Poker, Blackjack,</i> and <i>Slots</i>. Here is a video on how to play:</p>
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/ZjGsiEtmU-w" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <p>Or read <a href="https://hyperspaceprops.com/wp-content/uploads/2021/11/Rebels-Inspired-Sabacc-Deck-Rules.pdf">this</a> for a comprehensive rulebook.</p>
+
+    {% else %}
+
+        <h2>Your Active Games</h2>
+        <br>
+        <table>
+            <tr>
+                <th>Player 1</th>
+                <th>Player 2</th>
+                <th>Turn</th>
+                <th>Game Link</th>
+            </tr>
+
+            {% for game in games %}
+
+                <tr>
+                    <td>{{ usernames[game["player1_id"]] }}</td>
+                    <td>{{ usernames[game["player2_id"]] }}</td>
+                    <td>{{ usernames[game["player_turn"]] }}'s</td>
+                    <td><a href="/game/{{ game['game_id'] }}">Play</a></td>
+                </tr>
+
+            {% endfor %}
+
+        </table>
+
+    {% endif %}
+
+{% endblock %}

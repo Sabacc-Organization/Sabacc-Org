@@ -1,0 +1,87 @@
+nav .navbar-brand
+{
+    /* size for brand */
+    font-size: xx-large;
+}
+
+/* Colors for brand */
+nav .navbar-brand .blue
+{
+    color: rgb(14, 148, 201);
+}
+
+main .form-control
+{
+    /* Center form controls */
+    display: inline-block;
+
+    /* Override Bootstrap's 100% width for form controls */
+    width: auto;
+}
+
+main
+{
+    /* Scroll horizontally as needed */
+    overflow-x: auto;
+
+    /* Center contents */
+    text-align: center;
+}
+
+main img
+{
+    /* Constrain images on small screens */
+    max-width: 100%;
+}
+
+.backBlue
+{
+    background-color: rgb(14, 148, 201);
+}
+
+.backGreen
+{
+    background-color: #0cc23c;
+}
+
+.backRed
+{
+    background-color: #ed3b3b;
+}
+
+.red
+{
+    color: #ed3b3b;
+}
+
+.parent
+{
+    text-align: center; 
+}
+
+.child
+{
+    display: inline-block;
+    vertical-align: middle;
+    padding: 1rem 2rem;
+    margin: 10px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+
+input[type=number]{
+    width: 10rem;
+} 

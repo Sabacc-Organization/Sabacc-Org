@@ -1,0 +1,6 @@
+Flask
+Flask-Session
+requests
+sqlite3
+cs50
+flask_socketio

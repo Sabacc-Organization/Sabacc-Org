@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Host a Game
+{% endblock %}
+
+{% block main %}
+
+    <h2>Host a game of Sabacc</h2>
+    <br>
+    <h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>
+    <form action="/host" method="post">
+        <input autocomplete="off" autofocus class="form-control form-group" name="player2" placeholder="Player 2" type="text" required>
+        <button class="btn btn-primary" type="submit">Play</button>
+    </form>
+
+{% endblock %}

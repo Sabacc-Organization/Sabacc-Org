@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Game
+{% endblock %}
+
+{% block main %}
+
+    <game id="game" game_id="{{ game['game_id'] }}"></game>
+    <opponent id="opponent" opponent_id="{{ game[opponent['player'] + '_id'] }}"></opponent>
+    
+    <h1>{{ username }} vs. {{ opponent["username"] }}</h1>
+
+    <div class="parent">
+        <div class="backBlue child">
+            <br>
+            <h2>Your hand: <span id="hand">{{ game[player + "_hand"] }}</span></h2>
+            <br>
+            <h2>Your credits: <span id="credits">{{ game[player + "_credits"] }}</span></h2>
+            <br>
+        </div>
+
+        <div class="backGreen child">
+            <br>
+            <h2>Hand Pot: <span id="hand_pot">{{ game["hand_pot"] }}</span></h2>
+            <br>
+            <h2>Sabacc Pot: <span id="sabacc_pot">{{ game["sabacc_pot"] }}</span></h2>
+            <br>
+        </div>
+
+        <div class="backRed child">
+            <br>
+            <h2><span id="opponent_card_username">{{ opponent["username"] }}</span> has <span id="opponent_cards">{{ opponent["cards"] }}</span> cards.</h2>
+            <br>
+            <h2><span id="opponent_credit_username">{{ opponent["username"] }}</span> has <span id="opponent_credits">{{ opponent["credits"] }}</span> credits.</h2>
+            <br>
+        </div>
+    </div>
+    <br>
+    {% if game["phase"] == "betting" and game["player_turn"] == game[player + "_id"] and game[opponent["player"] + "_bet"] == None and player == "player1" %}
+
+        <div id="betActionDiv">
+            <h4>What would you like to do in the betting phase?</h4>
+            <form>
+                <select id="betAction" class="form-control form-group" required>
+                    <option vale="" disabled selected>Action</option>
+                    <option value="bet">Bet</option>
+                    <option value="check">Check (Do nothing)</option>
+                </select>
+
+                <button type="button" id="betActionBtn" class="btn btn-primary">Next</button>
+                
+                <p class="red" id="invalidBetAction"></p>
+            </form>
+
+        </div>
+
+        <div id="betDiv">
+            <h4>How many credits would you like to bet?</h4>
+            <form>
+                <input id="betCredits" type="number" class="form-control form-group" min="1" max="{{ game[player + '_credits'] }}" placeholder="Credits" required>
+                <button type="button" id="betBtn" class="btn btn-primary">Bet</button>
+                <p id="invalidBetCredits" class="red"></p>
+            </form>
+        </div>
+
+    {% endif %}
+    
+    <!--Put script tags at end to load page faster-->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script src="/static/game/game.js"></script>
+    <script src="/static/game/bet.js"></script>
+    <!--<script src="/static/game/card.js"></script>-->
+    <!--<script src="/static/game/shift.js"></script>-->
+
+{% endblock %}

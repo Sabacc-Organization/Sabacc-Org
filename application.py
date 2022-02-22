@@ -123,8 +123,6 @@ def game_connect():
 @socketio.on("bet", namespace="/bet")
 def bet(data):
     
-    print("bet message recieved")
-    
     game_id = data["game_id"]
     action = data["action"]
     amount = data["amount"]
@@ -139,32 +137,25 @@ def bet(data):
         player = "player2"
         opponent = "player1"
     else:
-        print("invalid player")
         return
     
     if action == "bet":
         if amount < 0 or amount > game["player1_credits"]:
-            print("invalid credits")
             return
         db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, game["hand_pot"] + amount, game[opponent + "_id"])
         
-        print(game_id)
-        print(game["game_id"])
         if game_id != game["game_id"]:
-            print("game ids do not match")
             return
         try:
             json = {"gameID": game["game_id"], "action": "bet", "amount": amount, "player_id": user_id}
             emit("bet", json, room=users[game["player1_id"]])
         except KeyError:
-            print("KeyError")
             pass
         
         try:
             json = {"gameID": game["game_id"], "action": "bet", "amount": amount, "player_id": user_id}
             emit("bet", json, room=users[game["player2_id"]])
         except KeyError:
-            print("KeyError")
             pass
 
 @app.route("/game/<game_id>")
@@ -238,7 +229,6 @@ def login():
 
             # Change user's password
             passHash = str(generate_password_hash(password))
-            print(passHash)
             db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
 
         # Remember which user has logged in

@@ -11,23 +11,26 @@ $(document).ready(function() {
 	let opponent_id = parseInt(document.getElementById("opponent").getAttribute("opponent_id"));
 	
 	// Hide HTML that must be hidden from the beginning
-	$("#betDiv").hide()
+	$("#betDiv").hide();
 	
 	// When client recieves a message through the bet_socket
-	bet_socket.on('bet', function(gameID, action, amount, player_id) {
-		console.log("bet")
+	bet_socket.on('bet', function(data) {
+		action = data["action"];
+		gameID = data["gameID"];
+		amount = data["amount"];
+		player_id = data["player_id"];
 		if (gameID === game_id)
 		{
 			if (action === "bet")
 			{
 				if (player_id === opponent_id)
 				{
-					document.getElementById("credits").innerHTML = (parseInt(document.getElementById("credits").innerHTML) - amount).toString();
+					document.getElementById("opponent_credits").innerHTML = (parseInt(document.getElementById("opponent_credits").innerHTML) - amount).toString();
 					document.getElementById("hand_pot").innerHTML = (parseInt(document.getElementById("hand_pot").innerHTML) + amount).toString();
 				}
 				else
 				{
-					document.getElementById("opponent_credits").innerHTML = (parseInt(document.getElementById("opponent_credits").innerHTML) - amount).toString();
+					document.getElementById("credits").innerHTML = (parseInt(document.getElementById("credits").innerHTML) - amount).toString();
 					document.getElementById("hand_pot").innerHTML = (parseInt(document.getElementById("hand_pot").innerHTML) + amount).toString();
 				}
 			}
@@ -44,7 +47,8 @@ $(document).ready(function() {
 		else if (document.getElementById("betAction").value === "check")
 		{
 			$("#betActionDiv").hide();
-			bet_socket.emit("bet", game_id, "check", 0);
+			data = {"game_id": game_id, "action": "check", "amount": 0}
+			bet_socket.emit("bet", data);
 		}
 		else
 		{
@@ -70,7 +74,9 @@ $(document).ready(function() {
 		}
 		else
 		{
-			bet_socket.emit("bet", game_id, "bet", parseInt(credits));
+			$("#betDiv").hide();
+			data = {"game_id": game_id, "action": "bet", "amount": parseInt(credits)}
+			bet_socket.emit("bet", data);
 		}
 	});
 

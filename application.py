@@ -121,36 +121,50 @@ def game_connect():
     users[user_id] = sid
 
 @socketio.on("bet", namespace="/bet")
-def bet(game_id, action, amount):
+def bet(data):
     
     print("bet message recieved")
     
+    game_id = data["game_id"]
+    action = data["action"]
+    amount = data["amount"]
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     user_id = session.get("user_id")
     player = ""
     opponent = ""
-    # if user_id == ["player1_id"]:
-    #     player = "player1"
-    #     opponent = "player2"
-    # elif user_id == ["player2_id"]:
-    #     player = "player2"
-    #     opponent = "player1"
-    # else:
-    #     return
+    if user_id == game["player1_id"]:
+        player = "player1"
+        opponent = "player2"
+    elif user_id == game["player2_id"]:
+        player = "player2"
+        opponent = "player1"
+    else:
+        print("invalid player")
+        return
     
     if action == "bet":
         if amount < 0 or amount > game["player1_credits"]:
+            print("invalid credits")
             return
-        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, game["hand_pot"] + amount)
+        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, game["hand_pot"] + amount, game[opponent + "_id"])
         
+        print(game_id)
+        print(game["game_id"])
+        if game_id != game["game_id"]:
+            print("game ids do not match")
+            return
         try:
-            emit("bet", data=(game_id, "bet", amount, user_id), room=users[game["player1_id"]])
+            json = {"gameID": game["game_id"], "action": "bet", "amount": amount, "player_id": user_id}
+            emit("bet", json, room=users[game["player1_id"]])
         except KeyError:
+            print("KeyError")
             pass
         
         try:
-            emit("bet", date=(game_id, "bet", amount, user_id), room=users[game["player2_id"]])
+            json = {"gameID": game["game_id"], "action": "bet", "amount": amount, "player_id": user_id}
+            emit("bet", json, room=users[game["player2_id"]])
         except KeyError:
+            print("KeyError")
             pass
 
 @app.route("/game/<game_id>")

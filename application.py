@@ -159,25 +159,6 @@ def bet(data):
             emit("bet", game, room=users[game["player2_id"]])
         except KeyError:
             pass
-        
-    elif action == "check":
-        if player != "player1":
-            return
-        if game["player_turn"] != game["player1_id"]:
-            return
-        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, 0, game["hand_pot"] + amount, game[opponent + "_id"])
-
-        game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        
-        try:
-            emit("bet", game, room=users[game["player1_id"]])
-        except KeyError:
-            pass
-        
-        try:
-            emit("bet", game, room=users[game["player2_id"]])
-        except KeyError:
-            pass
 
 @app.route("/game/<game_id>")
 @login_required

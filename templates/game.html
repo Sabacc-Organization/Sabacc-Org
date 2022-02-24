@@ -38,9 +38,10 @@
         </div>
     </div>
     <br>
-    <!--{% if game["phase"] == "betting" and game["player_turn"] == game[player + "_id"] and game[opponent["player"] + "_bet"] == None and player == "player1" %}-->
     <div id="betPhase">
+        
         <div id="p1Bet">
+            
             <div id="betActionDiv">
                 <h4>What would you like to do in the betting phase?</h4>
                 <form>
@@ -54,7 +55,6 @@
                     
                     <p class="red" id="invalidBetAction"></p>
                 </form>
-    
             </div>
     
             <div id="betDiv">
@@ -65,13 +65,44 @@
                     <p id="invalidBetCredits" class="red"></p>
                 </form>
             </div>
+            
         </div>
+        
+        <div id="p2FollowBet">
+            
+            <div id="followBetActionDiv">
+                <h4>{{ opponent["username"] }} <span id="p1BetAction"></span>. What would you like to do?</h4>
+                <form>
+                    <select id="followBetAction" class="form-control form-group" required>
+                        <option vale="" disabled selected>Action</option>
+                        <option value="call">Call</option>
+                        <option value="raise">Raise</option>
+                        <option value="fold">Fold</option>
+                    </select>
+    
+                    <button type="button" id="followBetActionBtn" class="btn btn-primary">Next</button>
+                    
+                    <p class="red" id="invalidFollowBetAction"></p>
+                </form>
+            </div>
+            
+            <div id="followBetDiv">
+                <h4>How many credits would you like to bet?</h4>
+                <form>
+                    <input id="betCredits" type="number" class="form-control form-group" min="1" max="{{ game[player + '_credits'] }}" placeholder="Credits" required>
+                    <button type="button" id="betBtn" class="btn btn-primary">Bet</button>
+                    <p id="invalidBetCredits" class="red"></p>
+                </form>
+            </div>
+            
+        </div>
+        
     </div>
-    <!--{% endif %}-->
     
     <!--Put script tags at end to load page faster-->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="/static/game/game.js"></script>
     <script src="/static/game/bet.js"></script>
     <!--<script src="/static/game/card.js"></script>-->

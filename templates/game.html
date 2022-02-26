@@ -38,66 +38,69 @@
         </div>
     </div>
     <br>
-    <div id="betPhase">
-        
-        <div id="p1Bet">
+    
+    {% if game["phase"] == "betting" %}
+        <div id="betPhase">
             
-            <div id="betActionDiv">
-                <h4>What would you like to do in the betting phase?</h4>
-                <form>
-                    <select id="betAction" class="form-control form-group" required>
-                        <option vale="" disabled selected>Action</option>
-                        <option value="bet">Bet</option>
-                        <option value="check">Check (Do nothing)</option>
-                    </select>
-    
-                    <button type="button" id="betActionBtn" class="btn btn-primary">Next</button>
-                    
-                    <p class="red" id="invalidBetAction"></p>
-                </form>
+            <div id="p1Bet">
+                
+                <div id="betActionDiv">
+                    <h4>What would you like to do in the betting phase?</h4>
+                    <form>
+                        <select id="betAction" class="form-control form-group" required>
+                            <option vale="" disabled selected>Action</option>
+                            <option value="bet">Bet</option>
+                            <option value="check">Check (Do nothing)</option>
+                        </select>
+        
+                        <button type="button" id="betActionBtn" class="btn btn-primary">Next</button>
+                        
+                        <p class="red" id="invalidBetAction"></p>
+                    </form>
+                </div>
+        
+                <div id="betDiv">
+                    <h4>How many credits would you like to bet?</h4>
+                    <form>
+                        <input id="betCredits" type="number" class="form-control form-group" min="1" max="{{ game[player + '_credits'] }}" placeholder="Credits" required>
+                        <button type="button" id="betBtn" class="btn btn-primary">Bet</button>
+                        <p id="invalidBetCredits" class="red"></p>
+                    </form>
+                </div>
+                
             </div>
-    
-            <div id="betDiv">
-                <h4>How many credits would you like to bet?</h4>
-                <form>
-                    <input id="betCredits" type="number" class="form-control form-group" min="1" max="{{ game[player + '_credits'] }}" placeholder="Credits" required>
-                    <button type="button" id="betBtn" class="btn btn-primary">Bet</button>
-                    <p id="invalidBetCredits" class="red"></p>
-                </form>
+            
+            <div id="p2FollowBet">
+                
+                <div id="followBetActionDiv">
+                    <h4>{{ opponent["username"] }} <span id="p1BetAction"></span>. What would you like to do?</h4>
+                    <form>
+                        <select id="followBetAction" class="form-control form-group" required>
+                            <option vale="" disabled selected>Action</option>
+                            <option value="call">Call</option>
+                            <option value="raise">Raise</option>
+                            <option value="fold">Fold</option>
+                        </select>
+        
+                        <button type="button" id="followBetActionBtn" class="btn btn-primary">Next</button>
+                        
+                        <p class="red" id="invalidFollowBetAction"></p>
+                    </form>
+                </div>
+                
+                <div id="followBetDiv">
+                    <h4>How many credits would you like to bet?</h4>
+                    <form>
+                        <input id="betCredits" type="number" class="form-control form-group" min="1" max="{{ game[player + '_credits'] }}" placeholder="Credits" required>
+                        <button type="button" id="betBtn" class="btn btn-primary">Bet</button>
+                        <p id="invalidBetCredits" class="red"></p>
+                    </form>
+                </div>
+                
             </div>
             
         </div>
-        
-        <div id="p2FollowBet">
-            
-            <div id="followBetActionDiv">
-                <h4>{{ opponent["username"] }} <span id="p1BetAction"></span>. What would you like to do?</h4>
-                <form>
-                    <select id="followBetAction" class="form-control form-group" required>
-                        <option vale="" disabled selected>Action</option>
-                        <option value="call">Call</option>
-                        <option value="raise">Raise</option>
-                        <option value="fold">Fold</option>
-                    </select>
-    
-                    <button type="button" id="followBetActionBtn" class="btn btn-primary">Next</button>
-                    
-                    <p class="red" id="invalidFollowBetAction"></p>
-                </form>
-            </div>
-            
-            <div id="followBetDiv">
-                <h4>How many credits would you like to bet?</h4>
-                <form>
-                    <input id="betCredits" type="number" class="form-control form-group" min="1" max="{{ game[player + '_credits'] }}" placeholder="Credits" required>
-                    <button type="button" id="betBtn" class="btn btn-primary">Bet</button>
-                    <p id="invalidBetCredits" class="red"></p>
-                </form>
-            </div>
-            
-        </div>
-        
-    </div>
+    {% endif %}    
     
     <!--Put script tags at end to load page faster-->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.min.js"></script>

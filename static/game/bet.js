@@ -31,7 +31,7 @@ $(document).ready(function() {
 			$("#p2FollowBet").hide();
 			$("#betDiv").hide();
 		}
-		else if (player_turn != playerID && (player1_bet === "None" || player1_bet === "null") && (player2_bet === "None" || player2_bet === "null") && player_phrase === "player2")
+		else if (player_turn != playerID)
 		{
 			$("#betPhase").hide();
 		}
@@ -77,6 +77,11 @@ $(document).ready(function() {
 		player1_bet = game.getAttribute("player1_bet");
 		player2_bet = game.getAttribute("player2_bet");
 		player_turn = parseInt(game.getAttribute("player_turn"));
+
+		if (phase != "betting")
+		{
+			location.reload();
+		}
 
 		if (data["game_id"] === game_id)
 		{
@@ -150,6 +155,41 @@ $(document).ready(function() {
 			data = {"game_id": game_id, "action": "bet", "amount": parseInt(credits)}
 			bet_socket.emit("bet", data);
 		}
+	});
+
+
+
+	// P2 decide how to follow up
+	$('#followBetActionBtn').on('click', function() {
+
+		if (document.getElementById("followBetAction").value === "call")
+		{
+			if (parseInt(player1_bet) > parseInt(game.getAttribute("player1_credits")))
+			{
+				document.getElementById("invalidFollowBetAction").innerHTML = "You can't call, you don't have enough credits!";
+				return;
+			}
+			$("#followBetActionDiv").hide();
+			data = {"game_id": game_id, "action": "call", "amount": parseInt(player1_bet)}
+			bet_socket.emit("bet", data);
+		}
+		else if (document.getElementById("followBetAction").value === "fold")
+		{
+			$("#betActionDiv").hide();
+			data = {"game_id": game_id, "action": "fold", "amount": 0}
+			bet_socket.emit("bet", data);
+		}
+		// else if (document.getElementById("followBetAction").value === "raise")
+		// {
+
+		// }
+		else
+		{
+			document.getElementById("invalidFollowBetAction").innerHTML = "Invalid bet action - Please input a valid value (raise, call, or fold)";
+		}
+
+		return;
+
 	});
 
 });

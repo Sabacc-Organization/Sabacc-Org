@@ -122,14 +122,14 @@ def game_connect():
 
 @socketio.on("bet", namespace="/bet")
 def bet(data):
-    
+
     # Set some variables for the whole function
     game_id = data["game_id"]
     action = data["action"]
     amount = data["amount"]
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     user_id = session.get("user_id")
-    
+
     player = ""
     opponent = ""
     if user_id == game["player1_id"]:
@@ -140,35 +140,79 @@ def bet(data):
         opponent = "player1"
     else:
         return
-    
+
     # If player 1 bets or checks
     if action == "bet" and player == "player1" and game["player_turn"] == game["player1_id"] and amount >= 0 and amount <= game["player1_credits"]:
 
-        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, game["hand_pot"] + amount, game[opponent + "_id"])
-        
+        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, game["hand_pot"] + amount, game["player2_id"])
+
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        
+
         try:
             emit("bet", game, room=users[game["player1_id"]])
         except KeyError:
             pass
-        
+
         try:
             emit("bet", game, room=users[game["player2_id"]])
         except KeyError:
             pass
-        
-    elif action == "call" and player == "player2" and game["player_turn"] == game["player2_id"]and amount >= 0 and amount <= game["player2_credits"]:
-        
-        db.execute(f"UPDATE games SET player2_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", game["player2_credits"] - amount, None, None, game["hand_pot"] + amount, "card", game[opponent + "_id"])
-        
+
+    elif action == "call" and player == "player2" and game["player_turn"] == game["player2_id"] and amount >= 0 and amount <= game["player2_credits"]:
+
+        db.execute(f"UPDATE games SET player2_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", game["player2_credits"] - amount, None, None, game["hand_pot"] + amount, "card", game["player1_id"])
+
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        
+
         try:
             emit("bet", game, room=users[game["player1_id"]])
         except KeyError:
             pass
-        
+
+        try:
+            emit("bet", game, room=users[game["player2_id"]])
+        except KeyError:
+            pass
+
+    elif action == "fold" and player == "player2" and game["player_turn"] == game["player2_id"]:
+
+        player1_hand = ""
+        player2_hand = ""
+        deckList = list(game["deck"].split(","))
+        deck = ""
+
+        for i in range(2):
+            randDex = random.randint(0, len(deckList) - 1)
+            if player1_hand == "":
+                player1_hand = deckList[randDex]
+            else:
+                player1_hand = player1_hand + "," + deckList[randDex]
+            deckList.pop(randDex)
+
+        for i in range(2):
+            randDex = random.randint(0, len(deckList) - 1)
+            if player2_hand == "":
+                player2_hand = deckList[randDex]
+            else:
+                player2_hand = player2_hand + "," + deckList[randDex]
+            deckList.pop(randDex)
+
+        for card in deckList:
+            if deck == "":
+                deck = card
+            else:
+                deck = deck + "," + card
+
+
+        db.execute(f"UPDATE games SET player1_credits = ?, player2_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, deck = ?, player1_hand = ?, player2_hand = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] + game["hand_pot"] - 5, game["player2_credits"] - 5, None, None, 10, "betting", deck, player1_hand, player2_hand, game["player1_id"])
+
+        game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+
+        try:
+            emit("bet", game, room=users[game["player1_id"]])
+        except KeyError:
+            pass
+
         try:
             emit("bet", game, room=users[game["player2_id"]])
         except KeyError:

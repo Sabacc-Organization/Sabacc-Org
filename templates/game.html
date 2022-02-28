@@ -7,9 +7,9 @@
 {% block main %}
 
     <game id="game" game_id="{{ game['game_id'] }}" player1_id="{{ game['player1_id'] }}" player2_id="{{ game['player2_id'] }}" player1_credits="{{ game['player1_credits'] }}" player2_credits="{{ game['player2_credits'] }}" player1_bet="{{ game['player1_bet'] }}" player2_bet="{{ game['player2_bet'] }}" hand_pot="{{ game['hand_pot'] }}" sabacc_pot="{{ game['sabacc_pot'] }}" phase="{{ game['phase'] }}" deck="{{ game['deck'] }}" player1_hand="{{ game['player1_hand'] }}" player2_hand="{{ game['player2_hand'] }}" player1_protected="{{ game['player1_protected'] }}" player2_protected="{{ game['player2_protected'] }}" player_turn="{{ game['player_turn'] }}" completed="{{ game['completed'] }}"></game>
-    <player id="player" player="{{ player }}" player_id="{{ game[player + '_id'] }}"></player>
-    <opponent id="opponent" opponent_id="{{ game[opponent['player'] + '_id'] }}" player="{{ opponent['player'] }}"></opponent>
-    
+    <player id="player" player="{{ player }}" player_id="{{ game[player + '_id'] }}" username="{{ username }}"></player>
+    <opponent id="opponent" opponent_id="{{ game[opponent['player'] + '_id'] }}" player="{{ opponent['player'] }}" username="{{ opponent['username'] }}"></opponent>
+
     <h1>{{ username }} vs. {{ opponent["username"] }}</h1>
 
     <div class="parent">
@@ -38,27 +38,28 @@
         </div>
     </div>
     <br>
-    
+
     {% if game["phase"] == "betting" %}
+
         <div id="betPhase">
-            
+
             <div id="p1Bet">
-                
+
                 <div id="betActionDiv">
-                    <h4>What would you like to do in the betting phase?</h4>
+                    <h4><span id="followFolded"></span>What would you like to do in the betting phase?</h4>
                     <form>
                         <select id="betAction" class="form-control form-group" required>
-                            <option vale="" disabled selected>Action</option>
+                            <option value="" disabled selected>Action</option>
                             <option value="bet">Bet</option>
                             <option value="check">Check (Do nothing)</option>
                         </select>
-        
+
                         <button type="button" id="betActionBtn" class="btn btn-primary">Next</button>
-                        
+
                         <p class="red" id="invalidBetAction"></p>
                     </form>
                 </div>
-        
+
                 <div id="betDiv">
                     <h4>How many credits would you like to bet?</h4>
                     <form>
@@ -67,27 +68,27 @@
                         <p id="invalidBetCredits" class="red"></p>
                     </form>
                 </div>
-                
+
             </div>
-            
+
             <div id="p2FollowBet">
-                
+
                 <div id="followBetActionDiv">
                     <h4>{{ opponent["username"] }} <span id="p1BetAction"></span>. What would you like to do?</h4>
                     <form>
                         <select id="followBetAction" class="form-control form-group" required>
-                            <option vale="" disabled selected>Action</option>
+                            <option value="" disabled selected>Action</option>
                             <option value="call">Call</option>
                             <option value="raise">Raise</option>
                             <option value="fold">Fold</option>
                         </select>
-        
+
                         <button type="button" id="followBetActionBtn" class="btn btn-primary">Next</button>
-                        
+
                         <p class="red" id="invalidFollowBetAction"></p>
                     </form>
                 </div>
-                
+
                 <div id="followBetDiv">
                     <h4>How many credits would you like to bet?</h4>
                     <form>
@@ -96,12 +97,13 @@
                         <p id="invalidBetCredits" class="red"></p>
                     </form>
                 </div>
-                
+
             </div>
-            
+
         </div>
-    {% endif %}    
-    
+
+    {% endif %}
+
     <!--Put script tags at end to load page faster-->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.min.js"></script>
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>-->

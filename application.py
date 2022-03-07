@@ -4,7 +4,7 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
-from helpers import apology, login_required
+from helpers import *
 from flask_socketio import SocketIO, send, emit
 import random
 
@@ -82,30 +82,10 @@ def host():
         if len(player2) == 0:
             return apology("Invalid player 2 username")
 
-        deck = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"
-        deckList = list(deck.split(","))
-        player1_hand = ""
-        for i in range(2):
-            randDex = random.randint(0, len(deckList) - 1)
-            if player1_hand == "":
-                player1_hand = deckList[randDex]
-            else:
-                player1_hand = player1_hand + "," + deckList[randDex]
-            deckList.pop(randDex)
-        player2_hand = ""
-        for i in range(2):
-            randDex = random.randint(0, len(deckList) - 1)
-            if player2_hand == "":
-                player2_hand = deckList[randDex]
-            else:
-                player2_hand = player2_hand + "," + deckList[randDex]
-            deckList.pop(randDex)
-        deck = ""
-        for card in deckList:
-            if deck == "":
-                deck = card
-            else:
-                deck = deck + "," + card
+        deckData = constructDeck()
+        deck = deckData["deck"]
+        player1_hand = deckData["player1_hand"]
+        player2_hand = deckData["player2_hand"]
 
         db.execute("INSERT INTO games (player1_id, player2_id, player1_credits, player2_credits, hand_pot, sabacc_pot, deck, player1_hand, player2_hand, player_turn) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", session.get("user_id"), player2[0]["id"], 985, 985, 10, 20, deck, player1_hand, player2_hand, session.get("user_id"))
         game_id = db.execute("SELECT game_id FROM games WHERE player2_id = ? ORDER BY game_id DESC", player2[0]["id"])[0]["game_id"]
@@ -129,6 +109,9 @@ def bet(data):
     amount = data["amount"]
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     user_id = session.get("user_id")
+    
+    if game["phase"] != "betting":
+        return
 
     player = ""
     opponent = ""
@@ -144,19 +127,11 @@ def bet(data):
     # If player 1 bets or checks
     if action == "bet" and player == "player1" and game["player_turn"] == game["player1_id"] and amount >= 0 and amount <= game["player1_credits"]:
 
-        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, game["hand_pot"] + amount, game["player2_id"])
+        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, amount, None, game["hand_pot"] + amount, game["player2_id"])
 
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
-        try:
-            emit("bet", game, room=users[game["player1_id"]])
-        except KeyError:
-            pass
-
-        try:
-            emit("bet", game, room=users[game["player2_id"]])
-        except KeyError:
-            pass
+        emitGame(game, users)
 
     elif action == "call" and player == "player2" and game["player_turn"] == game["player2_id"] and amount >= 0 and amount <= game["player2_credits"]:
 
@@ -164,21 +139,26 @@ def bet(data):
 
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
-        try:
-            emit("bet", game, room=users[game["player1_id"]])
-        except KeyError:
-            pass
+        emitGame(game, users)
+        
+    elif action == "call" and player == "player1" and game["player_turn"] == game["player1_id"] and amount >= 0 and amount <= game["player1_credits"]:
+        
+        db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, None, None, game["hand_pot"] + amount, "card", game["player1_id"])
 
-        try:
-            emit("bet", game, room=users[game["player2_id"]])
-        except KeyError:
-            pass
+        game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+
+        emitGame(game, users)
 
     elif action == "fold" and player == "player2" and game["player_turn"] == game["player2_id"]:
 
         player1_hand = ""
         player2_hand = ""
-        deckList = list(game["deck"].split(","))
+        deckList = []
+        if len(deckList) < 4:
+            outCards = list(game["player1_hand"].split(",")) + list(game["player2_hand"].split(","))
+            print(outCards)
+            deckList = reshuffleDeck(game, outCards)
+        
         deck = ""
 
         for i in range(2):
@@ -208,15 +188,16 @@ def bet(data):
 
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
-        try:
-            emit("bet", game, room=users[game["player1_id"]])
-        except KeyError:
-            pass
+        emitGame(game, users)
+        
+    elif action == "raise" and player == "player2" and game["player_turn"] == game["player2_id"] and amount >= game["player1_bet"] and amount <= game["player2_credits"]:
+        
+        db.execute(f"UPDATE games SET player2_credits = ?, player2_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player2_credits"] - amount, amount, game["hand_pot"] + amount, game["player1_id"])
 
-        try:
-            emit("bet", game, room=users[game["player2_id"]])
-        except KeyError:
-            pass
+        game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+
+        emitGame(game, users)
+    return
 
 @app.route("/game/<game_id>")
 @login_required

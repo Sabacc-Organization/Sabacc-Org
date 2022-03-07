@@ -41,15 +41,25 @@ $(document).ready(function() {
 
 	if (phase === "betting")
 	{
+		// First player first turn
 		if (player_turn === playerID && (player1_bet === "None" || player1_bet === "null") && (player2_bet === "None" || player2_bet === "null") && player_phrase === "player1")
 		{
 			hide("p2FollowBet");
 			hide("betDiv");
+			hide("followFollowRaiseActionDiv");
 		}
+		// Player 2 raised
+		else if (player_turn === playerID && player1_bet != "None" && player1_bet != "null" && player2_bet != "None" && player2_bet != "null" && player_phrase === "player1")
+		{
+			hide("p2FollowBet");
+			hide("betDiv");
+		}
+		// Not your turn? Well then wait.
 		else if (player_turn != playerID)
 		{
 			hide("betPhase");
 		}
+		// Player 1 just bet, show to player 2
 		else if (player_turn === playerID && player1_bet != "None" && player1_bet != "null" && (player2_bet === "None" || player2_bet === "null") && player_phrase === "player2")
 		{
 			let betTxt = "";
@@ -97,6 +107,14 @@ $(document).ready(function() {
 		{
 			location.reload();
 		}
+		
+		console.log(fold_count);
+		fold_count++;
+		console.log(fold_count);
+		if (fold_count === 2)
+		{
+			location.reload();
+		}
 
 		if (data["game_id"] === game_id)
 		{
@@ -104,11 +122,6 @@ $(document).ready(function() {
 			{
 				if (playerID === data["player2_id"])
 				{
-					fold_count++;
-					if (fold_count === 2)
-					{
-						location.reload();
-					}
 					document.getElementById("opponent_credits").innerHTML = data["player1_credits"];
 					document.getElementById("hand_pot").innerHTML = data["hand_pot"];
 					let betTxt = "";
@@ -167,6 +180,21 @@ $(document).ready(function() {
 					hide("betDiv");
 				}
 			}
+			else if (data["player1_bet"] != null && data["player2_bet"] != null)
+			{
+				if (playerID === data["player1_id"])
+				{
+					document.getElementById("raiseCredits").innerHTML = data["player2_bet"];
+					show("followFollowRaiseActionDiv");
+					document.getElementById("opponent_credits").innerHTML = data["player2_credits"];
+					document.getElementById("hand_pot").innerHTML = data["hand_pot"];
+				}
+				else if(playerID === data["player2_id"])
+				{
+					document.getElementById("credits").innerHTML = data["player2_credits"];
+					document.getElementById("hand_pot").innerHTML = data["hand_pot"];
+				}
+			}
 		}
 	});
 
@@ -180,7 +208,7 @@ $(document).ready(function() {
 		else if (document.getElementById("betAction").value === "check")
 		{
 			hide("betActionDiv");
-			data = {"game_id": game_id, "action": "bet", "amount": 0}
+			data = {"game_id": game_id, "action": "bet", "amount": 0};
 			bet_socket.emit("bet", data);
 		}
 		else
@@ -208,7 +236,7 @@ $(document).ready(function() {
 		else
 		{
 			hide("betDiv");
-			data = {"game_id": game_id, "action": "bet", "amount": parseInt(credits)}
+			data = {"game_id": game_id, "action": "bet", "amount": parseInt(credits)};
 			bet_socket.emit("bet", data);
 		}
 	});
@@ -220,23 +248,30 @@ $(document).ready(function() {
 
 		if (document.getElementById("followBetAction").value === "call")
 		{
-			if (parseInt(player1_bet) > parseInt(game.getAttribute("player1_credits")))
+			if (parseInt(player1_bet) > parseInt(userCredits))
 			{
 				document.getElementById("invalidFollowBetAction").innerHTML = "You can't call, you don't have enough credits!";
 				return;
 			}
-			data = {"game_id": game_id, "action": "call", "amount": parseInt(player1_bet)}
+			data = {"game_id": game_id, "action": "call", "amount": parseInt(player1_bet)};
 			bet_socket.emit("bet", data);
 		}
 		else if (document.getElementById("followBetAction").value === "fold")
 		{
-			data = {"game_id": game_id, "action": "fold", "amount": 0}
+			data = {"game_id": game_id, "action": "fold", "amount": 0};
 			bet_socket.emit("bet", data);
 		}
-		// else if (document.getElementById("followBetAction").value === "raise")
-		// {
-
-		// }
+		else if (document.getElementById("followBetAction").value === "raise")
+		{
+			if (parseInt(player1_bet) > parseInt(userCredits) + 1)
+			{
+				document.getElementById("invalidFollowBetAction").innerHTML = "You can't raise, you don't have enough credits!";
+				return;
+			}
+			document.getElementById("followRaise").min = player1_bet + 1;
+			document.getElementById("followRaise").max = game.getAttribute("player2_credits");
+			show("followBetDiv");
+		}
 		else
 		{
 			document.getElementById("invalidFollowBetAction").innerHTML = "Invalid bet action - Please input a valid value (raise, call, or fold)";
@@ -245,6 +280,54 @@ $(document).ready(function() {
 		$("#followBetActionDiv").hide();
 		return;
 
+	});
+	
+	$("#followRaise").on("click", function() {
+		let raise = document.getElementById("followRaise").value;
+		if (raise === "")
+		{
+			document.getElementById("invalidRaise").innerHTML = "Please input a number of credits you would like to bet(a positive integer " + (player1_bet + 1) + " to " + userCredits + ")";
+		}
+		else if (isNaN(parseInt(raise)))
+		{
+			document.getElementById("invalidRaise").innerHTML = "Invalid amount of credits - Please input a valid number of credits (a positive integer " + (player1_bet + 1) + " to " + userCredits + ")";
+		}
+		else if (raise < player1_bet || raise > parseInt(userCredits))
+		{
+			document.getElementById("invalidRaise").innerHTML = "Invalid amount of credits - Please input a valid number of credits (a positive integer " + (player1_bet + 1) + " to " + userCredits + ")";
+		}
+		else
+		{
+			hide("followBetDiv");
+			data = {"game_id": game_id, "action": "raise", "amount": parseInt(raise)};
+			bet_socket.emit("bet", data);
+		}
+	});
+
+	$("#followFollowRaiseActionBtn").on("click", function() {
+		
+		if (document.getElementById("followFollowRaiseAction").value === "call")
+		{
+			if (parseInt(player2_bet) > parseInt(userCredits))
+			{
+				document.getElementById("invalidFollowFollowAction").innerHTML = "You can't call, you don't have enough credits!";
+				return;
+			}
+			data = {"game_id": game_id, "action": "call", "amount": parseInt(player2_bet)};
+			bet_socket.emit("bet", data);
+		}
+		else if (document.getElementById("followFollowRaiseAction").value === "fold")
+		{
+			data = {"game_id": game_id, "action": "fold", "amount": 0};
+			bet_socket.emit("bet", data);
+		}
+		else
+		{
+			document.getElementById("invalidFollowFollowAction").innerHTML = "Invalid bet action - Please input a valid value (raise, call, or fold)";
+		}
+
+		$("#followBetActionDiv").hide();
+		return;
 	});
 
 });

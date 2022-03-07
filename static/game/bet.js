@@ -51,8 +51,10 @@ $(document).ready(function() {
 		// Player 2 raised
 		else if (player_turn === playerID && player1_bet != "None" && player1_bet != "null" && player2_bet != "None" && player2_bet != "null" && player_phrase === "player1")
 		{
+			document.getElementById("raiseCredits").innerHTML = game.getAttribute("player2_bet") + " credits";
 			hide("p2FollowBet");
 			hide("betDiv");
+			hide("betActionDiv");
 		}
 		// Not your turn? Well then wait.
 		else if (player_turn != playerID)
@@ -108,9 +110,7 @@ $(document).ready(function() {
 			location.reload();
 		}
 		
-		console.log(fold_count);
 		fold_count++;
-		console.log(fold_count);
 		if (fold_count === 2)
 		{
 			location.reload();
@@ -184,7 +184,8 @@ $(document).ready(function() {
 			{
 				if (playerID === data["player1_id"])
 				{
-					document.getElementById("raiseCredits").innerHTML = data["player2_bet"];
+					document.getElementById("raiseCredits").innerHTML = data["player2_bet"] + " credits";
+					hide("betActionDiv");
 					show("followFollowRaiseActionDiv");
 					document.getElementById("opponent_credits").innerHTML = data["player2_credits"];
 					document.getElementById("hand_pot").innerHTML = data["hand_pot"];
@@ -282,19 +283,19 @@ $(document).ready(function() {
 
 	});
 	
-	$("#followRaise").on("click", function() {
+	$("#followRaiseBtn").on("click", function() {
 		let raise = document.getElementById("followRaise").value;
 		if (raise === "")
 		{
-			document.getElementById("invalidRaise").innerHTML = "Please input a number of credits you would like to bet(a positive integer " + (player1_bet + 1) + " to " + userCredits + ")";
+			document.getElementById("invalidRaise").innerHTML = "Please input a number of credits you would like to bet(a positive integer from " + (parseInt(player1_bet) + 1) + " to " + userCredits + ")";
 		}
 		else if (isNaN(parseInt(raise)))
 		{
-			document.getElementById("invalidRaise").innerHTML = "Invalid amount of credits - Please input a valid number of credits (a positive integer " + (player1_bet + 1) + " to " + userCredits + ")";
+			document.getElementById("invalidRaise").innerHTML = "Invalid amount of credits - Please input a valid number of credits (a positive integer from " + (parseInt(player1_bet) + 1) + " to " + userCredits + ")";
 		}
 		else if (raise < player1_bet || raise > parseInt(userCredits))
 		{
-			document.getElementById("invalidRaise").innerHTML = "Invalid amount of credits - Please input a valid number of credits (a positive integer " + (player1_bet + 1) + " to " + userCredits + ")";
+			document.getElementById("invalidRaise").innerHTML = "Invalid amount of credits - Please input a valid number of credits (a positive integer from " + (parseInt(player1_bet) + 1) + " to " + userCredits + ")";
 		}
 		else
 		{

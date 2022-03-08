@@ -109,7 +109,7 @@ def bet(data):
     amount = data["amount"]
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     user_id = session.get("user_id")
-    
+
     if game["phase"] != "betting":
         return
 
@@ -140,9 +140,9 @@ def bet(data):
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
         emitGame(game, users)
-        
+
     elif action == "call" and player == "player1" and game["player_turn"] == game["player1_id"] and amount >= 0 and amount <= game["player1_credits"]:
-        
+
         db.execute(f"UPDATE games SET player1_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] - amount, None, None, game["hand_pot"] + amount, "card", game["player1_id"])
 
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -151,52 +151,38 @@ def bet(data):
 
     elif action == "fold" and player == "player2" and game["player_turn"] == game["player2_id"]:
 
-        player1_hand = ""
-        player2_hand = ""
-        deckList = []
-        if len(deckList) < 4:
-            outCards = list(game["player1_hand"].split(",")) + list(game["player2_hand"].split(","))
-            print(outCards)
-            deckList = reshuffleDeck(game, outCards)
-        
-        deck = ""
-
-        for i in range(2):
-            randDex = random.randint(0, len(deckList) - 1)
-            if player1_hand == "":
-                player1_hand = deckList[randDex]
-            else:
-                player1_hand = player1_hand + "," + deckList[randDex]
-            deckList.pop(randDex)
-
-        for i in range(2):
-            randDex = random.randint(0, len(deckList) - 1)
-            if player2_hand == "":
-                player2_hand = deckList[randDex]
-            else:
-                player2_hand = player2_hand + "," + deckList[randDex]
-            deckList.pop(randDex)
-
-        for card in deckList:
-            if deck == "":
-                deck = card
-            else:
-                deck = deck + "," + card
-
+        results = foldCards(game, game["player1_hand"], game["player2_hand"])
+        deck = results["deck"]
+        player1_hand = results["player1_hand"]
+        player2_hand = results["player2_hand"]
 
         db.execute(f"UPDATE games SET player1_credits = ?, player2_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, deck = ?, player1_hand = ?, player2_hand = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"] + game["hand_pot"] - 5, game["player2_credits"] - 5, None, None, 10, "betting", deck, player1_hand, player2_hand, game["player1_id"])
 
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
         emitGame(game, users)
-        
+
+    elif action == "fold" and player == "player1" and game["player_turn"] == game["player1_id"]:
+
+        results = foldCards(game, game["player1_hand"], game["player2_hand"])
+        deck = results["deck"]
+        player1_hand = results["player1_hand"]
+        player2_hand = results["player2_hand"]
+
+        db.execute(f"UPDATE games SET player1_credits = ?, player2_credits = ?, player1_bet = ?, player2_bet = ?, hand_pot = ?, phase = ?, deck = ?, player1_hand = ?, player2_hand = ?, player_turn = ? WHERE game_id = {game_id}", game["player1_credits"]- 5, game["player2_credits"] + game["hand_pot"] - 5, None, None, 10, "betting", deck, player1_hand, player2_hand, game["player1_id"])
+
+        game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+
+        emitGame(game, users)
+
     elif action == "raise" and player == "player2" and game["player_turn"] == game["player2_id"] and amount >= game["player1_bet"] and amount <= game["player2_credits"]:
-        
+
         db.execute(f"UPDATE games SET player2_credits = ?, player2_bet = ?, hand_pot = ?, player_turn = ? WHERE game_id = {game_id}", game["player2_credits"] - amount, amount, game["hand_pot"] + amount, game["player1_id"])
 
         game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
         emitGame(game, users)
+
     return
 
 @app.route("/game/<game_id>")

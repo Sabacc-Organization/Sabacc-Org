@@ -22,7 +22,7 @@ $(document).ready(function() {
 
 	let opponent_id = parseInt(opponent.getAttribute("opponent_id"));
 	let opponent_username = opponent.getAttribute("username");
-	
+
 	// Global Variables
 	let fold_count = 0;
 
@@ -109,7 +109,7 @@ $(document).ready(function() {
 		{
 			location.reload();
 		}
-		
+
 		fold_count++;
 		if (fold_count === 2)
 		{
@@ -136,7 +136,7 @@ $(document).ready(function() {
 
 					document.getElementById("p1BetAction").innerHTML = betTxt;
 					document.getElementById("followBetAction").innerHTML = '<option value="" disabled selected>Action</option> <option value="call">Call</option> <option value="raise">Raise</option> <option value="fold">Fold</option>';
-					
+
 					show("betPhase");
 					show("p2FollowBet");
 					show("followBetActionDiv");
@@ -163,14 +163,14 @@ $(document).ready(function() {
 				}
 				else if (playerID === data["player1_id"])
 				{
-					document.getElementById("opponent_credits").innerHTML = data["player1_credits"];
+					document.getElementById("opponent_credits").innerHTML = data["player2_credits"];
 					document.getElementById("hand_pot").innerHTML = data["hand_pot"];
-					document.getElementById("credits").innerHTML = data["player2_credits"];
+					document.getElementById("credits").innerHTML = data["player1_credits"];
 					document.getElementById("hand").innerHTML = data["player1_hand"];
 					document.getElementById("opponent_cards").innerHTML = "2";
 
 					document.getElementById("followFolded").innerHTML = opponent_username + " folded. ";
-					document.getElementById("betAction").innerHTML = '<option vale="" disabled selected>Action</option> <option value="bet">Bet</option> <option value="check">Check (Do nothing)</option>'
+					document.getElementById("betAction").innerHTML = '<option value="" disabled selected>Action</option> <option value="bet">Bet</option> <option value="check">Check (Do nothing)</option>'
 					document.getElementById("betCredits").value = "";
 
 					show("betPhase");
@@ -184,8 +184,10 @@ $(document).ready(function() {
 			{
 				if (playerID === data["player1_id"])
 				{
+					alert("they raised");
 					document.getElementById("raiseCredits").innerHTML = data["player2_bet"] + " credits";
 					hide("betActionDiv");
+					show("p1Bet");
 					show("followFollowRaiseActionDiv");
 					document.getElementById("opponent_credits").innerHTML = data["player2_credits"];
 					document.getElementById("hand_pot").innerHTML = data["hand_pot"];
@@ -282,7 +284,7 @@ $(document).ready(function() {
 		return;
 
 	});
-	
+
 	$("#followRaiseBtn").on("click", function() {
 		let raise = document.getElementById("followRaise").value;
 		if (raise === "")
@@ -306,7 +308,7 @@ $(document).ready(function() {
 	});
 
 	$("#followFollowRaiseActionBtn").on("click", function() {
-		
+
 		if (document.getElementById("followFollowRaiseAction").value === "call")
 		{
 			if (parseInt(player2_bet) > parseInt(userCredits))
@@ -327,7 +329,7 @@ $(document).ready(function() {
 			document.getElementById("invalidFollowFollowAction").innerHTML = "Invalid bet action - Please input a valid value (raise, call, or fold)";
 		}
 
-		$("#followBetActionDiv").hide();
+		hide("followFollowRaiseActionDiv");
 		return;
 	});
 

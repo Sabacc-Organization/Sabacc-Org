@@ -7,3 +7,5 @@ SQLAlchemy==1.4.23
 Jinja2==2.11.3
 sqlite3
 cs50==7.0.2
+Werkzeug==1.0.1
+PyYAML==6.0

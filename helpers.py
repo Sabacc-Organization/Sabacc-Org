@@ -2,6 +2,7 @@ from flask import redirect, render_template, request, session
 from functools import wraps
 import random
 from flask_socketio import emit
+from dataHelpers import *
 
 
 def apology(message, code=400):
@@ -32,42 +33,61 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def constructDeck():
+def constructDeck(playerCount):
     deck = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"
     deckList = list(deck.split(","))
-    player1_hand = ""
-    for i in range(2):
-        randDex = random.randint(0, len(deckList) - 1)
-        if player1_hand == "":
-            player1_hand = deckList[randDex]
-        else:
-            player1_hand = player1_hand + "," + deckList[randDex]
-        deckList.pop(randDex)
-    player2_hand = ""
-    for i in range(2):
-        randDex = random.randint(0, len(deckList) - 1)
-        if player2_hand == "":
-            player2_hand = deckList[randDex]
-        else:
-            player2_hand = player2_hand + "," + deckList[randDex]
-        deckList.pop(randDex)
-    deck = ""
-    for card in deckList:
-        if deck == "":
-            deck = card
-        else:
-            deck = deck + "," + card
+    hands = []
 
-    data = {"deck": deck, "player1_hand": player1_hand, "player2_hand": player2_hand}
+    for i in range(playerCount):
+        player_hand = ""
+        for i in range(2):
+            randDex = random.randint(0, len(deckList) - 1)
+            if player_hand == "":
+                player_hand = deckList.pop(randDex)
+            else:
+                player_hand = player_hand + "," + deckList.pop(randDex)
+
+        hands.append(player_hand)
+
+    deck = listToStr(deckList)
+
+    data = {"deck": deck, "hands": hands}
     return data
 
-def reshuffleDeck(game, outCards):
-    deckList = list(game["deck"].split(","))
-    print(deckList)
+def drawCard(deckStr):
+
+    deckList = deckStr.split(",")
+
+    randDex = random.randint(0, len(deckList) - 1)
+    card = deckList.pop(randDex)
+
+    deck = listToStr(deckList)
+
+    data = {"deck": deck, "card": card}
+    return data
+
+def rollShift():
+    dieOne = random.randint(1, 6)
+    dieTwo = random.randint(1, 6)
+    
+    if dieOne == dieTwo:
+        return True
+    else:
+        return False
+
+
+
+
+
+
+
+
+def shuffleDeck(outCards):
+    deckList = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17".split(",")
     for card in outCards:
         deckList.remove(card)
-    return deckList
-    
+    return listToStr(deckList)
+
 def foldCards(game, p1Hand, p2Hand):
     player1_hand = ""
     player2_hand = ""
@@ -75,7 +95,7 @@ def foldCards(game, p1Hand, p2Hand):
     if len(deckList) < 4:
         outCards = list(p1Hand.split(",")) + list(p2Hand.split(","))
         deckList = reshuffleDeck(game, outCards)
-    
+
     deck = ""
 
     for i in range(2):
@@ -99,7 +119,7 @@ def foldCards(game, p1Hand, p2Hand):
             deck = card
         else:
             deck = deck + "," + card
-            
+
     returnDict = {"deck": deck, "player1_hand": player1_hand, "player2_hand": player2_hand}
     return returnDict
 

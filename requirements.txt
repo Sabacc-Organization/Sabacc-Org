@@ -1,6 +1,9 @@
-Flask
-Flask-Session
-requests
+python==3.9.6
+Flask==1.1.4
+Flask-Session==0.4.0
+Flask-SocketIO==4.3.1
+requests==2.27.1
+SQLAlchemy==1.4.23
+Jinja2==2.11.3
 sqlite3
-cs50
-flask_socketio
+cs50==7.0.2

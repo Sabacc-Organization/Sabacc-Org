@@ -15,28 +15,32 @@
 
     {% else %}
 
+        <meta id="games-data" data-games="{{ games }}">
+        <meta id="users-data" data-usernames="{{ usernames }}">
+        <meta id="turns-data" data-turns="{{ player_turns }}">
+
         <h2>Your Active Games</h2>
         <br>
         <table>
             <tr>
-                <th>Player 1</th>
-                <th>Player 2</th>
+                <th>Players</th>
                 <th>Turn</th>
                 <th>Game Link</th>
             </tr>
 
-            {% for game in games %}
+            {% for i in range(gamesLen) %}
 
                 <tr>
-                    <td>{{ usernames[game["player1_id"]] }}</td>
-                    <td>{{ usernames[game["player2_id"]] }}</td>
-                    <td>{{ usernames[game["player_turn"]] }}'s</td>
-                    <td><a href="/game/{{ game['game_id'] }}">Play</a></td>
+                    <td>{{ usernames[i] }}</td>
+                    <td>{{ player_turns[i] }}'s</td>
+                    <td><a href="/game/{{ games[i]['game_id'] }}">Play</a></td>
                 </tr>
 
             {% endfor %}
 
         </table>
+
+        <script src="/static/index.js"></script>
 
     {% endif %}
 

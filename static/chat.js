@@ -1,7 +1,9 @@
 $(document).ready(function() {
 
-	var socket = io.connect('https://ide-cc53314679134f648784a767fd9887a4-8080.cs50.ws');
-	var chat_socket = io('https://ide-cc53314679134f648784a767fd9887a4-8080.cs50.ws/chat');
+	let dom = "http://127.0.0.1:5000";
+
+	var socket = io.connect(dom);
+	var chat_socket = io(dom + '/chat');
 
 	let user = document.getElementById("user");
 

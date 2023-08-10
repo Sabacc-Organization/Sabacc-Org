@@ -26,6 +26,8 @@ main
 
     /* Center contents */
     text-align: center;
+
+
 }
 
 main img
@@ -33,6 +35,7 @@ main img
     /* Constrain images on small screens */
     max-width: 100%;
 }
+
 
 .backBlue
 {
@@ -42,6 +45,8 @@ main img
 .backGreen
 {
     background-color: #0cc23c;
+    background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIp5qyp7Kkt--SRMKgjih7qk0BK_tYrb_ObP5OT9WnJUESWkqfqi-6pZatD3CpjtGs6g0&usqp=CAU");
+    color: #ffffff;
 }
 
 .backRed
@@ -56,7 +61,7 @@ main img
 
 .parent
 {
-    text-align: center; 
+    text-align: center;
 }
 
 .child
@@ -65,6 +70,7 @@ main img
     vertical-align: middle;
     padding: 1rem 2rem;
     margin: 10px;
+    border-radius: 10px;
 }
 
 table {
@@ -84,4 +90,95 @@ tr:nth-child(even) {
 
 input[type=number]{
     width: 10rem;
-} 
+}
+
+#psHeader {
+    color: #ffffff;
+}
+
+#phase {
+    color: #ffffff;
+}
+
+.card {
+    background-image: url("/static/images/sabacc-card-back.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    width: 174px;
+    height: 236px;
+    border-radius: 5px;
+    color: #ffffff;
+    text-align: center;
+}
+
+.own:hover {
+
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+/* .own:active {
+    box-shadow:
+    inset 0 0 50px gold,
+    0 0 50px gold
+} */
+
+.protected {
+    background-image: none;
+    background-color: firebrick;
+}
+
+#deck {
+    box-shadow: 3px 3px 0px 10px #323232;
+}
+
+#deck.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#discard {
+    background-image: none;
+    background-color: rgb(226, 182, 24);
+}
+
+#discard.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+.alderaan {
+    background-image: url("/static/images/alderaan.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    width: 200px;
+    height: 200px;
+    border-radius: 100px;
+}
+
+#alderaan.active:hover {
+    box-shadow:
+    inset 0 0 50px #ff9f10,
+    0 0 50px #ff9f10
+}
+
+#alderaan.blown {
+    background-image: url("/static/images/alderaanExplode.webp");
+}
+
+.die {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+}
+
+#dieOne {
+    background-color: #0cc23c;
+}
+
+#dieTwo {
+    background-color: #ed3b3b;
+}

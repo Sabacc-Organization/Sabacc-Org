@@ -10,3 +10,5 @@ cs50==7.0.2
 Werkzeug==1.0.1
 PyYAML==6.0
 MarkupSafe==2.0.1
+python-socketio==4.6.0
+python-engineio==3.13.2

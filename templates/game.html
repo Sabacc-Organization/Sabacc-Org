@@ -465,7 +465,7 @@
 
                 else if ("{{ game['phase'] }}" === "card" || "{{ game['phase'] }}" === "alderaan") {
 
-                    if ("{{ game['phase'] }}" === "card") {
+                    if ("{{ game['phase'] }}" === "card" && {{ game["cycle_count"] }} != 0) {
 
                         $("#alderaan").addClass("active");
 

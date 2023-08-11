@@ -400,7 +400,6 @@ def bet(data):
 
         if len(newPlayers.split(",")) == 1:
             foldEnd = True
-            # TODO END GAME BY FOLDING!! VERY IMPORTANT!! DO NOT FORGET!!
 
         nextPlayer = u_dex
 
@@ -584,7 +583,7 @@ def card(data):
 
         send(data, broadcast=True)
 
-    elif action == "alderaan":
+    elif action == "alderaan" and game["cycle_count"] != 0:
 
         nextPlayer = u_dex + 1
 
@@ -614,6 +613,8 @@ def card(data):
     deckStr = game["deck"]
 
     if endRound == True:
+
+        newCycleCount = game["cycle_count"] + 1
 
         if game["phase"] == "alderaan":
             endGame = True
@@ -673,7 +674,7 @@ def card(data):
 
 
 
-            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), shift)
+            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift)
 
             # Force Reload players
             data = {
@@ -737,8 +738,8 @@ def card(data):
         if len(bestDexes) == 1:
 
             for b in bombOutDexes:
-                creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - round((handPot * 0.1)))
-                newSabaccPot += round(handPot) * 0.1
+                creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
+                newSabaccPot += int(round(handPot) * 0.1)
 
             creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + handPot)
             if abs(bestVal) == 23 or bestVal == 230:
@@ -803,8 +804,8 @@ def card(data):
                     bestDexes.append(handVals.index(val))
 
             for b in bombOutDexes:
-                creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - round((handPot * 0.1)))
-                newSabaccPot += round(handPot) * 0.1
+                creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
+                newSabaccPot += int(round(handPot) * 0.1)
 
             creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + handPot)
             if abs(bestVal) == 23 or bestVal == 230:
@@ -891,7 +892,7 @@ def cont(data):
     handsStr = listToStr(deckData["hands"], sep=";")
 
     # Create game in database
-    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, False)
+    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, False)
 
     # Force Reload players
     data = {

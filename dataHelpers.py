@@ -47,3 +47,9 @@ def strListAppend(strList, item, sep=","):
     listStr.append(item)
 
     return listToStr(listStr, sep)
+
+def shiftList(arr):
+    l = arr.copy()
+    l.insert(0, l[len(l) - 1])
+    l.pop(len(l) - 1)
+    return l

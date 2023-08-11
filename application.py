@@ -850,12 +850,20 @@ def cont(data):
     newPlayers = newPlayers.strip(",")
     users = newPlayers.split(",")
 
+    # Rotate "Dealer"
+    users = shiftList(users)
+    newPlayers = listToStr(users)
+
     newCredits = creditsStr
     if game["folded_credits"] != None:
         newCredits += "," + game["folded_credits"]
 
     newCredits = newCredits.strip(",")
     creditsList = newCredits.split(",")
+
+    # Rotate "Dealer" credits
+    creditsList = shiftList(creditsList)
+    newCredits = listToStr(creditsList)
 
     for c in creditsList:
         creditsList[creditsList.index(c)] = str(int(c) - 15)

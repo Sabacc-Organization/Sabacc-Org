@@ -115,7 +115,7 @@ def host():
         if pForm != "":
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 2 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])
@@ -125,7 +125,7 @@ def host():
         if pForm != "":
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 3 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])
@@ -135,7 +135,7 @@ def host():
         if pForm != "":
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 4 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])
@@ -145,7 +145,7 @@ def host():
         if pForm != "":
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 5 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])
@@ -155,7 +155,7 @@ def host():
         if pForm:
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 6 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])
@@ -165,7 +165,7 @@ def host():
         if pForm != "":
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 7 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])
@@ -175,7 +175,7 @@ def host():
         if pForm != "":
             p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
             if len(p) == 0:
-                return apology("Invalid player 8 username")
+                return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
             players.append(p[0]["id"])

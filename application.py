@@ -995,10 +995,18 @@ def register():
     """Register user"""
 
     if request.method == "POST":
+        
         # Check that username is inputted
         username = request.form.get("username")
         if not username:
             return apology("Missing username", 400)
+        
+        if " " in username:
+            return apology("Please do not put spaces in your username", 400)
+        
+        # Check that username has not already been taken
+        if db.execute("SELECT * FROM users WHERE username = ?", username) != []:
+            return apology("Username has already been taken", 400)
 
         # Check passwords are there and match
         password = request.form.get("password")
@@ -1013,6 +1021,9 @@ def register():
 
         if confirmation != password:
             return apology("Confirmation and password do not match")
+        
+        if " " in password:
+            return apology("Please do not put spaces in your password", 400)
 
         # Make sure that username is not a duplicate of an old one
         usernames = db.execute("SELECT username FROM users")

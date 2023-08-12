@@ -945,10 +945,17 @@ def login():
         # Ensure password is valid
         if not request.form.get("password"):
             return apology("must provide password", 403)
+        
+        orHash = None
 
-        orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+        try:
+            orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+        except IndexError:
+            return apology(f"User {username} does not exist")
+
+
         if check_password_hash(orHash, request.form.get("password")) == False:
-            return apology("invalid password")
+            return apology("Incorrect password")
 
         # Query database for username
         rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))

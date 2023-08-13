@@ -1,7 +1,7 @@
 # Sabacc
 ## Video Demo: <TODO>
 ## Description:
-Sabacc, the space card game. A fast-paced, high-risk, perfect mixture of skill and luck. Engage in this perfect blend of deception, quick calculation, and strategy, at \<INSERT WEBSITE URL\>
+Sabacc, the space card game. A fast-paced, high-risk, perfect mixture of skill and luck. Engage in this perfect blend of deception, quick calculation, and strategy, at http://108.49.126.158
 
 ## Design Choices
 ### Flask vs. Django

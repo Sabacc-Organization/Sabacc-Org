@@ -214,7 +214,7 @@ def host():
         handsStr = listToStr(deckData["hands"], sep=";")
 
         # Create game in database
-        db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, session.get("user_id"))
+        db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn, p_act) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, session.get("user_id"), "")
 
         # Get game ID
         game_id = db.execute("SELECT game_id FROM games WHERE player_ids = ? ORDER BY game_id DESC", playersStr)[0]["game_id"]
@@ -238,6 +238,7 @@ def protect(data):
     protect = data["protect"]
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     user_id = session.get("user_id")
+    uName = db.execute(f"SELECT username FROM users where id = {int(user_id)}")[0]["username"]
     uDex = game["player_ids"].split(",").index(str(user_id))
     u_hand = game["player_hands"].split(";")[uDex]
 
@@ -270,7 +271,7 @@ def protect(data):
     protAllStr = listToStr(protectedAll, sep=";")
 
     # Update the database
-    db.execute(f"UPDATE games SET player_protecteds = ? WHERE game_id = {game_id}", protAllStr)
+    db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
 
     # Force Reload players
     data = {
@@ -295,6 +296,7 @@ def bet(data):
     betsStr = game["player_bets"]
     users = game["player_ids"].split(",")
     user_id = session.get("user_id")
+    uName = db.execute(f"SELECT username FROM users where id = {int(user_id)}")[0]["username"]
     u_dex = users.index(str(user_id))
 
     endRound = False
@@ -319,7 +321,13 @@ def bet(data):
 
         newBets = strListMod(betsStr, 0, amount)
 
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[1]))
+        act = uName
+        if amount == 0:
+            act += " checks"
+        elif amount != 0:
+            act += f" bets ${amount}"
+
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[1]), act)
 
         # Force Reload players
         data = {
@@ -352,7 +360,7 @@ def bet(data):
         if endRound == True:
             nextPlayer = 0
 
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]))
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} calls")
 
         # Force Reload players
         data = {
@@ -374,7 +382,7 @@ def bet(data):
         if str(user_id) == users[0]:
             nextPlayer = 1
 
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]))
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} raises to ${newBets.split(',')[u_dex]}")
 
         # Force Reload players
         data = {
@@ -409,7 +417,7 @@ def bet(data):
         if endRound == True:
             nextPlayer = 0
 
-        db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ? WHERE game_id = {game_id}", newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC)
+        db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, p_act = ? WHERE game_id = {game_id}", newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC, f"{uName} folds")
 
         # Force Reload players
         data = {
@@ -477,6 +485,7 @@ def card(data):
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     users = game["player_ids"].split(",")
     user_id = session.get("user_id")
+    uName = db.execute(f"SELECT username FROM users where id = {int(user_id)}")[0]["username"]
     u_dex = users.index(str(user_id))
     deckStr = game["deck"]
     handsStr = game["player_hands"]
@@ -519,7 +528,7 @@ def card(data):
             nextPlayer = 0
 
 
-        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]))
+        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} draws")
 
         # Force Reload players
         data = {
@@ -531,16 +540,15 @@ def card(data):
 
     elif action == "trade":
 
-        handsList[u_dex] = strListRemove(handsList[u_dex], tradeCard)
-        protsList[u_dex] = strListPop(protsList[u_dex], u_dex)
+        tradeDex = handsList[u_dex].split(",").index(tradeCard)
 
         drawData = drawCard(deckStr)
         newDeck = drawData["deck"]
         newCard = drawData["card"]
-        handsList[u_dex] += "," + newCard
+        handsList[u_dex] = strListMod(handsList[u_dex], tradeDex, newCard)
         newHands = listToStr(handsList, sep=";")
 
-        protsList[u_dex] += ",0"
+        protsList[u_dex] = strListMod(protsList[u_dex], tradeDex, "0")
         newProts = listToStr(protsList, sep=";")
 
         nextPlayer = u_dex + 1
@@ -552,7 +560,7 @@ def card(data):
             nextPlayer = 0
 
 
-        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]))
+        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} trades")
 
         # Force Reload players
         data = {
@@ -573,7 +581,7 @@ def card(data):
             nextPlayer = 0
 
 
-        db.execute(f"UPDATE games SET player_turn = ? WHERE game_id = {game_id}", int(users[nextPlayer]))
+        db.execute(f"UPDATE games SET player_turn = ?, p_act = ? WHERE game_id = {game_id}", int(users[nextPlayer]), f"{uName} stands")
 
         # Force Reload players
         data = {
@@ -594,7 +602,7 @@ def card(data):
             nextPlayer = 0
 
 
-        db.execute(f"UPDATE games SET phase = ?, player_turn = ? WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]))
+        db.execute(f"UPDATE games SET phase = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]), f"{uName} calls Alderaan")
 
         # Force Reload players
         data = {
@@ -671,10 +679,16 @@ def card(data):
 
                         deckStr = newDeck
 
+            shiftStr = ""
+            if shift == True:
+                shiftStr = "Sabacc shift!"
+            elif shift == False:
+                shiftStr = "No shift!"
 
 
 
-            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift)
+
+            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift, shiftStr)
 
             # Force Reload players
             data = {
@@ -812,8 +826,10 @@ def card(data):
                 creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + newSabaccPot)
                 newSabaccPot = 0
 
+        winner = db.execute(f"SELECT username FROM users where id = {int(users[bestDexes[0]])}")[0]["username"]
 
-        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), True)
+
+        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)
 
         # Force Reload players
         data = {
@@ -892,7 +908,7 @@ def cont(data):
     handsStr = listToStr(deckData["hands"], sep=";")
 
     # Create game in database
-    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, False)
+    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
 
     # Force Reload players
     data = {

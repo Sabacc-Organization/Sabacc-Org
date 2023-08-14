@@ -42,11 +42,17 @@ main img
     background-color: rgb(14, 148, 201);
 }
 
-.backGreen
+#pots
 {
-    background-color: #0cc23c;
     background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIp5qyp7Kkt--SRMKgjih7qk0BK_tYrb_ObP5OT9WnJUESWkqfqi-6pZatD3CpjtGs6g0&usqp=CAU");
     color: #ffffff;
+}
+
+#pots.active:hover
+{
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
 }
 
 .backRed
@@ -181,4 +187,9 @@ input[type=number]{
 
 #dieTwo {
     background-color: #ed3b3b;
+}
+
+#pAction
+{
+    color: white;
 }

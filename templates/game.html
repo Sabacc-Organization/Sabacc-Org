@@ -24,7 +24,7 @@
 
     <div id="gameInfo" class="parent">
 
-        <div class="backGreen child">
+        <div id="pots" class="child">
             <br>
             <h2>Hand Pot: <span id="hand_pot">{{ game["hand_pot"] }}</span></h2>
             <br>
@@ -300,6 +300,14 @@
 
                         // If there has been no rasise
                         if (pBets[u_dex + 1] === "") {
+
+                            $("#pots").addClass("active");
+
+                            // Double Tap Check
+                            $("#pots").dblclick(function(){
+                                data = { "game_id": game_id, "action": "bet", "amount": 0};
+                                bet_socket.emit("bet", data);
+                            });
 
                             $("#" + thisUName + "Stuff").append('<div id="betDiv" class="child backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Bet</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 

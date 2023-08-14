@@ -130,23 +130,32 @@
                 uName = us_list[u].slice(1, us_list[u].length - 1)
                 psHeader += uName + " vs. ";
 
-                for (let i = 0; i < hands[u].split(",").length; i++) {
-                    let c = hands[u].split(",")[i];
-                    if (protAll[u].split(",")[i] === "0") {
-                        if (u === u_dex) {
-                            $("#" + uName + "Stuff").append('<div class="card child own"><h2>' + c + '</h2></div>');
+                if ({{ game["completed"] }} === 0) {
+
+                    for (let i = 0; i < hands[u].split(",").length; i++) {
+                        let c = hands[u].split(",")[i];
+                        if (protAll[u].split(",")[i] === "0") {
+                            if (u === u_dex) {
+                                $("#" + uName + "Stuff").append('<div class="card child own"><h2>' + c + '</h2></div>');
+                            }
+                            else {
+                                $("#" + uName + "Stuff").append('<div class="card child"></div>');
+                            }
                         }
                         else {
-                            $("#" + uName + "Stuff").append('<div class="card child"></div>');
+                            if (u === u_dex) {
+                                $("#" + uName + "Stuff").append('<div class="card child own protected"><h2>' + c + '</h2></div>');
+                            }
+                            else {
+                                $("#" + uName + "Stuff").append('<div class="card child protected"><h2>' + c + '</h2></div>');
+                            }
                         }
                     }
-                    else {
-                        if (u === u_dex) {
-                            $("#" + uName + "Stuff").append('<div class="card child own protected"><h2>' + c + '</h2></div>');
-                        }
-                        else {
-                            $("#" + uName + "Stuff").append('<div class="card child protected"><h2>' + c + '</h2></div>');
-                        }
+                }
+                else if ({{ game["completed"] }} === 1) {
+                    for (let i = 0; i < hands[u].split(",").length; i++) {
+                        let c = hands[u].split(",")[i];
+                        $("#" + uName + "Stuff").append('<div class="card child"><h2>' + c + '</h2></div>');
                     }
                 }
             }
@@ -527,10 +536,6 @@
                     });
                 }
 
-            }
-
-            if ({{ game["completed"] }} === 1) {
-                $("#gameInfo").append("<p>Game complete!</p>");
             }
 
 

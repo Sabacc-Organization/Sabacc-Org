@@ -1003,6 +1003,10 @@ def login():
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
 
+        # Set default themes
+        session["dark"] = False
+        session["theme"] = "rebels"
+
         # Redirect user to home page
         return redirect("/")
 
@@ -1076,12 +1080,36 @@ def register():
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
+        
+        # Set default themes
+        session["dark"] = False
+        session["theme"] = "rebels"
 
         # Redirect user to home page
         return redirect("/")
 
     elif request.method == "GET":
         return render_template("register.html")
+    
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+
+    if request.method == "POST":
+
+        dark = request.form.get("dark")
+        if dark == "on":
+            session["dark"] = True
+        elif dark == None:
+            session["dark"] = False
+
+        theme = request.form.get("theme")
+        session["theme"] = theme
+
+        return redirect("/")
+
+    elif request.method == "GET":
+        return render_template("settings.html")
 
 
 def errorhandler(e):

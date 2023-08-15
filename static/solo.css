@@ -1,0 +1,74 @@
+main.game
+{
+    background-image: url("/static/images/red_poker_table.jpeg");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+}
+
+.backBlue
+{
+    background-color: rgb(14, 148, 201);
+}
+
+#pots
+{
+    background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIp5qyp7Kkt--SRMKgjih7qk0BK_tYrb_ObP5OT9WnJUESWkqfqi-6pZatD3CpjtGs6g0&usqp=CAU");
+    color: #ffffff;
+}
+
+#pots.active:hover
+{
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+.backRed
+{
+    background-color: #ed3b3b;
+}
+
+.red
+{
+    color: #ed3b3b;
+}
+
+#psHeader {
+    color: #ffffff;
+}
+
+#phase {
+    color: #ffffff;
+}
+
+.card {
+    /* How to make more clip art https://bennettfeely.com/clippy/ */
+    clip-path: polygon(31% 2%, 69% 2%, 87% 50%, 70% 98%, 30% 98%, 13% 50%);
+    background-image: url("/static/images/solo-card-back.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    background-position: center;
+    width: 210px;
+    height: 236px;
+    border-radius: 5px;
+    color: #ffffff;
+    text-align: center;
+}
+
+.protected {
+    background-image: none;
+    background-color: firebrick;
+}
+
+#dieOne {
+    background-color: #0cc23c;
+}
+
+#dieTwo {
+    background-color: #ed3b3b;
+}
+
+#pAction
+{
+    color: white;
+}

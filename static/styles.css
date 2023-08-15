@@ -37,34 +37,7 @@ main img
 }
 
 
-.backBlue
-{
-    background-color: rgb(14, 148, 201);
-}
-
-#pots
-{
-    background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIp5qyp7Kkt--SRMKgjih7qk0BK_tYrb_ObP5OT9WnJUESWkqfqi-6pZatD3CpjtGs6g0&usqp=CAU");
-    color: #ffffff;
-}
-
-#pots.active:hover
-{
-    box-shadow:
-    inset 0 0 50px #fff,
-    0 0 50px #fff
-}
-
-.backRed
-{
-    background-color: #ed3b3b;
-}
-
-.red
-{
-    color: #ed3b3b;
-}
-
+/* Horizontal Alignment of divs and other tags */
 .parent
 {
     text-align: center;
@@ -79,60 +52,146 @@ main img
     border-radius: 10px;
 }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 30px;
+  }
+  
+  /* Hide default HTML checkbox */
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  /* The slider */
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 34px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+
+
+
+  /* Dropdown Menu */
+
+  /* Dropdown Button */
+.dropbtn {
+  background-color: #04AA6D;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
 }
 
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-tr:nth-child(even) {
-  background-color: #dddddd;
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f1f1f1;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
 }
 
-input[type=number]{
-    width: 10rem;
+/* Links inside the dropdown */
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
 }
 
-#psHeader {
-    color: #ffffff;
-}
+/* Change color of dropdown links on hover */
+.dropdown-content a:hover {background-color: #ddd;}
 
-#phase {
-    color: #ffffff;
-}
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {display: block;}
 
-.card {
-    background-image: url("/static/images/sabacc-card-back.png");
-    background-repeat: no-repeat, no-repeat;
-    background-size: cover;
-    width: 174px;
-    height: 236px;
-    border-radius: 5px;
-    color: #ffffff;
-    text-align: center;
-}
+/* Change the background color of the dropdown button when the dropdown content is shown */
+.dropdown:hover .dropbtn {background-color: #3e8e41;}
 
-.own:hover {
+
+
+/* Table CSS */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #dddddd;
+  }
+
+
+  
+  input[type=number]{
+      width: 10rem;
+  }
+
+
+
+  .own:hover {
 
     box-shadow:
     inset 0 0 50px #fff,
     0 0 50px #fff
-}
-
-/* .own:active {
-    box-shadow:
-    inset 0 0 50px gold,
-    0 0 50px gold
-} */
-
-.protected {
-    background-image: none;
-    background-color: firebrick;
 }
 
 #deck {
@@ -179,17 +238,4 @@ input[type=number]{
     width: 100px;
     height: 100px;
     border-radius: 10px;
-}
-
-#dieOne {
-    background-color: #0cc23c;
-}
-
-#dieTwo {
-    background-color: #ed3b3b;
-}
-
-#pAction
-{
-    color: white;
 }

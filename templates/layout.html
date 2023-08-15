@@ -14,7 +14,16 @@
         <!-- Favicon -->
         <link href="/static/images/favicon.png" rel="icon">
 
+        <!-- General CSS -->
         <link href="/static/styles.css" rel="stylesheet">
+
+        <!-- Light/Dark mode -->
+        {% if session["dark"] == True %}
+            <link href="/static/dark.css" rel="stylesheet">
+        {% endif %}
+
+        <!-- Theme -->
+        <link href="/static/{{ session['theme'] }}.css" rel="stylesheet">
 
         <!-- http://getbootstrap.com/docs/4.5/ -->
         <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
@@ -38,6 +47,7 @@
                         <li class="nav-item"><a class="nav-link" href="/chat">GalactiChat</a></li>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
+                        <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
                         <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
                     </ul>
                 {% else %}

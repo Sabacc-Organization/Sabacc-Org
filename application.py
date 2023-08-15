@@ -61,7 +61,7 @@ def index():
     user_ids = []
     player_turns = []
     for game in games:
-        if str(user_id) not in game["player_ids"].split(","):
+        if str(user_id) not in game["player_ids"].split(",") or game["completed"] == True:
             newGames.remove(game)
 
         else:

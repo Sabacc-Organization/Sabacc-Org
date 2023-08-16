@@ -274,9 +274,12 @@
 
             // If it is the player's turn
             if ({{ game["player_turn"] }} === {{ user_id }}) {
+
+                if ({{ game['completed'] }} === 1) {
+                    // Don't display actions if the game is completed
+                }
                 
-                // Betting Phase
-                if ('{{ game["phase"] }}' === "betting") {
+                else if ('{{ game["phase"] }}' === "betting") { // Betting Phase
                     if (u_dex === 0) {
 
                         // If there has been no raise

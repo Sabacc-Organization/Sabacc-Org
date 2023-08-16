@@ -11,54 +11,42 @@
 
     <h1 id="psHeader"></h1>
     <h2 id="phase"></h2>
-    <h2 id="pAction">{{ game["p_act"] }}</h2>
 
-    <div id="gameInfo" class="parent">
+    <div id="tableCont">
+        <div id="table"></div>
+        <h2 id="pAction">{{ game["p_act"] }}</h2>
+        <div id="gameInfo" class="parent">
 
-        <div id="pots" class="child">
-            <br>
-            <h2>Hand Pot: <span id="hand_pot">{{ game["hand_pot"] }}</span></h2>
-            <br>
-            <h2>Sabacc Pot: <span id="sabacc_pot">{{ game["sabacc_pot"] }}</span></h2>
-            <br>
+            <div id="pots" class="child">
+                <h5>Sabacc: <span id="sabacc_pot">{{ game["sabacc_pot"] }}</span></h5>
+                <h5>Hand: <span id="hand_pot">{{ game["hand_pot"] }}</span></h5>
+            </div>
+    
+            <div id="deck" class="card child">
+            </div>
+    
+            <div id="discard" class="card child">
+                <button type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
+                <br>
+                <button type="button" id="standBtn" class="btn btn-primary smol">Stand</button>
+            </div>
+    
+            <div id="dieOne" class="child die"></div>
+    
+            <div id="dieTwo" class="child die"></div>
+    
+            <div id="alderaan" class="child alderaan"></div>
+    
         </div>
+        {% for i in range(users|length) %}
 
-        <div id="deck" class="card child">
-            <br>
-            <h2>Deck</h2>
-            <br>
-            <br>
-            <h2>Draw</h2>
-        </div>
+            <div id="{{ users[i] }}Stuff" class="parent player{{ i }}"></div>
 
-        <div id="discard" class="card child">
-            <br>
-            <button type="button" id="tradeBtn" class="btn btn-primary">Trade</button>
-            <br>
-            <br>
-            <br>
-            <br>
-            <button type="button" id="standBtn" class="btn btn-primary">Stand</button>
-        </div>
+        {% endfor %}
 
-        <div id="dieOne" class="child die">
-
-        </div>
-
-        <div id="dieTwo" class="child die">
-
-        </div>
-
-        <div id="alderaan" class="child alderaan">
-
-        </div>
-
+        <div id="actBox"></div>
     </div>
 
-    <stuff id="pBoxes">
-
-    </stuff>
-    <br>
 
 
     <!--Put script tags at end to load page faster-->
@@ -102,19 +90,6 @@
             // Protected cards stuff
             let protAll = "{{ game['player_protecteds'] }}".split(";");
 
-            // Generate player boxes
-            for (let i = 0; i < player_ids.length; i++) {
-
-                uName = us_list[i].slice(1, us_list[i].length - 1)
-
-                if (i === u_dex) {
-                    $("#pBoxes").append('<div id="' + uName + 'Stuff" class="parent"> <div id="' + uName + 'Box" class="backBlue child"> <br><h2>$<span id="credits">' + credits[i] + '</span></h2> <br> </div>');
-                }
-                else {
-                    $("#pBoxes").append('<div id="' + uName + 'Stuff" class="parent"> <div id="' + uName + 'Box" class="backRed child"> <br> <h2>' + uName + '</h2> <br> <h2>$<span id="' + uName + '_credits">' + credits[i] + '</span></h2> <br></div>');
-                }
-            }
-
             // Card images
             // Players header text
             let psHeader = "";
@@ -129,7 +104,7 @@
                         let c = hands[u].split(",")[i];
                         if (protAll[u].split(",")[i] === "0") {
                             if (u === u_dex) {
-                                $("#" + uName + "Stuff").append('<div class="card child own"><h2>' + c + '</h2></div>');
+                                $("#" + uName + "Stuff").append('<div class="card child own"><h5>' + c + '</h5></div>');
                             }
                             else {
                                 $("#" + uName + "Stuff").append('<div class="card child"></div>');
@@ -137,10 +112,10 @@
                         }
                         else {
                             if (u === u_dex) {
-                                $("#" + uName + "Stuff").append('<div class="card child own protected"><h2>' + c + '</h2></div>');
+                                $("#" + uName + "Stuff").append('<div class="card child own protected"><h5>' + c + '</h5></div>');
                             }
                             else {
-                                $("#" + uName + "Stuff").append('<div class="card child protected"><h2>' + c + '</h2></div>');
+                                $("#" + uName + "Stuff").append('<div class="card child protected"><h5>' + c + '</h5></div>');
                             }
                         }
                     }
@@ -148,7 +123,7 @@
                 else if ({{ game["completed"] }} === 1) {
                     for (let i = 0; i < hands[u].split(",").length; i++) {
                         let c = hands[u].split(",")[i];
-                        $("#" + uName + "Stuff").append('<div class="card child"><h2>' + c + '</h2></div>');
+                        $("#" + uName + "Stuff").append('<div class="card child"><h5>' + c + '</h5></div>');
                     }
                 }
             }
@@ -161,12 +136,25 @@
                 uName = us_list[u].slice(1, us_list[u].length - 1)
 
                 if (u === u_dex) {
-                    $("#" + uName + "Stuff").append('<div id="' + uName + 'BetBox" class="child backBlue"><br><h2>$' + pBets[u] + '</h2><br></div>');
+                    $("#" + uName + "Stuff").prepend('<div id="' + uName + 'BetBox" class="backBlue"><h5>$' + pBets[u] + '</h5></div>');
                 }
                 else {
-                    $("#" + uName + "Stuff").append('<div id="' + uName + 'BetBox" class="child backRed"><br><h2>$' + pBets[u] + '</h2><br></div>');
+                    $("#" + uName + "Stuff").prepend('<div id="' + uName + 'BetBox" class="backRed"><h5>$' + pBets[u] + '</h5</div>');
                 }
                 
+            }
+
+            // Generate player boxes
+            for (let i = 0; i < player_ids.length; i++) {
+
+                uName = us_list[i].slice(1, us_list[i].length - 1)
+
+                if (i === u_dex) {
+                    $("#" + uName + "Stuff").append('<div id="' + uName + 'Box" class="backBlue"><h5>' + uName + '</h5><h5>$<span id="credits">' + credits[i] + '</span></h5>');
+                }
+                else {
+                    $("#" + uName + "Stuff").append('<div id="' + uName + 'Box" class="backRed"> <h5>' + uName + '</h5> <h5>$<span id="' + uName + '_credits">' + credits[i] + '</span></h5>');
+                }
             }
 
             // Phase text
@@ -291,7 +279,7 @@
                 if ('{{ game["phase"] }}' === "betting") {
                     if (u_dex === 0) {
 
-                        // If there has been no rasise
+                        // If there has been no raise
                         if (pBets[u_dex + 1] === "") {
 
                             $("#pots").addClass("active");
@@ -302,7 +290,7 @@
                                 bet_socket.emit("bet", data);
                             });
 
-                            $("#" + thisUName + "Stuff").append('<div id="betDiv" class="child backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Bet</button> </form><p id="invalidBetCredits" class="red"></p></div>');
+                            $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Bet</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 
                             $("#betBtn").click(function(){
                                 let credsIn = document.getElementById("betCredits").value;
@@ -341,7 +329,7 @@
                             followAmount = raiseAmount - parseInt(pBets[u_dex]);
 
 
-                            $("#" + thisUName + "Stuff").append('<div id="betDiv" class="child backBlue"> <form> <button type="button" id="callOpt" class="btn btn-primary">Call</button> <button type="button" id="raiseOpt" class="btn btn-primary">Raise</button> <button type="button" id="foldOpt" class="btn btn-primary">Fold</button> </form><p id="invalidBetCredits" class="red"></p></div>');
+                            $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <button type="button" id="callOpt" class="btn btn-primary">Call</button> <button type="button" id="raiseOpt" class="btn btn-primary">Raise</button> <button type="button" id="foldOpt" class="btn btn-primary">Fold</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 
                             // Player calls
                             $("#callOpt").click(function(){
@@ -359,7 +347,7 @@
 
 
                                 // Ask how much to raise to
-                                $("#" + thisUName + "Stuff").append('<div id="betDiv" class="child backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Raise</button> </form><p id="invalidBetCredits" class="red"></p></div>');
+                                $("#" + thisUName + "Stuff").append('<div id="betDiv" class="backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Raise</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 
                                 $("#betBtn").click(function(){
                                     let credsIn = document.getElementById("betCredits").value;
@@ -401,7 +389,7 @@
 
                     else {
 
-                        $("#" + thisUName + "Stuff").append('<div id="betDiv" class="child backBlue"> <form> <button type="button" id="callOpt" class="btn btn-primary">Call</button> <button type="button" id="raiseOpt" class="btn btn-primary">Raise</button> <button type="button" id="foldOpt" class="btn btn-primary">Fold</button> </form><p id="invalidBetCredits" class="red"></p></div>');
+                        $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <button type="button" id="callOpt" class="btn btn-primary">Call</button> <button type="button" id="raiseOpt" class="btn btn-primary">Raise</button> <button type="button" id="foldOpt" class="btn btn-primary">Fold</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 
                         // Player calls
                         $("#callOpt").click(function(){
@@ -428,7 +416,7 @@
 
 
                             // Ask how much to raise to
-                            $("#" + thisUName + "Stuff").append('<div id="betDiv" class="child backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Raise</button> </form><p id="invalidBetCredits" class="red"></p></div>');
+                            $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Raise</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 
                             $("#betBtn").click(function(){
                                 let credsIn = document.getElementById("betCredits").value;
@@ -500,7 +488,7 @@
                             switch (event.which) {
 
                                 case 1:
-                                    data = { "game_id": game_id, "action": "trade", "trade": $(this).find("h2").text()};
+                                    data = { "game_id": game_id, "action": "trade", "trade": $(this).find("h5").text()};
                                     card_socket.emit("card", data);
                                     break;
 

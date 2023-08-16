@@ -342,28 +342,42 @@
                             // Player raises
                             $("#raiseOpt").click(function(){
 
+                                let lowVal = 0;
+
+                                for (let i = 0; i < pBets.length; i++) {
+                                    try {
+                                        if (parseInt(pBets[i]) > lowVal) {
+                                            lowVal = pBets[i];
+                                        }
+                                    }
+                                    catch (error) {
+                                        console.log(error);
+                                    }
+                                }
+                                lowVal++;
+
                                 // Remove old form prompt
                                 $("#betDiv").remove();
 
 
                                 // Ask how much to raise to
-                                $("#" + thisUName + "Stuff").append('<div id="betDiv" class="backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Raise</button> </form><p id="invalidBetCredits" class="red"></p></div>');
+                                $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <input id="betCredits" type="number" class="form-control form-group" min="0" max="' + credits[u_dex] + '" placeholder="Credits" required> <button type="button" id="betBtn" class="btn btn-primary">Raise</button> </form><p id="invalidBetCredits" class="red"></p></div>');
 
                                 $("#betBtn").click(function(){
                                     let credsIn = document.getElementById("betCredits").value;
                                     if (credsIn === "") {
                                         document.getElementById("invalidBetCredits").innerHTML =
-                                        "Please input a number of credits you would like to bet(an integer " + String(parseInt(pBets[0]) + 1) + " to " + credits[u_dex] +
+                                        "Please input a number of credits you would like to bet(an integer " + String(lowVal) + " to " + credits[u_dex] +
                                     ")";
                                     } 
                                     else if (isNaN(parseInt(credsIn))) {
                                         document.getElementById("invalidBetCredits").innerHTML =
-                                    "Invalid amount of credits - Please input a valid number of credits (an integer " + String(parseInt(pBets[0]) + 1) + " to " +
+                                    "Invalid amount of credits - Please input a valid number of credits (an integer " + String(lowVal) + " to " +
                                     credits[u_dex] + ")";
                                     } 
-                                    else if (credsIn <= parseInt(pBets[0]) || credsIn > parseInt(credits[u_dex])) {
+                                    else if (credsIn < lowVal || credsIn > parseInt(credits[u_dex])) {
                                         document.getElementById("invalidBetCredits").innerHTML =
-                                    "Invalid amount of credits - Please input a valid number of credits (an integer " + String(parseInt(pBets[0]) + 1) + " to " +
+                                    "Invalid amount of credits - Please input a valid number of credits (an integer " + String(lowVal) + " to " +
                                     credits[u_dex] + ")";
                                     } 
                                     else {

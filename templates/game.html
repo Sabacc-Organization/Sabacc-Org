@@ -318,6 +318,7 @@
                             $('.betPile').droppable({
                                 accept: '.ownChip',
                                 drop: function(event, ui) {
+                                    $("#actBox").show();
                                     $(this).append(ui.helper.clone()); // Append the clone to the droppable area
                                     
                                     let incVal;
@@ -343,6 +344,7 @@
 
                             // Submit bet
                             $("#actBox").append('<button type="button" id="betBtn" class="btn btn-primary">Bet</button>');
+                            $("#actBox").hide();
 
                             $("#betBtn").click(function(){
                                 let credsIn = parseInt($("#betSpan").text());

@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
+from alderaanHelpers import *
 from flask_socketio import SocketIO, send, emit
 import yaml
 
@@ -700,133 +701,36 @@ def card(data):
 
 
     if endGame == True:
-        handVals = []
 
-        for hand in handsList:
-            v = 0
-            for card in hand.split(","):
-                v += int(card)
+        alderaanData = alderaanEnd(handsList, deckStr, protsList, False)
 
-            if hand.split(",").sort() == ["0", "2", "3"]:
-                v = 230
+        newHands = listToStr(alderaanData["handsList"], sep=";")
+        newDeck = listToStr(alderaanData["deck"])
+        newProtecteds = listToStr(alderaanData["protsList"], sep=";")
+        winnerDex = alderaanData["winner"]
+        winnerVal = alderaanData["winnerVal"]
 
-            elif hand.split(",") == ["-2", "-2"]:
-                v = -22
-
-            handVals.append(v)
-
-        bestVal = 0
-
-        bestDexes = []
-
+        handVals = calcHandVals(alderaanData["handsList"])
         bombOutDexes = []
 
         for val in handVals:
-            if val == 230:
-                bestVal = val
-                break
-
-            elif val == 0 or abs(val) > 23:
+            if (val == 0 or abs(val) > 23) and val != winnerVal:
                 bombOutDexes.append(handVals.index(val))
 
-            elif abs(val) > abs(bestVal):
-                bestVal = val
-
-            elif abs(val) == abs(bestVal):
-                if val > bestVal: #aka if this new val is positive and the old one is negative
-                    bestVal = val
-
-        for val in handVals:
-            if val == bestVal:
-                bestDexes.append(handVals.index(val))
-
-
-        newDeck = deckStr
-        newHands = handsStr
-        newProtecteds = protsStr
 
         newSabaccPot = game["sabacc_pot"]
+        for b in bombOutDexes:
+            creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
+            newSabaccPot += int(round(handPot) * 0.1)
+
+        creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + handPot)
+        if abs(winnerVal) == 23 or winnerVal == 230:
+            creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + newSabaccPot)
+            newSabaccPot = 0
+
         
 
-        # One winner, probable case
-        if len(bestDexes) == 1:
-
-            for b in bombOutDexes:
-                creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
-                newSabaccPot += int(round(handPot) * 0.1)
-
-            creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + handPot)
-            if abs(bestVal) == 23 or bestVal == 230:
-                creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + newSabaccPot)
-                newSabaccPot = 0
-
-        # Tie, improbable TODO Probably super buggy, too lazy to test
-        elif len(bestDexes) > 1:
-            for i in bestDexes:
-
-                drawData = drawCard(deckStr)
-                newDeck = drawData["deck"]
-                newCard = drawData["card"]
-                handsList[i] += "," + newCard
-                handsList[i] = handsList[i].strip(",")
-                newHands = listToStr(handsList, sep=";")
-
-                protsList[i] += ",0"
-                protsList[i] = protsList[i].strip(",")
-                newProtecteds = listToStr(protsList, sep=";")
-
-                deckStr = newDeck
-
-            handVals = []
-
-            for hand in handsList:
-                v = 0
-                for card in hand.split(","):
-                    v += int(card)
-
-                if hand.split(",").sort() == ["0", "2", "3"]:
-                    v = 230
-
-                elif hand.split(",") == ["-2", "-2"]:
-                    v = -22
-
-                handVals.append(v)
-
-            bestVal = 0
-
-            bestDexes = []
-
-            bombOutDexes = []
-
-            for val in handVals:
-                if val == 230:
-                    bestVal = val
-                    break
-
-                elif val == 0 or abs(val) > 23:
-                    bombOutDexes.append(handVals.index(val))
-
-                elif abs(val) > abs(bestVal):
-                    bestVal = val
-
-                elif abs(val) == abs(bestVal):
-                    if val > bestVal: #aka if this new val is positive and the old one is negative
-                        bestVal = val
-
-            for val in handVals:
-                if val == bestVal:
-                    bestDexes.append(handVals.index(val))
-
-            for b in bombOutDexes:
-                creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
-                newSabaccPot += int(round(handPot) * 0.1)
-
-            creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + handPot)
-            if abs(bestVal) == 23 or bestVal == 230:
-                creditsStr = strListMod(creditsStr, bestDexes[0], int(strListRead(creditsStr, bestDexes[0])) + newSabaccPot)
-                newSabaccPot = 0
-
-        winner = db.execute(f"SELECT username FROM users where id = {int(users[bestDexes[0]])}")[0]["username"]
+        winner = db.execute(f"SELECT username FROM users where id = {int(users[winnerDex])}")[0]["username"]
 
 
         db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)

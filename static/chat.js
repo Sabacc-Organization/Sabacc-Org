@@ -1,6 +1,6 @@
 $(document).ready(function() {
 
-	let dom = "http://127.0.0.1:5000";
+	let dom = configs["domain"];
 
 	var socket = io.connect(dom);
 	var chat_socket = io(dom + '/chat');

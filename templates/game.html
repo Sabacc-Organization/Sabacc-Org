@@ -175,7 +175,7 @@
 
             // General Socket Setup
 
-            let dom = "http://127.0.0.1:5000";
+            let dom = configs["domain"];
 
             var socket = io.connect(dom);
             var game_socket = io(dom + '/game');

@@ -54,11 +54,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js"></script>
 
+    <!-- Game JavaScript -->
+    <script src="/static/game/game.js"></script>
+    <script src="/static/game/socketStuff.js"></script>
+    <script src="/static/game/bet.js"></script>
+    <script src="/static/game/card.js"></script>
+
     <script>
 
         $(document).ready(function() {
 
-            $("main").addClass("game");
+            pageReady = false;
 
             // Setup Stuff
 
@@ -71,118 +77,52 @@
                 document.getElementById(id).hidden = true;
             }
 
+            // Eliminating var and let to make variables truly global
+
             // User stuff
-            let player_ids = $("#game").attr("player_ids").split(",");
-            let u_dex = player_ids.indexOf(String({{ user_id }}));
-            let us_raw = $("#users").attr("u");
-            let us_part = us_raw.slice(1, us_raw.length - 1);
-            let us_list = us_part.split(", ");
-            let game_id = {{ game['game_id'] }};
-            let thisUName = us_list[u_dex].slice(1, us_list[u_dex].length - 1);
+            player_ids = $("#game").attr("player_ids").split(",");
+            u_dex = player_ids.indexOf(String({{ user_id }}));
+            us_raw = $("#users").attr("u");
+            us_part = us_raw.slice(1, us_raw.length - 1);
+            us_list = us_part.split(", ");
+            game_id = {{ game['game_id'] }};
+            thisUName = us_list[u_dex].slice(1, us_list[u_dex].length - 1);
 
-            // Place user at "pole position"
-            if (u_dex != 0) {
-                let ogPZero = $(".player0");
-                let ogPThis = $(".player" + String(u_dex));
+            pageReady = true;
 
-                ogPZero.addClass("player" + String(u_dex));
-                ogPZero.removeClass("player0");
-
-                ogPThis.addClass("player0");
-                ogPThis.removeClass("player" + String(u_dex));
-
+            // Global Game data
+            game = {
+                "game_id": {{ game["game_id"] }},
+                "player_ids": '{{ game["player_ids"] }}',
+                "player_credits": '{{ game["player_credits"] }}',
+                "player_bets": '{{ game["player_bets"] }}',
+                "hand_pot": {{ game["hand_pot"] }},
+                "sabacc_pot": {{ game["sabacc_pot"] }},
+                "phase": '{{ game["phase"] }}',
+                "deck": '{{ game["deck"] }}',
+                "player_hands": '{{ game["player_hands"] }}',
+                "player_protecteds": '{{ game["player_protecteds"] }}',
+                "player_turn": {{ game["player_turn"] }},
+                "folded_players": '{{ game["folded_players"] }}',
+                "folded_credits": '{{ game["folded_credits"] }}',
+                "p_act": '{{ game["p_act"] }}',
+                "cycle_count": {{ game["cycle_count"] }},
+                "shift": {{ game["shift"] }},
+                "completed": {{ game["completed"] }}
             }
 
             // Hand stuff
-            let hands = "{{ game['player_hands'] }}".split(";");
+            hands = "{{ game['player_hands'] }}".split(";");
 
             // Credits stuff
-            let credits = "{{ game['player_credits'] }}".split(",");
-            let pBets = "{{ game['player_bets'] }}".split(",");
+            credits = "{{ game['player_credits'] }}".split(",");
+            pBets = "{{ game['player_bets'] }}".split(",");
 
             // Protected cards stuff
-            let protAll = "{{ game['player_protecteds'] }}".split(";");
+            protAll = "{{ game['player_protecteds'] }}".split(";");
 
-            // Card images
-            // Players header text
-            let psHeader = "";
-            for (let u = 0; u < us_list.length; u++) {
 
-                uName = us_list[u].slice(1, us_list[u].length - 1)
-                psHeader += uName + " vs. ";
-
-                if ({{ game["completed"] }} === 0) {
-
-                    for (let i = 0; i < hands[u].split(",").length; i++) {
-                        let c = hands[u].split(",")[i];
-                        if (protAll[u].split(",")[i] === "0") {
-                            if (u === u_dex) {
-                                $("#" + uName + "Stuff").append('<div class="card child own"><h5>' + c + '</h5></div>');
-                            }
-                            else {
-                                $("#" + uName + "Stuff").append('<div class="card child"></div>');
-                            }
-                        }
-                        else {
-                            if (u === u_dex) {
-                                $("#" + uName + "Stuff").append('<div class="card child own protected"><h5>' + c + '</h5></div>');
-                            }
-                            else {
-                                $("#" + uName + "Stuff").append('<div class="card child protected"><h5>' + c + '</h5></div>');
-                            }
-                        }
-                    }
-                }
-                else if ({{ game["completed"] }} === 1) {
-                    for (let i = 0; i < hands[u].split(",").length; i++) {
-                        let c = hands[u].split(",")[i];
-                        $("#" + uName + "Stuff").append('<div class="card child"><h5>' + c + '</h5></div>');
-                    }
-                }
-            }
-            psHeader = psHeader.slice(0, psHeader.length - 5);
-            $("#psHeader").text(psHeader);
-
-            // Bet Boxes
-            for (let u = 0; u < us_list.length; u++) {
-
-                uName = us_list[u].slice(1, us_list[u].length - 1)
-
-                if (u === u_dex) {
-                    $("#" + uName + "Stuff").prepend('<div id="' + uName + 'BetBox" class="backBlue"><h5>$<span id="betSpan">' + pBets[u] + '</span></h5> <div id="' + uName + 'BetPile" </div></div>');
-                }
-                else {
-                    $("#" + uName + "Stuff").prepend('<div id="' + uName + 'BetBox" class="backRed"><h5>$' + pBets[u] + '</h5</div>');
-                }
-                
-            }
-
-            // Generate player boxes
-            for (let i = 0; i < player_ids.length; i++) {
-
-                uName = us_list[i].slice(1, us_list[i].length - 1)
-
-                if (i === u_dex) {
-                    $("#" + uName + "Stuff").append('<div id="' + uName + 'Box" class="backBlue"><h5>' + uName + '</h5> <div class="parent"> <div class="ownChip child chip bigChip"></div> <div class="ownChip child chip midChip"></div> <div class="ownChip child chip lowChip"></div> </div> <h5>$<span id="credits">' + credits[i] + '</span></h5>');
-                }
-                else {
-                    $("#" + uName + "Stuff").append('<div id="' + uName + 'Box" class="backRed"> <h5>' + uName + '</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5>$<span id="' + uName + '_credits">' + credits[i] + '</span></h5>');
-                }
-            }
-
-            // Phase text
-            $("#phase").text($("#game").attr("phase") + " phase");
-
-            // General Socket Setup
-
-            let dom = configs["domain"];
-
-            var socket = io.connect(dom);
-            var game_socket = io(dom + '/game');
-            var protect_socket = io(dom + '/protect');
-            var bet_socket = io(dom + '/bet');
-            var card_socket = io(dom + '/card');
-            var cont_socket = io(dom + '/cont');
+            socketSetup();
 
             game_socket.on('connect', function() {
                 game_socket.emit("game");
@@ -216,10 +156,6 @@
 
             });
 
-            function sleep(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-
             card_socket.on('message', function(msg) {
 
                 // Check to see if the broadcast is referring to this game
@@ -231,7 +167,6 @@
                     }
 
                 }
-
 
             });
 
@@ -250,385 +185,59 @@
 
             });
 
-
-            if ({{ game["shift"] }} === 1) {
-                $("#dieTwo").css("background-color", "#0cc23c");
-            }
-
+            setupGame();
 
             // Protecting stuff
-
             $('.own').mousedown(function(event) {
-                    switch (event.which) {
+                switch (event.which) {
 
-                        case 1:
-                            break;
+                    case 1:
+                        break;
 
-                        case 2:
-                            break;
+                    case 2:
+                        break;
 
-                        case 3:
-                            $(this).addClass("protected");
-                            data = {"game_id": game_id, "protect": $(this).text()}; // There is a bug here. One day I will regret this. Do not protect two identical cards.
-                            protect_socket.emit("protect", data);
-                            break;
+                    case 3:
+                        $(this).addClass("protected");
+                        data = {"game_id": game_id, "protect": $(this).text()}; // There is a bug here. One day I will regret this. Do not protect two identical cards.
+                        protect_socket.emit("protect", data);
+                        break;
 
-                        default:
-                            
-                    }
-                });
+                    default:
+                        
+                }
+            });
 
-            
-            // Alderaan blown up
-            if ("{{ game['phase'] }}" === "alderaan") {
-                $("#alderaan").addClass("blown");
-            }
 
 
             // If it is the player's turn
-            if ({{ game["player_turn"] }} === {{ user_id }}) {
-
-                if ({{ game['completed'] }} === 1) {
-                    // Don't display actions if the game is completed
-                }
+            if ({{ game["player_turn"] }} === {{ user_id }} && game["completed"] === 0) {
                 
-                else if ('{{ game["phase"] }}' === "betting") { // Betting Phase
-                    if (u_dex === 0) {
-
-                        // If there has been no raise
-                        if (pBets[u_dex + 1] === "") {
-
-                            $("#pots").addClass("active");
-
-                            // Double Tap Check
-                            $("#pots").dblclick(function(){
-                                data = { "game_id": game_id, "action": "bet", "amount": 0};
-                                bet_socket.emit("bet", data);
-                            });
-
-                            // Dragging interface
-                            $("#" + thisUName + "BetPile").addClass("betPile");
-
-                            $('.ownChip').draggable({
-                                cursor: 'move',
-                                revert: 'invalid', // Revert only if not dropped onto a valid droppable target
-                                helper: 'clone'   // Use a clone when dragging
-                            });
-
-                            $('.betPile').droppable({
-                                accept: '.ownChip',
-                                drop: function(event, ui) {
-                                    $("#actBox").show();
-                                    $(this).append(ui.helper.clone()); // Append the clone to the droppable area
-                                    
-                                    let incVal;
-                                    if (ui.helper.hasClass("bigChip")) {
-                                        incVal = 10;
-                                    }
-                                    else if (ui.helper.hasClass("midChip")) {
-                                        incVal = 5;
-                                    }
-                                    else if (ui.helper.hasClass("lowChip")) {
-                                        incVal = 1;
-                                    }
-
-                                    if (isNaN(parseInt($("#betSpan").text()))) {
-                                        $("#betSpan").text(String(incVal));
-                                    }
-                                    else {
-
-                                        $("#betSpan").text(String(parseInt($("#betSpan").text()) + incVal));
-                                    }
-                                }
-                            });
-
-                            // Submit bet
-                            $("#actBox").append('<button type="button" id="betBtn" class="btn btn-primary">Bet</button>');
-                            $("#actBox").hide();
-
-                            $("#betBtn").click(function(){
-                                let credsIn = parseInt($("#betSpan").text());
-                                if (isNaN(credsIn)) {
-                                    $("#betDiv").remove();
-                                    data = { "game_id": game_id, "action": "bet", "amount": 0 };
-                                    bet_socket.emit("bet", data);
-                                ")";
-                                } else if (credsIn < 0 || credsIn > parseInt(credits[u_dex])) {
-                                } else {
-                                    $("#betDiv").remove();
-                                    data = { "game_id": game_id, "action": "bet", "amount": credsIn };
-                                    bet_socket.emit("bet", data);
-                                }
-                            });
-
-                        }
-
-                        // If there has been a raise
-                        else {
-                            let raiseAmount = 0;
-                            let followAmount = 0;
-                            for (let i = 1; i < pBets.length; i++) {
-                                if (pBets[i] != "") {
-                                    if (parseInt(pBets[i]) > raiseAmount) {
-                                        raiseAmount = parseInt(pBets[i]);
-                                    }
-                                }
-                            }
-                            followAmount = raiseAmount - parseInt(pBets[u_dex]);
-
-
-                            $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <button type="button" id="callOpt" class="btn btn-primary">Call</button> <button type="button" id="raiseOpt" class="btn btn-primary">Raise</button> <button type="button" id="foldOpt" class="btn btn-primary">Fold</button> </form><p id="invalidBetCredits" class="red"></p></div>');
-
-                            // Player calls
-                            $("#callOpt").click(function(){
-                                hide("betDiv");
-                                data = { "game_id": game_id, "action": "call", "amount": followAmount};
-                                bet_socket.emit("bet", data);
-                            });
-
-
-                            // Player raises
-                            $("#raiseOpt").click(function(){
-
-                                let lowVal = 0;
-
-                                for (let i = 0; i < pBets.length; i++) {
-                                    try {
-                                        if (parseInt(pBets[i]) > lowVal && !isNaN(parseInt(pBets[i]))) {
-                                            lowVal = pBets[i];
-                                        }
-                                    }
-                                    catch (error) {
-                                        console.log(error);
-                                    }
-                                }
-                                lowVal;
-
-                                // Remove old bet prompt
-                                $("#betDiv").remove();
-
-                                $("#betSpan").text(String(lowVal));
-
-                                // Dragging interface
-                                $("#" + thisUName + "BetPile").addClass("betPile");
-
-                                $("#betSpan").text(pBets[u_dex - 1]);
-
-                                $('.ownChip').draggable({
-                                    cursor: 'move',
-                                    revert: 'invalid', // Revert only if not dropped onto a valid droppable target
-                                    helper: 'clone'   // Use a clone when dragging
-                                });
-
-                                $('.betPile').droppable({
-                                    accept: '.ownChip',
-                                    drop: function(event, ui) {
-                                        $(this).append(ui.helper.clone()); // Append the clone to the droppable area
-                                        
-                                        let incVal;
-                                        if (ui.helper.hasClass("bigChip")) {
-                                            incVal = 10;
-                                        }
-                                        else if (ui.helper.hasClass("midChip")) {
-                                            incVal = 5;
-                                        }
-                                        else if (ui.helper.hasClass("lowChip")) {
-                                            incVal = 1;
-                                        }
-
-                                        if (isNaN(parseInt($("#betSpan").text()))) {
-                                            $("#betSpan").text(String(incVal));
-                                        }
-                                        else {
-
-                                            $("#betSpan").text(String(parseInt($("#betSpan").text()) + incVal));
-                                        }
-                                    }
-                                });
-
-
-                                // Submit bet
-                                $("#actBox").append('<button type="button" id="raiseBtn" class="btn btn-primary">Raise</button>');
-
-                                $("#raiseBtn").click(function(){
-                                    let credsIn = parseInt($("#betSpan").text());
-                                    if (credsIn > lowVal && credsIn < parseInt(credits[u_dex])) {
-                                        // $("#betDiv").remove();
-                                        data = { "game_id": game_id, "action": "raise", "amount": credsIn - pBets[u_dex] };
-                                        bet_socket.emit("bet", data);
-                                    }
-                                });
-                                
-
-                            });
-
-                            // Player folds
-                            $("#foldOpt").click(function(){
-                                hide("betDiv");
-                                data = { "game_id": game_id, "action": "fold"};
-                                bet_socket.emit("bet", data);
-                            });
-                            
-                        }
-
-
-                    }
-
-                    else {
-
-                        $("#actBox").append('<div id="betDiv" class="backBlue"> <form> <button type="button" id="callOpt" class="btn btn-primary">Call</button> <button type="button" id="raiseOpt" class="btn btn-primary">Raise</button> <button type="button" id="foldOpt" class="btn btn-primary">Fold</button> </form><p id="invalidBetCredits" class="red"></p></div>');
-
-                        // Player calls
-                        $("#callOpt").click(function(){
-                            hide("betDiv");
-                            let a;
-                            if (pBets[u_dex] != "") {
-                                a = parseInt(pBets[0]) - parseInt(pBets[u_dex]);
-                            } 
-                            else {
-                                a = parseInt(pBets[0]);
-                            }
-
-
-                            data = { "game_id": game_id, "action": "call", "amount": a};
-                            bet_socket.emit("bet", data);
-                        });
-
-
-                        // Player raises
-                        $("#raiseOpt").click(function(){
-
-                            $("#betDiv").remove();
-
-                            $("#betSpan").text(pBets[u_dex - 1]);
-
-                            // Dragging interface
-                            $("#" + thisUName + "BetPile").addClass("betPile");
-
-                            $("#betSpan").text(pBets[u_dex - 1]);
-
-                            $('.ownChip').draggable({
-                                cursor: 'move',
-                                revert: 'invalid', // Revert only if not dropped onto a valid droppable target
-                                helper: 'clone'   // Use a clone when dragging
-                            });
-
-                            $('.betPile').droppable({
-                                accept: '.ownChip',
-                                drop: function(event, ui) {
-                                    $(this).append(ui.helper.clone()); // Append the clone to the droppable area
-                                    
-                                    let incVal;
-                                    if (ui.helper.hasClass("bigChip")) {
-                                        incVal = 10;
-                                    }
-                                    else if (ui.helper.hasClass("midChip")) {
-                                        incVal = 5;
-                                    }
-                                    else if (ui.helper.hasClass("lowChip")) {
-                                        incVal = 1;
-                                    }
-
-                                    if (isNaN(parseInt($("#betSpan").text()))) {
-                                        $("#betSpan").text(String(incVal));
-                                    }
-                                    else {
-
-                                        $("#betSpan").text(String(parseInt($("#betSpan").text()) + incVal));
-                                    }
-                                }
-                            });
-
-
-                            // Submit bet
-                            $("#actBox").append('<button type="button" id="raiseBtn" class="btn btn-primary">Raise</button>');
-
-                            $("#raiseBtn").click(function(){
-                                let credsIn = parseInt($("#betSpan").text());
-                                if (credsIn > parseInt(pBets[u_dex - 1]) && credsIn < parseInt(credits[u_dex])) {
-                                    $("#betDiv").remove();
-                                    data = { "game_id": game_id, "action": "raise", "amount": credsIn - pBets[u_dex] };
-                                    bet_socket.emit("bet", data);
-                                }
-                            });
-                        });
-
-                        // Player folds
-                        $("#foldOpt").click(function(){
-                            $("#betDiv").remove();
-                            data = { "game_id": game_id, "action": "fold"};
-                            bet_socket.emit("bet", data);
-                        });
-
-                    }
+                if ('{{ game["phase"] }}' === "betting") { // Betting Phase
+                    
+                    betPhase();
 
                 }
 
 
                 else if ("{{ game['phase'] }}" === "card" || "{{ game['phase'] }}" === "alderaan") {
 
-                    if ("{{ game['phase'] }}" === "card" && {{ game["cycle_count"] }} != 0) {
-
-                        $("#alderaan").addClass("active");
-
-                        $("#alderaan").click(function(){
-                           
-                            data = { "game_id": game_id, "action": "alderaan"};
-                            card_socket.emit("card", data);
-                            
-                        });
-                    }
-
-                    $("#deck").addClass("active");
-                    $("#discard").addClass("active");
-
-                    $("#deck").click(function(){
-                        data = { "game_id": game_id, "action": "draw"};
-                        card_socket.emit("card", data);
-                    });
-
-                    $("#tradeBtn").click(function(){
-                        $('.own').click(function(event) {
-                            switch (event.which) {
-
-                                case 1:
-                                    data = { "game_id": game_id, "action": "trade", "trade": $(this).find("h5").text()};
-                                    card_socket.emit("card", data);
-                                    break;
-
-                                case 2:
-                                    break;
-
-                                case 3:
-                                    break;
-
-                                default:
-                                    
-                            }
-                        });
-
-                        
-                    });
-
-                    $("#standBtn").click(function(){
-                        data = { "game_id": game_id, "action": "stand"};
-                        card_socket.emit("card", data);
-                    });
+                    cardPhase();
 
                 }
 
-                if ({{ game["completed"] }} === 1) {
-                    $("#gameInfo").append('<button type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>');
+            }
 
-                    $("#pAgainBtn").click(function(){
-                        
+            else if (game["player_turn"] === {{ user_id }} && game["completed"] === 1) {
+                $("#gameInfo").append('<button type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>');
 
-                        data = { "game_id": game_id };
-                        cont_socket.emit("cont", data);
-                        
-                    });
-                }
+                $("#pAgainBtn").click(function(){
+                    
 
+                    let data = { "game_id": game_id };
+                    cont_socket.emit("cont", data);
+                    
+                });
             }
 
 

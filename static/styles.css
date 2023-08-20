@@ -52,6 +52,16 @@ main img
     border-radius: 10px;
 }
 
+.video
+{
+  margin: 0;
+}
+
+.vidOne
+{
+  margin-top: 78px;
+}
+
 /* The switch - the box around the slider */
 .switch {
     position: relative;

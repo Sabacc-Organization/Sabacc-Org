@@ -11,7 +11,7 @@ from alderaanHelpers import *
 from flask_socketio import SocketIO, send, emit
 import yaml
 
-# Get config.yaml data
+# Get config.yml data
 config = {}
 with open("config.yml", "r") as f:
     config = yaml.safe_load(f)
@@ -52,15 +52,19 @@ db = SQL("sqlite:///sabacc.db")
 
 @app.route("/")
 def index():
-    """Show home page"""
+    """ Home Page """
 
     # Get the user's id for later use
     user_id = session.get("user_id")
 
+    # Query the database for all the games
     games = db.execute("SELECT * FROM games")
     newGames = games.copy()
+
     user_ids = []
     player_turns = []
+
+    # Remove games that have been completed and that are not relevant to the player
     for game in games:
         if str(user_id) not in game["player_ids"].split(",") or game["completed"] == True:
             newGames.remove(game)
@@ -70,6 +74,7 @@ def index():
             player_turns.append(db.execute("SELECT username FROM users WHERE id = ?", game["player_turn"])[0]["username"])
 
 
+    # Get all the relevant usernames from the database
     usernames = []
     for set in user_ids:
         s = ""
@@ -86,15 +91,23 @@ def index():
 
 @socketio.on("message", namespace="/chat")
 def handleMessage(msg):
+
+    """ GalactiChat """
+
+    # Broadcast the recieved message to all chatters
     send(msg, broadcast=True)
 
 @app.route("/chat")
 @login_required
 def chat():
+
     """Global Chat using Socket.IO"""
 
+    # Tell the client what their username is
     user_id = session.get("user_id")
     user = db.execute(f"SELECT * FROM users WHERE id = {user_id}")[0]
+
+
     return render_template("chat.html", user=user)
 
 @app.route("/host", methods=["GET", "POST"])
@@ -110,6 +123,8 @@ def host():
         # Make list of players
         players = []
         players.append(session.get("user_id"))
+
+        # Check all eight player input boxes for player usernames
 
         pForm = request.form.getlist("player2")[0]
 
@@ -225,6 +240,9 @@ def host():
 
 @socketio.on("game", namespace="/game")
 def game_connect():
+
+    """ Establish Game Socket Connection """
+
     user_id = session.get("user_id")
     if not user_id:
         return

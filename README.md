@@ -4,12 +4,59 @@
 ## Description:
 Sabacc, the space card game. A fast-paced, high-risk, perfect mixture of skill and luck. Engage in this perfect blend of deception, quick calculation, and strategy, at http://sabacc.samuelanes.com
 
+## Tech Specs
+- Backend
+    - Python
+        - Flask
+        - SocketIO
+        - Werkzeug
+    - sqlite3
+- Frontend
+    - HTML
+        - Jinja2
+    - CSS
+        - Bootsrap
+    - JavaScript
+        - SocketIO
+        - jQuery
+
 ## Design Choices
 ### Flask vs. Django
 I had originally tried to make this project with Django. While taking Harvard's CS50x, I learned how to use Flask, and wanted to try and make a Sabacc web application for my CS50 final project. A large part of the project would be deciding what framework to use. Comparing my knowledge, I felt I had more skill with Flask, either because I had learned more or it was more fresh in my head. I also liked the nature of Flask as compared to Django, Django is more restricting, with very specific frameworks for files and databases, whereas in Flask one has much more flexibility. I decided to use Flask.
 
 ### Socket.IO
 For the web application, I wanted to have a way for people to play real-time Sabacc, without having to reload the page and grab new HTML every time their opponent made their turn. In order to achieve this, I needed a way for the Flask server and client to communicate even after the client had made the HTTP request. My first thought was to have some JavaScript on the client side reloading the page every few seconds, but I immediately knew this wouldn't cut it, and would interfere with gameplay and eat up client and server resources. I looked for an alternative, and found a tool named Socket.IO, which seemed to fit my requirements. Before I dived into trying to use Socket.IO for the Sabacc game itself, I decided to try it on a smaller scale, creating a simple chatroom within the web application, which is still part of the application! After I felt comfortable with Socket.IO, After the experimentation, I was ready to implement Socket.IO into the game.
+
+### Player Capacity
+In the previous iteration of this project, games had a maximum capacity of two players, which is not ideal for this style of game. Now the application is far more dynamic, allowing for up to eight players in a game, and if I ever decide to change that number in the future it can be done with extreme ease.
+
+### Database Management
+This project inherited the usage of a sqlite3 database from the previous iteration. While it was amazing back then, with the new feature of increased player capacity, this presented some challenges. The dynamic storage of games with a variable number of players heavily relies on the usage of Python lists, but unfortunately, sqlite3 does not have a list data type. To remedy this, I designed an efficient set of functions (dataHelpers.py) to handle most of the string and list conversion and operation, allowing me to program the application without any additional concern.
+
+### Game User Interface
+Along with the crucial player capacity upgrade, the next most important improvement from the previous design is a heavily enhanced user experience. New interface features added include a life like table, cards, and betting chips. With the introduction of this rounded and natural design, the days of text and boxes are no more.
+
+### User Customization
+Another frontend change introduced with this iteration of the project was the option for users to customize the website however they please. Users can now choose between light and dark modes, in addition to choosing game “themes”, which define how game elements look. Customization settings are all stored in cookies, so that users only need to change their settings once, without increasing the load on the server.
+
+
+## Looking Forward - Future Improvements
+### Frontend Framework
+As it stands, the frontend runs off of vanilla JavaScript and some jQuery, and transmission of game data relies on a combination of Sockets and HTTP requests. The goal with shifting to a frontend JavaScript framework would be to eleminate the HTTP portion, using only Sockets and API calls, as well as facilitating the updating of HTML with new game data. The most likely candidates for the selected frontend framework are Svelte, Vue.js, and React.js.
+
+### AI Sabacc Opponent
+A large feature I plan to implement is an AI opponent. It would run off of data collected from human players, as well as learning from its own playing.
+
+### Backend Efficiency
+Python is a great way to jump into development with little hassle or boilerplate, but as the project matures, Python will be slow to keep up with player, especially with the vast amounts of string and list manipulation on the backend. In order to increase backend efficiency, I plan to make a C/C++ library for Python that replaces many relevant backed actions.
+
+### Gameplay Features
+The door is wide open for new gameplay features. My ideas include:
+- Tournaments
+- Competitive Play
+- Leaderboards
+- Persistent Credits between games
+- Different planets to play on
 
 ## Files
 ### application.py

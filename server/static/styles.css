@@ -1,0 +1,244 @@
+nav .navbar-brand
+{
+    /* size for brand */
+    font-size: xx-large;
+}
+
+/* Colors for brand */
+nav .navbar-brand .blue
+{
+    color: rgb(14, 148, 201);
+}
+
+main .form-control
+{
+    /* Center form controls */
+    display: inline-block;
+
+    /* Override Bootstrap's 100% width for form controls */
+    width: auto;
+}
+
+main
+{
+    /* Scroll horizontally as needed */
+    overflow-x: auto;
+
+    /* Center contents */
+    text-align: center;
+
+
+}
+
+main img
+{
+    /* Constrain images on small screens */
+    max-width: 100%;
+}
+
+
+/* Horizontal Alignment of divs and other tags */
+.parent
+{
+    text-align: center;
+}
+
+.child
+{
+    display: inline-block;
+    vertical-align: middle;
+    padding: 1rem 2rem;
+    margin: 10px;
+    border-radius: 10px;
+}
+
+.video
+{
+  margin: 0;
+}
+
+.vidOne
+{
+  margin-top: 78px;
+}
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 30px;
+  }
+  
+  /* Hide default HTML checkbox */
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  /* The slider */
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+  }
+  
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+  
+  input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+  }
+  
+  /* Rounded sliders */
+  .slider.round {
+    border-radius: 34px;
+  }
+  
+  .slider.round:before {
+    border-radius: 50%;
+  }
+
+
+
+
+
+
+/* Table CSS */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #dddddd;
+  }
+
+
+  
+  input[type=number]{
+      width: 10rem;
+  }
+
+
+
+  .own:hover {
+
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#deck {
+    box-shadow: 3px 3px 0px 10px #323232;
+}
+
+#deck.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#discard {
+    background-image: none;
+    background-color: rgb(226, 182, 24);
+}
+
+#discard.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+.alderaan {
+    background-image: url("/static/images/alderaan.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    width: 200px;
+    height: 200px;
+    border-radius: 100px;
+    margin: 1%;
+}
+
+#alderaan.active:hover {
+    box-shadow:
+    inset 0 0 50px #ff9f10,
+    0 0 50px #ff9f10
+}
+
+#alderaan.blown {
+    background-image: url("/static/images/alderaanExplode.webp");
+}
+
+/* Credits stuff */
+.chip
+{
+  height: 20px;
+  width: 20px;
+  border-radius: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.bigChip
+{
+  background-color: #ffee00;
+}
+
+.midChip
+{
+  background-color: #ccc;
+}
+
+.lowChip
+{
+  background-color: #ff9f10;
+}
+
+.betPile
+{
+  padding: 20px;
+}
+
+.draggable {
+  padding: 1rem;
+  background-color: white;
+  border: 1px solid black;
+  cursor: move;
+}
+
+.draggable.dragging {
+  opacity: .5;
+}

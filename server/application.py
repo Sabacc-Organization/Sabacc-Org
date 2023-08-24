@@ -6,9 +6,13 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.datastructures import ImmutableMultiDict
+
+# Helper Files
 from helpers import *
 from dataHelpers import *
 from alderaanHelpers import *
+from routeHelpers import *
+
 from flask_socketio import SocketIO, send, emit
 import yaml
 import json
@@ -76,17 +80,6 @@ def randData():
     return data
 
 # Tests Python Flask Svelte connection
-@app.route("/userLog")
-def userLog():
-    print('userLog')
-    print(request.args.get("log"))
-
-
-    session["log"] = request.args.get("log")
-    
-    return request.args.get("log")
-
-# Tests Python Flask Svelte connection
 @app.route("/userData")
 def userData():
     print('userData')
@@ -100,7 +93,7 @@ def userData():
     data = None
 
     try:
-        data = jsonify(db.execute(f"SELECT * FROM users WHERE {keyName} = ?", key)[0][ask])
+        data = jsonify(db.execute(f"SELECT id, username FROM users WHERE {keyName} = ?", key)[0])
     except RuntimeError:
         data = json.dumps({
             "err": "RuntimeError"
@@ -118,6 +111,17 @@ def userData():
     print(data)
     return data
 
+@app.route("/gameData")
+def gameData():
+    print("gameData")
+
+    args = request.args
+
+    user_id = args.get("user_id")
+
+    # Render the home page with the user's active game data
+    return getIndexGameData(user_id, db)
+    
 
 @app.route("/")
 def index():
@@ -126,36 +130,10 @@ def index():
     # Get the user's id for later use
     user_id = session.get("user_id")
 
-    # Query the database for all the games
-    games = db.execute("SELECT * FROM games")
-    newGames = games.copy()
-
-    user_ids = []
-    player_turns = []
-
-    # Remove games that have been completed and that are not relevant to the player
-    for game in games:
-        if str(user_id) not in game["player_ids"].split(",") or game["completed"] == True:
-            newGames.remove(game)
-
-        else:
-            user_ids.append(game["player_ids"].split(","))
-            player_turns.append(db.execute("SELECT username FROM users WHERE id = ?", game["player_turn"])[0]["username"])
-
-
-    # Get all the relevant usernames from the database
-    usernames = []
-    for set in user_ids:
-        s = ""
-        for user in set:
-            s += str(db.execute("SELECT * FROM users WHERE id = ?", int(user))[0]["username"]) + ", "
-
-        st = s.strip(", ")
-
-        usernames.append(st)
+    indexGameData = getIndexGameData(user_id, db)
 
     # Render the home page with the user's active game data
-    return render_template("index.html", games=newGames, usernames=usernames, gamesLen=len(newGames), player_turns=player_turns)
+    return render_template("index.html", games=indexGameData["games"], usernames=indexGameData["usernames"], gamesLen=indexGameData["gamesLen"], player_turns=indexGameData["player_turns"])
 
 
 @socketio.on("message", namespace="/chat")

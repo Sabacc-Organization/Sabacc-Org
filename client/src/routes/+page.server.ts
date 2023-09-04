@@ -1,3 +1,5 @@
+import { PUBLIC_FLASK_DOMAIN } from "$env/static/public"
+
 export async function load({ cookies }) {
 
     // Session Data
@@ -15,7 +17,7 @@ export async function load({ cookies }) {
     };
 
     if (user_id != undefined) {
-        const res = await fetch("http://127.0.0.1:8080/gameData?user_id=" + user_id); // TODO add variable parameter for user_id
+        const res = await fetch(`${PUBLIC_FLASK_DOMAIN}/gameData?user_id=` + user_id); // TODO add variable parameter for user_id
         gamesJson = await res.json();
     }
 

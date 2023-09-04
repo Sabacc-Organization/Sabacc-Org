@@ -912,6 +912,99 @@ def game(game_id):
     return render_template("game.html", game=game, users=users, user_id=int(session.get("user_id")))
 
 
+@app.route("/svelteLogin", methods=["POST"])
+def svelteLogin():
+
+    print(request.form.get("username"))
+
+    if request.method != "POST":
+        return
+
+    # Ensure username was submitted
+    username = request.form.get("username")
+    if not username:
+        return {
+            "success": False,
+            "error": "Must provide username"
+        }
+
+    # Ensure password is valid
+    if not request.form.get("password"):
+        return {
+            "success": False,
+            "error": "Must provide password"
+        }
+    
+    orHash = None
+
+    try:
+        orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+    except IndexError:
+        return {
+            "success": False,
+            "error": f"User {username} does not exist"
+        }
+
+
+    if check_password_hash(orHash, request.form.get("password")) == False:
+        return {
+            "success": False,
+            "error": "Incorrect password"
+        }
+
+    # Query database for username
+    rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
+
+    # Check that username is valid
+    if len(rows) == 0:
+        return {
+            "success": False,
+            "error": "Invalid username"
+        }
+
+    # If the user wants to change their password, do so
+    change = request.form.get("change")
+    if change == 1:
+
+        # Check that passwords are valid
+        password = request.form.get("pass")
+        if not password:
+            return {
+                "success": False,
+                "err": "Missing new password"
+            }
+
+        passCon = request.form.get("passCon")
+        if not passCon:
+            return {
+                "success": False,
+                "err": "Missing new password confirmation"
+            }
+
+        if password != passCon:
+            return json.dumps({
+                "success": False,
+                "err": "New passwords do not match"
+            })
+
+        # Change user's password
+        passHash = str(generate_password_hash(password))
+        db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
+
+    # Remember which user has logged in
+    # session["user_id"] = rows[0]["id"]
+
+    # Set default themes
+    # session["dark"] = False
+    # session["theme"] = "rebels"
+
+    # Redirect user to home page
+    return json.dumps({
+        "success": True,
+        "err": ""
+    })
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""

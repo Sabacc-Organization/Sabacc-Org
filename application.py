@@ -292,10 +292,11 @@ def protect(data):
     # Update the database
     db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
 
-    # Force Reload players
+    # Tell Clients to refresh data
     data = {
-        "cmd": "reload",
-        "g_id": game_id
+        "cmd": "refresh",
+        "g_id": game_id,
+        "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     }
     send(data, broadcast=True)
 
@@ -348,12 +349,12 @@ def bet(data):
 
         db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[1]), act)
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     elif action == "call":
@@ -381,12 +382,12 @@ def bet(data):
 
         db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} calls")
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     elif action == "raise":
@@ -403,12 +404,12 @@ def bet(data):
 
         db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} raises to ${newBets.split(',')[u_dex]}")
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     elif action == "fold":
@@ -443,7 +444,6 @@ def bet(data):
             "cmd": "reload",
             "g_id": game_id
         }
-
         send(data, broadcast=True)
 
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -480,12 +480,12 @@ def bet(data):
 
         db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     return
@@ -549,12 +549,12 @@ def card(data):
 
         db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} draws")
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     elif action == "trade":
@@ -581,12 +581,12 @@ def card(data):
 
         db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} trades")
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     elif action == "stand":
@@ -602,12 +602,12 @@ def card(data):
 
         db.execute(f"UPDATE games SET player_turn = ?, p_act = ? WHERE game_id = {game_id}", int(users[nextPlayer]), f"{uName} stands")
 
-        # Force Reload players
+       # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     elif action == "alderaan" and game["cycle_count"] != 0:
@@ -623,12 +623,12 @@ def card(data):
 
         db.execute(f"UPDATE games SET phase = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]), f"{uName} calls Alderaan")
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -709,12 +709,12 @@ def card(data):
 
             db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift, shiftStr)
 
-            # Force Reload players
+            # Tell Clients to refresh data
             data = {
-                "cmd": "reload",
-                "g_id": game_id
+                "cmd": "refresh",
+                "g_id": game_id,
+                "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
             }
-
             send(data, broadcast=True)
 
 
@@ -753,12 +753,12 @@ def card(data):
 
         db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)
 
-        # Force Reload players
+        # Tell Clients to refresh data
         data = {
-            "cmd": "reload",
-            "g_id": game_id
+            "cmd": "refresh",
+            "g_id": game_id,
+            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
         }
-
         send(data, broadcast=True)
 
         return

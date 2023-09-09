@@ -1,18 +1,101 @@
-function setupGame() {
+function refreshGame(gata) {
+    game = gata;
 
-    // Poker table background
-    $("main").addClass("game");
+    $("#pAction").text(game["p_act"]);
 
-    // Place user at "pole position"
-    if (u_dex != 0) {
-        let ogPZero = $(".player0");
-        let ogPThis = $(".player" + String(u_dex));
+    $("#sabacc_pot").text(game["sabacc_pot"]);
+    $("#hand_pot").text(game["hand_pot"]);
 
-        ogPZero.addClass("player" + String(u_dex));
-        ogPZero.removeClass("player0");
+    $("#actBox").empty();
 
-        ogPThis.addClass("player0");
-        ogPThis.removeClass("player" + String(u_dex));
+    // Hand stuff
+    hands = game["player_hands"].split(";");
+
+    // Credits stuff
+    credits = game["player_credits"].split(",");
+    pBets = game["player_bets"].split(",");
+
+    // Protected cards stuff
+    protAll = game["player_protecteds"].split(";");
+
+    for (let u = 0; u < us_list.length; u++) {
+
+        uName = us_list[u].slice(1, us_list[u].length - 1)
+        $("#" + uName + "Stuff").empty();
+    }
+
+    setupGame(false);
+
+    // Protecting stuff
+    $('.own').mousedown(function(event) {
+        switch (event.which) {
+
+            case 1:
+                break;
+
+            case 2:
+                break;
+
+            case 3:
+                $(this).addClass("protected");
+                data = {"game_id": game_id, "protect": $(this).text()}; // There is a bug here. One day I will regret this. Do not protect two identical cards.
+                protect_socket.emit("protect", data);
+                break;
+
+            default:
+                
+        }
+    });
+
+    // If it is the player's turn
+    if (game["player_turn"] === uid && game["completed"] === 0) {
+                
+        if (game["phase"] === "betting") { // Betting Phase
+            
+            betPhase();
+
+        }
+
+
+        else if (game['phase'] === "card" || game['phase'] === "alderaan") {
+
+            cardPhase();
+
+        }
+
+    }
+
+    else if (game["player_turn"] === uid && game["completed"] === 1) {
+        $("#gameInfo").append('<button type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>');
+
+        $("#pAgainBtn").click(function(){
+            
+
+            let data = { "game_id": game_id };
+            cont_socket.emit("cont", data);
+            
+        });
+    }
+
+}
+
+function setupGame(setup) {
+
+    if (setup) {
+        // Poker table background
+        $("main").addClass("game");
+
+        // Place user at "pole position"
+        if (u_dex != 0) {
+            let ogPZero = $(".player0");
+            let ogPThis = $(".player" + String(u_dex));
+
+            ogPZero.addClass("player" + String(u_dex));
+            ogPZero.removeClass("player0");
+
+            ogPThis.addClass("player0");
+            ogPThis.removeClass("player" + String(u_dex));
+        }
     }
 
 
@@ -84,7 +167,7 @@ function setupGame() {
     }
 
     // Phase text
-    $("#phase").text($("#game").attr("phase") + " phase");
+    $("#phase").text(game["phase"] + " phase");
 
     // Display Shift
     if (game["shift"] === 1) {

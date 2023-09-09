@@ -80,6 +80,7 @@
             // Eliminating var and let to make variables truly global
 
             // User stuff
+            uid = {{ user_id }};
             player_ids = $("#game").attr("player_ids").split(",");
             u_dex = player_ids.indexOf(String({{ user_id }}));
             us_raw = $("#users").attr("u");
@@ -135,9 +136,9 @@
                 // Check to see if the broadcast is referring to this game
                 if (msg["g_id"] === game_id) {
 
-                    // Server told client to force reload
-                    if (msg["cmd"] === "reload") {
-                        location.reload();
+                    // Server told client to refresh game data
+                    if (msg["cmd"] === "refresh") {
+                        refreshGame(msg["gata"]);
                     }
                 }
 
@@ -148,8 +149,11 @@
                 // Check to see if the broadcast is referring to this game
                 if (msg["g_id"] === game_id) {
 
-                    // Server told client to force reload
-                    if (msg["cmd"] === "reload") {
+                    // Server told client to refresh game data
+                    if (msg["cmd"] === "refresh") {
+                        refreshGame(msg["gata"]);
+                    }
+                    else if (msg["cmd"] === "reload") {
                         location.reload();
                     }
                 }
@@ -161,9 +165,9 @@
                 // Check to see if the broadcast is referring to this game
                 if (msg["g_id"] === game_id) {
 
-                    // Server told client to force reload
-                    if (msg["cmd"] === "reload") {
-                        location.reload();
+                    // Server told client to refresh game data
+                    if (msg["cmd"] === "refresh") {
+                        refreshGame(msg["gata"]);
                     }
 
                 }
@@ -175,8 +179,11 @@
                 // Check to see if the broadcast is referring to this game
                 if (msg["g_id"] === game_id) {
 
-                    // Server told client to force reload
-                    if (msg["cmd"] === "reload") {
+                    // Server told client to refresh game data
+                    if (msg["cmd"] === "refresh") {
+                        refreshGame(msg["gata"]);
+                    }
+                    else if (msg["cmd"] === "reload") {
                         location.reload();
                     }
 
@@ -185,7 +192,7 @@
 
             });
 
-            setupGame();
+            setupGame(true);
 
             // Protecting stuff
             $('.own').mousedown(function(event) {

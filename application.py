@@ -134,6 +134,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         pForm = request.form.getlist("player3")[0]
@@ -144,6 +146,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         pForm = request.form.getlist("player4")[0]
@@ -154,6 +158,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         pForm = request.form.getlist("player5")[0]
@@ -164,6 +170,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         pForm = request.form.getlist("player6")[0]
@@ -174,6 +182,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         pForm = request.form.getlist("player7")[0]
@@ -184,6 +194,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         pForm = request.form.getlist("player8")[0]
@@ -194,6 +206,8 @@ def host():
                 return apology(f"Player {pForm} does not exist")
             if str(p[0]["id"]) == str(session.get("user_id")):
                 return apology("You cannot play with yourself")
+            if p[0]["id"] in players:
+                return apology("All players must be different")
             players.append(p[0]["id"])
 
         # Pot size variables

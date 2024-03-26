@@ -2,7 +2,7 @@
 
     import Cookies from 'js-cookie'
     import { onMount } from 'svelte';
-    import { checkLogin } from '$lib/index.js';
+    import { backendPostRequest, checkLogin } from '$lib/index.js';
 
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -12,8 +12,16 @@
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 
+    let gamesData = {"games": []};
+
     onMount( async () => {
         loggedIn = await checkLogin(username, password, BACKEND_URL);
+        console.log(loggedIn);
+        if (loggedIn) {
+            gamesData = await backendPostRequest(username, password, BACKEND_URL + "/");
+            
+            console.log(gamesData);
+        }
     });
 
 </script>
@@ -37,11 +45,7 @@
 
     <iframe width="560" height="315" src="https://www.youtube.com/embed/T4V_vwR2pnw?autoplay=1&mute=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
-{:else}
-
-    <!-- <meta id="games-data" data-games="{{ games }}">
-    <meta id="users-data" data-usernames="{{ usernames }}">
-    <meta id="turns-data" data-turns="{{ player_turns }}">
+{:else if loggedIn}
 
     <h2>Your Active Games</h2>
     <br>
@@ -52,18 +56,18 @@
             <th>Game Link</th>
         </tr>
 
-        {#each i in range(gamesLen)}
+        {#each gamesData["games"] as game, i}
 
             <tr>
-                <td>{{ usernames[i] }}</td>
-                <td>{{ player_turns[i] }}'s</td>
-                <td><a href="/game/{{ games[i]['game_id'] }}">Play</a></td>
+                <td>{gamesData["usernames"][i]}</td>
+                <td>{gamesData["player_turns"][i]}'s</td>
+                <td><a href="/game/{game["game_id"]}">Play</a></td>
             </tr>
 
         {/each}
 
-    </table> -->
+    </table>
 
-    <p>logged in</p>
+    
 
 {/if}

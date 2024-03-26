@@ -1,4 +1,5 @@
 <script lang="ts">
+
     import { customRedirect } from '$lib';
     import Cookies from 'js-cookie';
 
@@ -7,22 +8,21 @@
 
     let username = "";
     let password = "";
+    let confirmPassword = "";
 
     let errorMsg = "";
 
-    Cookies.remove("username");
-    Cookies.remove("password");
-
-    async function login() {
+    async function register() {
 
         try {
 
             let requestData = {
                 "username": username,
-                "password": password
+                "password": password,
+                "confirmPassword": confirmPassword
             }
 
-            const response = await fetch(BACKEND_URL + "/login", {
+            const response = await fetch(BACKEND_URL + "/register", {
                 method: 'POST', // Set the method to POST
                 headers: {
                     'Content-Type': 'application/json' // Set the headers appropriately
@@ -43,20 +43,15 @@
             console.log(e);
         }
     }
+
 </script>
-  
-  <h1>Login</h1>
-  
 
-<div>
-    <input bind:value={username} autocomplete="off" autofocus class="form-control form-group" name="username" placeholder="Username" type="text" required/>
-</div>
-
-<div>
-    <input bind:value={password} class="form-control form-group" name="password" placeholder="Password" type="password" required/>
-</div>
-
-<button on:click={login} class="btn btn-primary" type="submit">Log in</button>
-
+<input bind:value={username} type="text" class="form-control form-group" name="username" placeholder="Username" autocomplete="off" required>
+<br>
+<input bind:value={password} type="password" class="form-control form-group" name="password" placeholder="Password" autocomplete="off" required>
+<br>
+<input bind:value={confirmPassword} type="password" class="form-control form-group" name="confirmation" placeholder="Confirm Password" autocomplete="off" required>
+<br>
+<button on:click={register} type="submit" class="btn btn-primary">Register</button>
 
 <p>{errorMsg}</p>

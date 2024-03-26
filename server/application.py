@@ -58,43 +58,6 @@ sessions = {}
 db = SQL("sqlite:///sabacc.db")
 
 
-@app.route("/")
-def index():
-    """ Home Page """
-
-    # Get the user's id for later use
-    user_id = session.get("user_id")
-
-    # Query the database for all the games
-    games = db.execute("SELECT * FROM games")
-    newGames = games.copy()
-
-    user_ids = []
-    player_turns = []
-
-    # Remove games that have been completed and that are not relevant to the player
-    for game in games:
-        if str(user_id) not in game["player_ids"].split(",") or game["completed"] == True:
-            newGames.remove(game)
-
-        else:
-            user_ids.append(game["player_ids"].split(","))
-            player_turns.append(db.execute("SELECT username FROM users WHERE id = ?", game["player_turn"])[0]["username"])
-
-
-    # Get all the relevant usernames from the database
-    usernames = []
-    for set in user_ids:
-        s = ""
-        for user in set:
-            s += str(db.execute("SELECT * FROM users WHERE id = ?", int(user))[0]["username"]) + ", "
-
-        st = s.strip(", ")
-
-        usernames.append(st)
-
-    # Render the home page with the user's active game data
-    return render_template("index.html", games=newGames, usernames=usernames, gamesLen=len(newGames), player_turns=player_turns)
 
 
 @socketio.on("message", namespace="/chat")
@@ -969,71 +932,6 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    """Register user"""
-
-    if request.method == "POST":
-        
-        # Check that username is inputted
-        username = request.form.get("username")
-        if not username:
-            return apology("Missing username", 400)
-        
-        if " " in username:
-            return apology("Please do not put spaces in your username", 400)
-        
-        # Check that username has not already been taken
-        if db.execute("SELECT * FROM users WHERE username = ?", username) != []:
-            return apology("Username has already been taken", 400)
-
-        # Check passwords are there and match
-        password = request.form.get("password")
-
-        if not password:
-            return apology("Missing password", 400)
-
-        confirmation = request.form.get("confirmation")
-
-        if not confirmation:
-            return apology("Missing confirmation password", 400)
-
-        if confirmation != password:
-            return apology("Confirmation and password do not match")
-        
-        if " " in password:
-            return apology("Please do not put spaces in your password", 400)
-
-        # Make sure that username is not a duplicate of an old one
-        usernames = db.execute("SELECT username FROM users")
-        duplicate = False
-        for u in usernames:
-            if username == u["username"]:
-                duplicate = True
-                return apology("Someone else already took that username", 400)
-
-        # Complete registration
-        username = request.form.get("username")
-        password = request.form.get("password")
-        passHash = generate_password_hash(password)
-        db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, str(passHash))
-
-        # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
-
-        # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
-        
-        # Set default themes
-        session["dark"] = False
-        session["theme"] = "rebels"
-
-        # Redirect user to home page
-        return redirect("/")
-
-    elif request.method == "GET":
-        return render_template("register.html")
     
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
@@ -1119,6 +1017,111 @@ def login():
     # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("login.html")
+    
+@app.route("/", methods=["POST"])
+@cross_origin()
+def index():
+    # Ensure username was submitted
+    username = request.json.get("username")
+    if not username:
+        return jsonify({"message": "Must provide username"}), 401
+
+    # Ensure password is valid
+    password = request.json.get("password")
+    if not password:
+        return jsonify({"message": "Must provide password"}), 401
+    
+    orHash = None
+
+    try:
+        orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+    except IndexError:
+        return jsonify({"message": f"User {username} does not exist"}), 401
+
+
+    if check_password_hash(orHash, password) == False:
+        return jsonify({"message": f"Incorrect password"}), 401
+    
+    # Get the user's id for later use
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+    # Query the database for all the games
+    games = db.execute("SELECT * FROM games")
+    newGames = games.copy()
+
+    user_ids = []
+    player_turns = []
+
+    # Remove games that have been completed and that are not relevant to the player
+    for game in games:
+        if str(user_id) not in game["player_ids"].split(",") or game["completed"] == True:
+            newGames.remove(game)
+
+        else:
+            user_ids.append(game["player_ids"].split(","))
+            player_turns.append(db.execute("SELECT username FROM users WHERE id = ?", game["player_turn"])[0]["username"])
+
+
+    # Get all the relevant usernames from the database
+    usernames = []
+    for set in user_ids:
+        s = ""
+        for user in set:
+            s += str(db.execute("SELECT * FROM users WHERE id = ?", int(user))[0]["username"]) + ", "
+
+        st = s.strip(", ")
+
+        usernames.append(st)
+
+    # Render the home page with the user's active game data
+    return jsonify({
+        "games": newGames, 
+        "usernames": usernames, 
+        "gamesLen": len(newGames), 
+        "player_turns": player_turns
+        }), 200
+
+@app.route("/register", methods=["POST"])
+@cross_origin()
+def register():
+    """Register user"""
+
+    if request.method == "POST":
+        
+        # Ensure username was submitted
+        username = request.json.get("username")
+        if not username:
+            return jsonify({"message": "Must provide username"}), 401
+        
+        if " " in username:
+            return jsonify({"message": "Please do not put spaces in your username"}), 401
+        
+        # Check that username has not already been taken
+        if db.execute("SELECT * FROM users WHERE username = ?", username) != []:
+            return jsonify({"message": "Username has already been taken"}), 401
+        
+        # Ensure password is valid
+        password = request.json.get("password")
+        if not password:
+            return jsonify({"message": "Must provide password"}), 401
+
+        confirmation = request.json.get("confirmPassword")
+
+        if not confirmation:
+            return jsonify({"message": "Must provide confirmation password"}), 401
+
+        if confirmation != password:
+            return jsonify({"message": "Confirmation and password do not match"}), 401
+        
+        if " " in password:
+            return jsonify({"message": "Please do not put spaces in your password"}), 401
+
+        # Complete registration
+        passHash = generate_password_hash(password)
+        db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, str(passHash))
+
+        # Redirect user to home page
+        return jsonify({"message": "Registered!"}), 200
 
 
 def errorhandler(e):

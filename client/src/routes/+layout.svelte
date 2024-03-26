@@ -42,7 +42,7 @@
         <link href="styles.css" rel="stylesheet">
 
         {#if loggedIn === true}
-            {#if dark === true}
+            {#if dark === "true"}
                 <!-- Light/Dark mode -->
                 <link href="dark.css" rel="stylesheet">
             {/if}

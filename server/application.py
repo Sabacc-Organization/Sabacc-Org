@@ -1,5 +1,6 @@
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, flash, redirect, render_template, request, session, jsonify
+from flask_cors import CORS, cross_origin
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
@@ -38,13 +39,20 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Socket.IO message links
+# CORS
 link = config["DOMAIN"]
-linkTwo = config["DOMAINTWO"]
-socketio = SocketIO(app, cors_allowed_origins=[link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/card", f"{link}/shift", f"{link}/protect", f"{link}/cont", linkTwo, f"{linkTwo}/chat", f"{linkTwo}/game", f"{linkTwo}/bet", f"{linkTwo}/card", f"{linkTwo}/shift", f"{linkTwo}/protect", f"{linkTwo}/cont"])
+linkTwo = "http://localhost:5173"
+
+allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/card", f"{link}/shift", f"{link}/protect", f"{link}/cont", linkTwo, f"{linkTwo}/chat", f"{linkTwo}/game", f"{linkTwo}/bet", f"{linkTwo}/card", f"{linkTwo}/shift", f"{linkTwo}/protect", f"{linkTwo}/cont"]
+
+socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
+
+CORS(app, origins=allowedCORS)
 
 # Declare dictionary to store key-value pairs of user ids and session ids
 users = {}
+
+sessions = {}
 
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///sabacc.db")
@@ -879,76 +887,76 @@ def game(game_id):
     return render_template("game.html", game=game, users=users, user_id=int(session.get("user_id")))
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    """Log user in"""
+# @app.route("/login", methods=["GET", "POST"])
+# def login():
+#     """Log user in"""
 
-    # Forget any user_id
-    session.clear()
+#     # Forget any user_id
+#     session.clear()
 
-    # User reached route via POST (as by submitting a form via POST)
-    if request.method == "POST":
+#     # User reached route via POST (as by submitting a form via POST)
+#     if request.method == "POST":
 
-        # Ensure username was submitted
-        username = request.form.get("username")
-        if not username:
-            return apology("must provide username", 403)
+#         # Ensure username was submitted
+#         username = request.form.get("username")
+#         if not username:
+#             return apology("must provide username", 403)
 
-        # Ensure password is valid
-        if not request.form.get("password"):
-            return apology("must provide password", 403)
+#         # Ensure password is valid
+#         if not request.form.get("password"):
+#             return apology("must provide password", 403)
         
-        orHash = None
+#         orHash = None
 
-        try:
-            orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
-        except IndexError:
-            return apology(f"User {username} does not exist")
+#         try:
+#             orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+#         except IndexError:
+#             return apology(f"User {username} does not exist")
 
 
-        if check_password_hash(orHash, request.form.get("password")) == False:
-            return apology("Incorrect password")
+#         if check_password_hash(orHash, request.form.get("password")) == False:
+#             return apology("Incorrect password")
 
-        # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
+#         # Query database for username
+#         rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
 
-        # Check that username is valid
-        if len(rows) == 0:
-            return apology("Invalid username")
+#         # Check that username is valid
+#         if len(rows) == 0:
+#             return apology("Invalid username")
 
-        # If the user wants to change their password, do so
-        change = request.form.get("change")
-        if change != None:
+#         # If the user wants to change their password, do so
+#         change = request.form.get("change")
+#         if change != None:
 
-            # Check that passwords are valid
-            password = request.form.get("pass")
-            if not password:
-                return apology("Missing new password")
+#             # Check that passwords are valid
+#             password = request.form.get("pass")
+#             if not password:
+#                 return apology("Missing new password")
 
-            passCon = request.form.get("passCon")
-            if not passCon:
-                return apology("Missing new password confirmation")
+#             passCon = request.form.get("passCon")
+#             if not passCon:
+#                 return apology("Missing new password confirmation")
 
-            if password != passCon:
-                return apology("New passwords do not match")
+#             if password != passCon:
+#                 return apology("New passwords do not match")
 
-            # Change user's password
-            passHash = str(generate_password_hash(password))
-            db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
+#             # Change user's password
+#             passHash = str(generate_password_hash(password))
+#             db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
 
-        # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
+#         # Remember which user has logged in
+#         session["user_id"] = rows[0]["id"]
 
-        # Set default themes
-        session["dark"] = False
-        session["theme"] = "rebels"
+#         # Set default themes
+#         session["dark"] = False
+#         session["theme"] = "rebels"
 
-        # Redirect user to home page
-        return redirect("/")
+#         # Redirect user to home page
+#         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("login.html")
+#     # User reached route via GET (as by clicking a link or via redirect)
+#     else:
+#         return render_template("login.html")
 
 
 @app.route("/logout")
@@ -1046,6 +1054,71 @@ def settings():
 
     elif request.method == "GET":
         return render_template("settings.html")
+
+""" REST APIs """
+
+@app.route("/login", methods=["POST"])
+@cross_origin()
+def login():
+    """Log user in"""
+
+    # User reached route via POST
+    if request.method == "POST":
+
+        # Ensure username was submitted
+        username = request.json.get("username")
+        if not username:
+            return jsonify({"message": "must provide username"}), 401
+
+        # Ensure password is valid
+        password = request.json.get("password")
+        if not password:
+            return jsonify({"message": "must provide password"}), 401
+        
+        orHash = None
+
+        try:
+            orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+        except IndexError:
+            return jsonify({"message": f"User {username} does not exist"}), 401
+
+
+        if check_password_hash(orHash, password) == False:
+            return jsonify({"message": f"Incorrect password"}), 401
+
+        # If the user wants to change their password, do so
+        # change = request.json.get("change")
+        # if change != None:
+
+        #     # Check that passwords are valid
+        #     newPassword = request.json.get("newPassword")
+        #     if not newPassword:
+        #         return jsonify({"message": "Missing new password"}), 401
+
+        #     passCon = request.json.get("passCon")
+        #     if not passCon:
+        #         return apology("Missing new password confirmation") # TODO LEFT OFF HERE
+
+        #     if password != passCon:
+        #         return apology("New passwords do not match")
+
+        #     # Change user's password
+        #     passHash = str(generate_password_hash(password))
+        #     db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
+
+        # Remember which user has logged in
+        # session["user_id"] = rows[0]["id"]
+
+        # # Set default themes
+        # session["dark"] = False
+        # session["theme"] = "rebels"
+
+        # Redirect user to home page
+        return jsonify({"message": "Logged in!"}), 200
+
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("login.html")
 
 
 def errorhandler(e):

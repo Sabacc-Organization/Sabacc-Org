@@ -49,7 +49,7 @@
   
 
 <div>
-    <input bind:value={username} autocomplete="off" autofocus class="form-control form-group" name="username" placeholder="Username" type="text" required/>
+    <input bind:value={username} autocomplete="off" class="form-control form-group" name="username" placeholder="Username" type="text" required/>
 </div>
 
 <div>

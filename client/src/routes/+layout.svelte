@@ -3,9 +3,10 @@
 
     import Cookies from 'js-cookie'
     import { onMount } from 'svelte';
-    import { checkLogin } from '$lib/index.js';
+    import { checkLogin} from '$lib/index.js';
 
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+    const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     let loggedIn = false;
     let username = Cookies.get("username");

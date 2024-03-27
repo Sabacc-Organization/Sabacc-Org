@@ -81,146 +81,7 @@ def chat():
 
     return render_template("chat.html", user=user)
 
-@app.route("/host", methods=["GET", "POST"])
-@login_required
-def host():
-    """Make a new game of Sabacc"""
 
-    if request.method == "GET":
-        return render_template("host.html")
-
-    elif request.method == "POST":
-
-        # Make list of players
-        players = []
-        players.append(session.get("user_id"))
-
-        # Check all eight player input boxes for player usernames
-
-        pForm = request.form.getlist("player2")[0]
-
-        if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        pForm = request.form.getlist("player3")[0]
-
-        if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        pForm = request.form.getlist("player4")[0]
-
-        if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        pForm = request.form.getlist("player5")[0]
-
-        if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        pForm = request.form.getlist("player6")[0]
-
-        if pForm:
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        pForm = request.form.getlist("player7")[0]
-
-        if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        pForm = request.form.getlist("player8")[0]
-
-        if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
-            if len(p) == 0:
-                return apology(f"Player {pForm} does not exist")
-            if str(p[0]["id"]) == str(session.get("user_id")):
-                return apology("You cannot play with yourself")
-            if p[0]["id"] in players:
-                return apology("All players must be different")
-            players.append(p[0]["id"])
-
-        # Pot size variables
-        hPot = 0
-        sPot = 0
-
-        # Make list of credits
-        credits = []
-        for i in range(len(players)):
-            credits.append(985)
-            hPot += 5
-            sPot += 10
-
-
-        # Convert list data to strings
-        playersStr = listToStr(players)
-        creditsStr = listToStr(credits)
-
-        # Protecteds
-        prots = ""
-        for i in range(len(players)):
-            prots += "0,0;"
-
-        prots = prots.strip(";")
-
-        # Bets
-        pBets = ""
-        for i in range(len(players) - 1):
-            pBets += ","
-
-        # Construct deck and hands
-        deckData = constructDeck(len(players))
-        deck = deckData["deck"]
-        handsStr = listToStr(deckData["hands"], sep=";")
-
-        # Create game in database
-        db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn, p_act) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, session.get("user_id"), "")
-
-        # Get game ID
-        game_id = db.execute("SELECT game_id FROM games WHERE player_ids = ? ORDER BY game_id DESC", playersStr)[0]["game_id"]
-
-        return redirect(f"/game/{game_id}")
 
 
 @socketio.on("game", namespace="/game")
@@ -826,29 +687,6 @@ def cont(data):
     send(data, broadcast=True)
 
 
-@app.route("/game/<game_id>")
-@login_required
-def game(game_id):
-    """Play Sabacc!"""
-
-    user_id = session.get("user_id")
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-
-    yours = False
-    for id in game["player_ids"].split(","):
-        if id == str(user_id):
-            yours = True
-            break
-
-    if yours == False:
-        return apology("This is not one of your games")
-
-    users = []
-    for u in game["player_ids"].split(","):
-        users.append(db.execute("SELECT id, username FROM users WHERE id = ?", int(u))[0]["username"])
-
-    return render_template("game.html", game=game, users=users, user_id=int(session.get("user_id")))
-
 
 # @app.route("/login", methods=["GET", "POST"])
 # def login():
@@ -963,26 +801,11 @@ def login():
     # User reached route via POST
     if request.method == "POST":
 
-        # Ensure username was submitted
         username = request.json.get("username")
-        if not username:
-            return jsonify({"message": "must provide username"}), 401
-
-        # Ensure password is valid
         password = request.json.get("password")
-        if not password:
-            return jsonify({"message": "must provide password"}), 401
-        
-        orHash = None
-
-        try:
-            orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
-        except IndexError:
-            return jsonify({"message": f"User {username} does not exist"}), 401
-
-
-        if check_password_hash(orHash, password) == False:
-            return jsonify({"message": f"Incorrect password"}), 401
+        check = checkLogin(username, password)
+        if check["status"] != 200:
+            return jsonify({"message": check["message"]}), check["status"]
 
         # If the user wants to change their password, do so
         # change = request.json.get("change")
@@ -1021,26 +844,12 @@ def login():
 @app.route("/", methods=["POST"])
 @cross_origin()
 def index():
-    # Ensure username was submitted
+
     username = request.json.get("username")
-    if not username:
-        return jsonify({"message": "Must provide username"}), 401
-
-    # Ensure password is valid
     password = request.json.get("password")
-    if not password:
-        return jsonify({"message": "Must provide password"}), 401
-    
-    orHash = None
-
-    try:
-        orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
-    except IndexError:
-        return jsonify({"message": f"User {username} does not exist"}), 401
-
-
-    if check_password_hash(orHash, password) == False:
-        return jsonify({"message": f"Incorrect password"}), 401
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
     
     # Get the user's id for later use
     user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
@@ -1122,7 +931,115 @@ def register():
 
         # Redirect user to home page
         return jsonify({"message": "Registered!"}), 200
+    
+@app.route("/game", methods=["POST"])
+@cross_origin()
+def game():
+    """Play Sabacc!"""
 
+    username = request.json.get("username")
+    password = request.json.get("password")
+    game_id = request.json.get("game_id")
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+    
+    # Get the user's id for later use
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    
+    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+
+    yours = False
+    for id in game["player_ids"].split(","):
+        if id == str(user_id):
+            yours = True
+            break
+
+    if yours == False:
+        return jsonify({"message": "This is not one of your games"}), 403
+
+    users = []
+    for u in game["player_ids"].split(","):
+        users.append(db.execute("SELECT id, username FROM users WHERE id = ?", int(u))[0]["username"])
+
+    return jsonify({"message": "Good luck!", "game": game, "users": users, "user_id": int(user_id)}), 200
+
+@app.route("/host", methods=["POST"])
+@cross_origin()
+def host():
+    """Make a new game of Sabacc"""
+
+    if request.method == "POST":
+    
+        username = request.json.get("username")
+        password = request.json.get("password")
+        formPlayers = request.json.get("players")
+        check = checkLogin(username, password)
+        if check["status"] != 200:
+            return jsonify({"message": check["message"]}), check["status"]
+    
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+        # Make list of players
+        players = []
+        players.append(user_id)
+
+        # Check all eight player input boxes for player usernames
+
+        if len(formPlayers) > 8:
+            return jsonify({"message": "You can only have a maximum of eight players"}), 401
+
+        for pForm in formPlayers:
+            if pForm != "":
+                p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
+                if len(p) == 0:
+                    return jsonify({"message": f"Player {pForm} does not exist"}), 401
+                if str(p[0]["id"]) == str(session.get("user_id")):
+                    return jsonify({"message": "You cannot play with yourself"}), 401
+                if p[0]["id"] in players:
+                    return jsonify({"message": "All players must be different"}), 401
+                players.append(p[0]["id"])
+
+        # Pot size variables
+        hPot = 0
+        sPot = 0
+
+        # Make list of credits
+        credits = []
+        for i in range(len(players)):
+            credits.append(985)
+            hPot += 5
+            sPot += 10
+
+
+        # Convert list data to strings
+        playersStr = listToStr(players)
+        creditsStr = listToStr(credits)
+
+        # Protecteds
+        prots = ""
+        for i in range(len(players)):
+            prots += "0,0;"
+
+        prots = prots.strip(";")
+
+        # Bets
+        pBets = ""
+        for i in range(len(players) - 1):
+            pBets += ","
+
+        # Construct deck and hands
+        deckData = constructDeck(len(players))
+        deck = deckData["deck"]
+        handsStr = listToStr(deckData["hands"], sep=";")
+
+        # Create game in database
+        db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn, p_act) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, user_id, "")
+
+        # Get game ID
+        game_id = db.execute("SELECT game_id FROM games WHERE player_ids = ? ORDER BY game_id DESC", playersStr)[0]["game_id"]
+
+        return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
 
 def errorhandler(e):
     """Handle error"""

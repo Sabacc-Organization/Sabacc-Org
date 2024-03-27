@@ -16,11 +16,8 @@
 
     onMount( async () => {
         loggedIn = await checkLogin(username, password, BACKEND_URL);
-        console.log(loggedIn);
         if (loggedIn) {
             gamesData = await backendPostRequest(username, password, BACKEND_URL + "/");
-            
-            console.log(gamesData);
         }
     });
 

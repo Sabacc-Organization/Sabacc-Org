@@ -2,13 +2,15 @@ python==3.9.6
 Flask==1.1.4
 Flask-Session==0.4.0
 Flask-SocketIO==4.3.1
+Flask-Cors==4.0.0
 requests==2.27.1
 SQLAlchemy==1.4.23
 Jinja2==2.11.3
-sqlite3
 cs50==7.0.2
 Werkzeug==1.0.1
 PyYAML==6.0
 MarkupSafe==2.0.1
 python-socketio==4.6.0
 python-engineio==3.13.2
+
+sqlite3

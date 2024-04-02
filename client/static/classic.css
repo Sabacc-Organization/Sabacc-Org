@@ -150,8 +150,12 @@ h5
     background-color: #0cc23c;
 }
 
-#dieTwo {
+#dieTwo.shift0 {
     background-color: #ed3b3b;
+}
+
+#dieTwo.shift1 {
+    background-color: #0cc23c;
 }
 
 #pAction

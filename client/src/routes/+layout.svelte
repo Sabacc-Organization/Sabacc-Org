@@ -70,7 +70,6 @@
                 {#if loggedIn}
                     <ul class="navbar-nav mr-auto mt-2">
                         <li class="nav-item"><a class="nav-link" href="/host">Host a Game</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/chat">GalactiChat</a></li>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>

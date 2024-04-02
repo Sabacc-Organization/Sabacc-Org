@@ -95,279 +95,6 @@ def game_connect():
     sid = request.sid
     users[user_id] = sid
 
-@socketio.on("card", namespace="/card")
-def card(data):
-
-    # Set some variables for the whole function
-    game_id = data["game_id"]
-    action = data["action"]
-    tradeCard = ""
-    try:
-        tradeCard = data["trade"]
-    except KeyError:
-        pass
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    users = game["player_ids"].split(",")
-    user_id = session.get("user_id")
-    uName = db.execute(f"SELECT username FROM users where id = {int(user_id)}")[0]["username"]
-    u_dex = users.index(str(user_id))
-    deckStr = game["deck"]
-    handsStr = game["player_hands"]
-    handsList = handsStr.split(";")
-    protsStr = game["player_protecteds"]
-    protsList = protsStr.split(";")
-    handPot = game["hand_pot"]
-    creditsStr = game["player_credits"]
-
-    endRound = False
-    endGame = False
-
-    if game["phase"] != "card" and game["phase"] != "alderaan":
-        return
-
-    player = ""
-    if users.index(str(user_id)) == 0:
-        player = "player1"
-
-    # If it is not this player's turn
-    if game["player_turn"] != int(user_id):
-        return
-    
-    if action == "draw":
-        drawData = drawCard(deckStr)
-        newDeck = drawData["deck"]
-        newCard = drawData["card"]
-        handsList[u_dex] += "," + newCard
-        newHands = listToStr(handsList, sep=";")
-
-        protsList[u_dex] += ",0"
-        newProts = listToStr(protsList, sep=";")
-
-        nextPlayer = u_dex + 1
-
-        if str(user_id) == users[len(users) - 1]:
-            endRound = True
-
-        if endRound == True:
-            nextPlayer = 0
-
-
-        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} draws")
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    elif action == "trade":
-
-        tradeDex = handsList[u_dex].split(",").index(tradeCard)
-
-        drawData = drawCard(deckStr)
-        newDeck = drawData["deck"]
-        newCard = drawData["card"]
-        handsList[u_dex] = strListMod(handsList[u_dex], tradeDex, newCard)
-        newHands = listToStr(handsList, sep=";")
-
-        protsList[u_dex] = strListMod(protsList[u_dex], tradeDex, "0")
-        newProts = listToStr(protsList, sep=";")
-
-        nextPlayer = u_dex + 1
-
-        if str(user_id) == users[len(users) - 1]:
-            endRound = True
-
-        if endRound == True:
-            nextPlayer = 0
-
-
-        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} trades")
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    elif action == "stand":
-
-        nextPlayer = u_dex + 1
-
-        if str(user_id) == users[len(users) - 1]:
-            endRound = True
-
-        if endRound == True:
-            nextPlayer = 0
-
-
-        db.execute(f"UPDATE games SET player_turn = ?, p_act = ? WHERE game_id = {game_id}", int(users[nextPlayer]), f"{uName} stands")
-
-       # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    elif action == "alderaan" and game["cycle_count"] != 0:
-
-        nextPlayer = u_dex + 1
-
-        if str(user_id) == users[len(users) - 1]:
-            endGame = True
-
-        if endGame == True:
-            nextPlayer = 0
-
-
-        db.execute(f"UPDATE games SET phase = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]), f"{uName} calls Alderaan")
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    users = game["player_ids"].split(",")
-    handsStr = game["player_hands"]
-    handsList = handsStr.split(";")
-    protsStr = game["player_protecteds"]
-    protsList = protsStr.split(";")
-    deckStr = game["deck"]
-
-    if endRound == True:
-
-        newCycleCount = game["cycle_count"] + 1
-
-        if game["phase"] == "alderaan":
-            endGame = True
-
-        else:
-
-            newHands = handsStr
-            newProtecteds = protsStr
-            newDeck = deckStr
-
-
-            shift = rollShift()
-
-            if shift == True:
-                drawCounts = []
-                hCards = []
-                for k in range(len(handsList)):
-                    drawCount = 0
-                    newHandList = handsList[k].split(",")
-                    newProtsList = protsList[k].split(",")
-
-                    for p in range(len(protsList[k].split(","))):
-
-                        if protsList[k].split(",")[p] == "0":
-                            newHandList.remove(handsList[k].split(",")[p])
-                            newProtsList.remove(protsList[k].split(",")[p])
-                            drawCount += 1
-                        else:
-                            hCards.append(handsList[k].split(",")[p])
-
-                    newHands = strListMod(newHands, k, listToStr(newHandList), sep=";")
-                    newProtecteds = strListMod(newProtecteds, k, listToStr(newProtsList), sep=";")
-                    drawCounts.append(drawCount)
-
-                newDeck = shuffleDeck(hCards)
-
-                handsList = newHands.split(";")
-                
-                protsList = newProtecteds.split(";")
-
-                for i in range(len(handsList)):
-
-                    for c in range(drawCounts[i]):
-                        drawData = drawCard(deckStr)
-                        newDeck = drawData["deck"]
-                        newCard = drawData["card"]
-                        handsList[i] += "," + newCard
-                        handsList[i] = handsList[i].strip(",")
-                        newHands = listToStr(handsList, sep=";")
-
-                        protsList[i] += ",0"
-                        protsList[i] = protsList[i].strip(",")
-                        newProtecteds = listToStr(protsList, sep=";")
-
-                        deckStr = newDeck
-
-            shiftStr = ""
-            if shift == True:
-                shiftStr = "Sabacc shift!"
-            elif shift == False:
-                shiftStr = "No shift!"
-
-
-
-
-            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift, shiftStr)
-
-            # Tell Clients to refresh data
-            data = {
-                "cmd": "refresh",
-                "g_id": game_id,
-                "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-            }
-            send(data, broadcast=True)
-
-
-    if endGame == True:
-
-        alderaanData = alderaanEnd(handsList, deckStr, protsList, False)
-
-        newHands = listToStr(alderaanData["handsList"], sep=";")
-        newDeck = listToStr(alderaanData["deck"])
-        newProtecteds = listToStr(alderaanData["protsList"], sep=";")
-        winnerDex = alderaanData["winner"]
-        winnerVal = alderaanData["winnerVal"]
-
-        handVals = calcHandVals(alderaanData["handsList"])
-        bombOutDexes = []
-
-        for val in handVals:
-            if (val == 0 or abs(val) > 23) and val != winnerVal:
-                bombOutDexes.append(handVals.index(val))
-
-
-        newSabaccPot = game["sabacc_pot"]
-        for b in bombOutDexes:
-            creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
-            newSabaccPot += int(round(handPot) * 0.1)
-
-        creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + handPot)
-        if abs(winnerVal) == 23 or winnerVal == 230:
-            creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + newSabaccPot)
-            newSabaccPot = 0
-
-        
-
-        winner = db.execute(f"SELECT username FROM users where id = {int(users[winnerDex])}")[0]["username"]
-
-
-        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-        return
-
 
 @socketio.on("cont", namespace="/cont")
 def cont(data):
@@ -935,10 +662,246 @@ def bet():
 
         db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
 
-    # Tell Clients to refresh data
+    # Tell Client to refresh data
     gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     
-    return jsonify({"message": "Card protected", "gata": gata}), 200
+    return jsonify({"message": "Bet!", "gata": gata}), 200
+
+@app.route("/card", methods=["POST"])
+@cross_origin()
+def card():
+
+    username = request.json.get("username")
+    password = request.json.get("password")
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+    # Set some variables for the whole function
+    game_id = request.json.get("game_id")
+    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    action = request.json.get("action")
+    tradeCard = request.json.get("trade")
+
+    users = game["player_ids"].split(",")
+    uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
+    u_dex = game["player_ids"].split(",").index(str(user_id))
+
+    deckStr = game["deck"]
+    handsStr = game["player_hands"]
+    handsList = handsStr.split(";")
+    protsStr = game["player_protecteds"]
+    protsList = protsStr.split(";")
+    handPot = game["hand_pot"]
+    creditsStr = game["player_credits"]
+
+    endRound = False
+    endGame = False
+
+    if game["phase"] != "card" and game["phase"] != "alderaan":
+        return
+
+    player = ""
+    if users.index(str(user_id)) == 0:
+        player = "player1"
+
+    # If it is not this player's turn
+    if game["player_turn"] != int(user_id):
+        return
+    
+    if action == "draw":
+        drawData = drawCard(deckStr)
+        newDeck = drawData["deck"]
+        newCard = drawData["card"]
+        handsList[u_dex] += "," + newCard
+        newHands = listToStr(handsList, sep=";")
+
+        protsList[u_dex] += ",0"
+        newProts = listToStr(protsList, sep=";")
+
+        nextPlayer = u_dex + 1
+
+        if str(user_id) == users[len(users) - 1]:
+            endRound = True
+
+        if endRound == True:
+            nextPlayer = 0
+
+
+        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} draws")
+
+    elif action == "trade":
+
+        tradeDex = handsList[u_dex].split(",").index(tradeCard)
+
+        drawData = drawCard(deckStr)
+        newDeck = drawData["deck"]
+        newCard = drawData["card"]
+        handsList[u_dex] = strListMod(handsList[u_dex], tradeDex, newCard)
+        newHands = listToStr(handsList, sep=";")
+
+        protsList[u_dex] = strListMod(protsList[u_dex], tradeDex, "0")
+        newProts = listToStr(protsList, sep=";")
+
+        nextPlayer = u_dex + 1
+
+        if str(user_id) == users[len(users) - 1]:
+            endRound = True
+
+        if endRound == True:
+            nextPlayer = 0
+
+
+        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} trades")
+
+    elif action == "stand":
+
+        nextPlayer = u_dex + 1
+
+        if str(user_id) == users[len(users) - 1]:
+            endRound = True
+
+        if endRound == True:
+            nextPlayer = 0
+
+
+        db.execute(f"UPDATE games SET player_turn = ?, p_act = ? WHERE game_id = {game_id}", int(users[nextPlayer]), f"{uName} stands")
+
+
+    elif action == "alderaan" and game["cycle_count"] != 0:
+
+        nextPlayer = u_dex + 1
+
+        if str(user_id) == users[len(users) - 1]:
+            endGame = True
+
+        if endGame == True:
+            nextPlayer = 0
+
+
+        db.execute(f"UPDATE games SET phase = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]), f"{uName} calls Alderaan")
+
+
+    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+    users = game["player_ids"].split(",")
+    handsStr = game["player_hands"]
+    handsList = handsStr.split(";")
+    protsStr = game["player_protecteds"]
+    protsList = protsStr.split(";")
+    deckStr = game["deck"]
+
+    if endRound == True:
+
+        newCycleCount = game["cycle_count"] + 1
+
+        if game["phase"] == "alderaan":
+            endGame = True
+
+        else:
+
+            newHands = handsStr
+            newProtecteds = protsStr
+            newDeck = deckStr
+
+
+            shift = rollShift()
+
+            if shift == True:
+                drawCounts = []
+                hCards = []
+                for k in range(len(handsList)):
+                    drawCount = 0
+                    newHandList = handsList[k].split(",")
+                    newProtsList = protsList[k].split(",")
+
+                    for p in range(len(protsList[k].split(","))):
+
+                        if protsList[k].split(",")[p] == "0":
+                            newHandList.remove(handsList[k].split(",")[p])
+                            newProtsList.remove(protsList[k].split(",")[p])
+                            drawCount += 1
+                        else:
+                            hCards.append(handsList[k].split(",")[p])
+
+                    newHands = strListMod(newHands, k, listToStr(newHandList), sep=";")
+                    newProtecteds = strListMod(newProtecteds, k, listToStr(newProtsList), sep=";")
+                    drawCounts.append(drawCount)
+
+                newDeck = shuffleDeck(hCards)
+
+                handsList = newHands.split(";")
+                
+                protsList = newProtecteds.split(";")
+
+                for i in range(len(handsList)):
+
+                    for c in range(drawCounts[i]):
+                        drawData = drawCard(deckStr)
+                        newDeck = drawData["deck"]
+                        newCard = drawData["card"]
+                        handsList[i] += "," + newCard
+                        handsList[i] = handsList[i].strip(",")
+                        newHands = listToStr(handsList, sep=";")
+
+                        protsList[i] += ",0"
+                        protsList[i] = protsList[i].strip(",")
+                        newProtecteds = listToStr(protsList, sep=";")
+
+                        deckStr = newDeck
+
+            shiftStr = ""
+            if shift == True:
+                shiftStr = "Sabacc shift!"
+            elif shift == False:
+                shiftStr = "No shift!"
+
+
+
+
+            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift, shiftStr)
+
+
+    if endGame == True:
+
+        alderaanData = alderaanEnd(handsList, deckStr, protsList, False)
+
+        newHands = listToStr(alderaanData["handsList"], sep=";")
+        newDeck = listToStr(alderaanData["deck"])
+        newProtecteds = listToStr(alderaanData["protsList"], sep=";")
+        winnerDex = alderaanData["winner"]
+        winnerVal = alderaanData["winnerVal"]
+
+        handVals = calcHandVals(alderaanData["handsList"])
+        bombOutDexes = []
+
+        for val in handVals:
+            if (val == 0 or abs(val) > 23) and val != winnerVal:
+                bombOutDexes.append(handVals.index(val))
+
+
+        newSabaccPot = game["sabacc_pot"]
+        for b in bombOutDexes:
+            creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
+            newSabaccPot += int(round(handPot) * 0.1)
+
+        creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + handPot)
+        if abs(winnerVal) == 23 or winnerVal == 230:
+            creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + newSabaccPot)
+            newSabaccPot = 0
+
+        
+
+        winner = db.execute(f"SELECT username FROM users where id = {int(users[winnerDex])}")[0]["username"]
+
+
+        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)
+
+    # Tell Client to refresh data
+    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+    
+    return jsonify({"message": "Card!", "gata": gata}), 200
 
 def errorhandler(e):
     """Handle error"""

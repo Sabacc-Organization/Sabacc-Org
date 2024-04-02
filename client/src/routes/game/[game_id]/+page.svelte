@@ -34,7 +34,8 @@
         "shift": 0,
         "player_ids": "",
         "player_turn": -1,
-        "completed": 0
+        "completed": 0,
+        "cycle_count": 0
     };
     let players: any[] = [];
     let user_id = -1;
@@ -231,8 +232,76 @@
         bet("fold");
     }
 
+    // Card Phase
 
+    let cardBool = false;
+    let alderaanActive = false;
 
+    let tradeOpen = false;
+    let tradeCard = "";
+
+    $: {
+        if (game["player_turn"] === user_id && game["phase"] === "card") {
+            cardBool = true;
+            if (game["cycle_count"] != 0) {
+                alderaanActive = true;
+            }
+        } else {
+            cardBool = false;
+            alderaanActive = false;
+        }
+    }
+
+    async function card(action: string) {
+        if (cardBool) {
+            try {
+
+                let requestData = {
+                    "username": username,
+                    "password": password,
+                    "game_id": game_id,
+                    "action": action,
+                    "trade": tradeCard
+                }
+
+                const response = await fetch(BACKEND_URL + "/card", {
+                    method: 'POST', // Set the method to POST
+                    headers: {
+                        'Content-Type': 'application/json' // Set the headers appropriately
+                    },
+                    body: JSON.stringify(requestData) // Convert your data to JSON
+                });
+
+                let res = await response.json();
+                if (response.ok) {
+                    game = res["gata"];
+                }
+                errorMsg = res["message"];
+            } catch (e) {
+                console.log(e);
+            }
+            tradeOpen = false;
+        }
+    }
+
+    async function draw() {
+        card("draw");
+    }
+
+    function tradeBtn() {
+        tradeOpen = true;
+    }
+
+    async function trade(c: string) {
+        if (tradeOpen) {
+            tradeCard = document.getElementById(c)?.innerText;
+            card("trade");
+        }
+    }
+
+    async function stand() {
+        card("stand");
+    }
 
 </script>
 
@@ -250,20 +319,21 @@
             <h5>Hand: <span id="hand_pot">{game["hand_pot"]}</span></h5>
         </div>
 
-        <div id="deck" class="card child">
-        </div>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div on:click={draw} class:active={cardBool} id="deck" class="card child"></div>
 
-        <div id="discard" class="card child">
-            <button type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
+        <div class:active={cardBool} id="discard" class="card child">
+            <button on:click={tradeBtn} type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
             <br>
-            <button type="button" id="standBtn" class="btn btn-primary smol">Stand</button>
+            <button on:click={stand} type="button" id="standBtn" class="btn btn-primary smol">Stand</button>
         </div>
 
         <div id="dieOne" class="child die"></div>
 
         <div id="dieTwo" class="child die shift{game["shift"]}"></div>
 
-        <div id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
+        <div class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
 
     </div>
     {#each players as p, i}
@@ -284,7 +354,7 @@
                         {#if game["player_protecteds"].split(";")[i].split(",")[ci] === "0"}
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
-                            <div id="card{ci.toString()}" class="card child own"  on:click={() => protect("card" + ci.toString())}><h5>{c}</h5></div>
+                            <div on:click={() => trade("card" + ci.toString())} on:dblclick={() => protect("card" + ci.toString())} id="card{ci.toString()}" class="card child own"><h5>{c}</h5></div>
                         {:else}
                             <div class="card child own protected"><h5>{c}</h5></div>
                         {/if}

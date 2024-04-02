@@ -702,7 +702,6 @@ def card():
 
             newHands = handsStr
             newProtecteds = protsStr
-            newDeck = deckStr
 
 
             shift = rollShift()
@@ -728,7 +727,7 @@ def card():
                     newProtecteds = strListMod(newProtecteds, k, listToStr(newProtsList), sep=";")
                     drawCounts.append(drawCount)
 
-                newDeck = shuffleDeck(hCards)
+                deckStr = shuffleDeck(hCards)
 
                 handsList = newHands.split(";")
                 
@@ -738,7 +737,7 @@ def card():
 
                     for c in range(drawCounts[i]):
                         drawData = drawCard(deckStr)
-                        newDeck = drawData["deck"]
+                        deckStr = drawData["deck"]
                         newCard = drawData["card"]
                         handsList[i] += "," + newCard
                         handsList[i] = handsList[i].strip(",")
@@ -747,8 +746,6 @@ def card():
                         protsList[i] += ",0"
                         protsList[i] = protsList[i].strip(",")
                         newProtecteds = listToStr(protsList, sep=";")
-
-                        deckStr = newDeck
 
             shiftStr = ""
             if shift == True:

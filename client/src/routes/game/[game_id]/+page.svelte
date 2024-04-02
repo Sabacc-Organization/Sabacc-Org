@@ -319,6 +319,34 @@
 
     // Shift Phase
 
+    // Play Again
+    async function playAgain() {
+        try {
+
+            let requestData = {
+                "username": username,
+                "password": password,
+                "game_id": game_id
+            }
+
+            const response = await fetch(BACKEND_URL + "/cont", {
+                method: 'POST', // Set the method to POST
+                headers: {
+                    'Content-Type': 'application/json' // Set the headers appropriately
+                },
+                body: JSON.stringify(requestData) // Convert your data to JSON
+            });
+
+            let res = await response.json();
+            if (response.ok) {
+                game = res["gata"];
+            }
+            errorMsg = res["message"];
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
 </script>
 
 <h1>{header}</h1>
@@ -352,6 +380,10 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
+
+        {#if game["completed"] === 1 && game["player_turn"] === user_id}
+            <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
+        {/if}
 
     </div>
     {#each players as p, i}

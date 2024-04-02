@@ -96,83 +96,6 @@ def game_connect():
     users[user_id] = sid
 
 
-@socketio.on("cont", namespace="/cont")
-def cont(data):
-
-    # Set some variables for the whole function
-    game_id = data["game_id"]
-
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    creditsStr = game["player_credits"]
-    users = game["player_ids"].split(",")
-    user_id = session.get("user_id")
-
-    if game["completed"] != True:
-        return
-
-    # If it is not this player's turn
-    if game["player_turn"] != int(user_id):
-        return
-    
-    newPlayers = game["player_ids"]
-    if game["folded_players"] != None:
-        newPlayers += "," + game["folded_players"]
-
-    newPlayers = newPlayers.strip(",")
-    users = newPlayers.split(",")
-
-    # Rotate "Dealer"
-    users = shiftList(users)
-    newPlayers = listToStr(users)
-
-    newCredits = creditsStr
-    if game["folded_credits"] != None:
-        newCredits += "," + game["folded_credits"]
-
-    newCredits = newCredits.strip(",")
-    creditsList = newCredits.split(",")
-
-    # Rotate "Dealer" credits
-    creditsList = shiftList(creditsList)
-    newCredits = listToStr(creditsList)
-
-    for c in creditsList:
-        creditsList[creditsList.index(c)] = str(int(c) - 15)
-    
-    newCredits = listToStr(creditsList)
-
-    hPot = 5 * len(users)
-    sPot = game["sabacc_pot"] + (10 * len(users))
-
-    # Protecteds
-    prots = ""
-    for i in range(len(users)):
-        prots += "0,0;"
-
-    prots = prots.strip(";")
-
-    # Bets
-    pBets = ""
-    for i in range(len(users) - 1):
-        pBets += ","
-
-    # Construct deck and hands
-    deckData = constructDeck(len(users))
-    deck = deckData["deck"]
-    handsStr = listToStr(deckData["hands"], sep=";")
-
-    # Create game in database
-    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
-
-    # Force Reload players
-    data = {
-        "cmd": "reload",
-        "g_id": game_id
-    }
-
-    send(data, broadcast=True)
-
-
     
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
@@ -897,6 +820,87 @@ def card():
 
 
         db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)
+
+    # Tell Client to refresh data
+    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+    
+    return jsonify({"message": "Card!", "gata": gata}), 200
+
+@app.route("/cont", methods=["POST"])
+@cross_origin()
+def cont():
+
+    username = request.json.get("username")
+    password = request.json.get("password")
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+    # Set some variables for the whole function
+    game_id = request.json.get("game_id")
+    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+
+    creditsStr = game["player_credits"]
+    users = game["player_ids"].split(",")
+
+    if game["completed"] != True:
+        return
+
+    # If it is not this player's turn
+    if game["player_turn"] != int(user_id):
+        return
+    
+    newPlayers = game["player_ids"]
+    if game["folded_players"] != None:
+        newPlayers += "," + game["folded_players"]
+
+    newPlayers = newPlayers.strip(",")
+    users = newPlayers.split(",")
+
+    # Rotate "Dealer"
+    users = shiftList(users)
+    newPlayers = listToStr(users)
+
+    newCredits = creditsStr
+    if game["folded_credits"] != None:
+        newCredits += "," + game["folded_credits"]
+
+    newCredits = newCredits.strip(",")
+    creditsList = newCredits.split(",")
+
+    # Rotate "Dealer" credits
+    creditsList = shiftList(creditsList)
+    newCredits = listToStr(creditsList)
+
+    for c in creditsList:
+        creditsList[creditsList.index(c)] = str(int(c) - 15)
+    
+    newCredits = listToStr(creditsList)
+
+    hPot = 5 * len(users)
+    sPot = game["sabacc_pot"] + (10 * len(users))
+
+    # Protecteds
+    prots = ""
+    for i in range(len(users)):
+        prots += "0,0;"
+
+    prots = prots.strip(";")
+
+    # Bets
+    pBets = ""
+    for i in range(len(users) - 1):
+        pBets += ","
+
+    # Construct deck and hands
+    deckData = constructDeck(len(users))
+    deck = deckData["deck"]
+    handsStr = listToStr(deckData["hands"], sep=";")
+
+    # Create game in database
+    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
 
     # Tell Client to refresh data
     gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]

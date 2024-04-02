@@ -2,5 +2,5 @@
 DEBUG: False
 IP: 127.0.0.1
 DOMAIN: "http://127.0.0.1:5000"
-DOMAINTWO: "https://heinoushare-code50-76819177-g4x99w676fvqvg-59667.githubpreview.dev"
+DOMAINTWO: ""
 PORT: 5000

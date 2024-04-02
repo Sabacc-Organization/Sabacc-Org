@@ -95,247 +95,6 @@ def game_connect():
     sid = request.sid
     users[user_id] = sid
 
-@socketio.on("protect", namespace="/protect")
-def protect(data):
-
-    # Set some variables for the whole function
-    game_id = data["game_id"]
-    protect = data["protect"]
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    user_id = session.get("user_id")
-    uName = db.execute(f"SELECT username FROM users where id = {int(user_id)}")[0]["username"]
-    uDex = game["player_ids"].split(",").index(str(user_id))
-    u_hand = game["player_hands"].split(";")[uDex]
-
-    # Check if card being protected is in hand
-    cardDex = -1
-    handL = u_hand.split(",")
-    for card in handL:
-        if card == protect:
-            cardDex = handL.index(card)
-            break
-
-
-    if cardDex == -1:
-        print("NON-MATCHING USER INPUT")
-        return
-    
-    # Card is confirmed to be in hand
-
-
-    # Create new List of protected cards
-    protectedAll = game["player_protecteds"].split(";")
-    protsStr = protectedAll[uDex]
-    protsList = protsStr.split(",")
-    protsList[cardDex] = 1
-
-    # Convert that List to a String
-    protsStr = listToStr(protsList)
-    protectedAll[uDex] = protsStr
-
-    protAllStr = listToStr(protectedAll, sep=";")
-
-    # Update the database
-    db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
-
-    # Tell Clients to refresh data
-    data = {
-        "cmd": "refresh",
-        "g_id": game_id,
-        "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    }
-    send(data, broadcast=True)
-
-@socketio.on("bet", namespace="/bet")
-def bet(data):
-
-    # Set some variables for the whole function
-    game_id = data["game_id"]
-    action = data["action"]
-    amount = 0
-    try:
-        amount = data["amount"]
-    except KeyError:
-        pass
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    creditsStr = game["player_credits"]
-    betsStr = game["player_bets"]
-    users = game["player_ids"].split(",")
-    user_id = session.get("user_id")
-    uName = db.execute(f"SELECT username FROM users where id = {int(user_id)}")[0]["username"]
-    u_dex = users.index(str(user_id))
-
-    endRound = False
-    foldEnd = False
-
-    if game["phase"] != "betting":
-        return
-
-    player = ""
-    if users.index(str(user_id)) == 0:
-        player = "player1"
-
-    # If it is not this player's turn
-    if game["player_turn"] != int(user_id):
-        return
-
-    # If player 1 bets or checks
-    if action == "bet" and player == "player1":
-
-        pCredits = int(strListRead(creditsStr, 0))
-        newCredits = strListMod(creditsStr, 0, pCredits - amount)
-
-        newBets = strListMod(betsStr, 0, amount)
-
-        act = uName
-        if amount == 0:
-            act += " checks"
-        elif amount != 0:
-            act += f" bets ${amount}"
-
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[1]), act)
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    elif action == "call":
-
-        pCredits = int(strListRead(creditsStr, u_dex))
-        newCredits = strListMod(creditsStr, u_dex, pCredits - amount)
-
-        newBets = strListMod(betsStr, u_dex, amount + readIntValStrList(betsStr, u_dex))
-
-        nextPlayer = u_dex + 1
-
-        if str(user_id) == users[len(users) - 1]:
-            endRound = True
-
-
-        if endRound == False and readIntValStrList(newBets, nextPlayer) == readIntValStrList(newBets, u_dex):
-
-            if nextPlayer == len(users) - 1:
-                endRound = True
-
-            nextPlayer += 1
-
-        if endRound == True:
-            nextPlayer = 0
-
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} calls")
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    elif action == "raise":
-
-        pCredits = int(strListRead(creditsStr, u_dex))
-        newCredits = strListMod(creditsStr, u_dex, pCredits - amount)
-
-        newBets = strListMod(betsStr, u_dex, amount + readIntValStrList(betsStr, u_dex))
-
-        nextPlayer = 0
-
-        if str(user_id) == users[0]:
-            nextPlayer = 1
-
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} raises to ${newBets.split(',')[u_dex]}")
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    elif action == "fold":
-
-        newPlayers = strListPop(game["player_ids"], u_dex)
-        newHands = strListPop(game["player_hands"], u_dex, sep=";")
-        newProtecteds = strListPop(game["player_protecteds"], u_dex, sep=";")
-        newCredits = strListPop(creditsStr, u_dex,)
-        newBets = strListPop(betsStr, u_dex)
-
-        newFoldedP = strListAppend(game["folded_players"], user_id)
-
-        newFoldedC = strListAppend(game["folded_credits"], int(strListRead(creditsStr, u_dex)) + int(strListRead(betsStr, u_dex, default=0)))
-
-        foldEnd = False
-
-        if len(newPlayers.split(",")) == 1:
-            foldEnd = True
-
-        nextPlayer = u_dex
-
-        if str(user_id) == users[len(users) - 1]:
-            endRound = True
-
-        if endRound == True:
-            nextPlayer = 0
-
-        db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, p_act = ? WHERE game_id = {game_id}", newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC, f"{uName} folds")
-
-        # Force Reload players
-        data = {
-            "cmd": "reload",
-            "g_id": game_id
-        }
-        send(data, broadcast=True)
-
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    users = game["player_ids"].split(",")
-    creditsStr = game["player_credits"]
-    betsStr = game["player_bets"]
-
-    if foldEnd == True:
-
-        newCredits = creditsStr
-        newCredits = strListMod(creditsStr, 0, int(strListRead(creditsStr, 0)) + game["hand_pot"] + int(strListRead(betsStr, 0)))
-
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, hand_pot = ?, player_turn = ?, completed = ? WHERE game_id = {game_id}", newCredits, "", 0, int(users[0]), True)
-
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    users = game["player_ids"].split(",")
-    creditsStr = game["player_credits"]
-    betsStr = game["player_bets"]
-
-    if endRound == True:
-        
-        betsSum = 0
-
-        newBets = ""
-        for i in range(len(users) - 1):
-            newBets += ","
-
-        for i in range(len(users)):
-
-            betsSum += int(strListRead(betsStr, i))
-
-        if foldEnd == True:
-            betsSum = 0
-
-        db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
-
-        # Tell Clients to refresh data
-        data = {
-            "cmd": "refresh",
-            "g_id": game_id,
-            "gata": db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-        }
-        send(data, broadcast=True)
-
-    return
-
 @socketio.on("card", namespace="/card")
 def card(data):
 
@@ -687,89 +446,6 @@ def cont(data):
     send(data, broadcast=True)
 
 
-
-# @app.route("/login", methods=["GET", "POST"])
-# def login():
-#     """Log user in"""
-
-#     # Forget any user_id
-#     session.clear()
-
-#     # User reached route via POST (as by submitting a form via POST)
-#     if request.method == "POST":
-
-#         # Ensure username was submitted
-#         username = request.form.get("username")
-#         if not username:
-#             return apology("must provide username", 403)
-
-#         # Ensure password is valid
-#         if not request.form.get("password"):
-#             return apology("must provide password", 403)
-        
-#         orHash = None
-
-#         try:
-#             orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
-#         except IndexError:
-#             return apology(f"User {username} does not exist")
-
-
-#         if check_password_hash(orHash, request.form.get("password")) == False:
-#             return apology("Incorrect password")
-
-#         # Query database for username
-#         rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
-
-#         # Check that username is valid
-#         if len(rows) == 0:
-#             return apology("Invalid username")
-
-#         # If the user wants to change their password, do so
-#         change = request.form.get("change")
-#         if change != None:
-
-#             # Check that passwords are valid
-#             password = request.form.get("pass")
-#             if not password:
-#                 return apology("Missing new password")
-
-#             passCon = request.form.get("passCon")
-#             if not passCon:
-#                 return apology("Missing new password confirmation")
-
-#             if password != passCon:
-#                 return apology("New passwords do not match")
-
-#             # Change user's password
-#             passHash = str(generate_password_hash(password))
-#             db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
-
-#         # Remember which user has logged in
-#         session["user_id"] = rows[0]["id"]
-
-#         # Set default themes
-#         session["dark"] = False
-#         session["theme"] = "rebels"
-
-#         # Redirect user to home page
-#         return redirect("/")
-
-#     # User reached route via GET (as by clicking a link or via redirect)
-#     else:
-#         return render_template("login.html")
-
-
-@app.route("/logout")
-def logout():
-    """Log user out"""
-
-    # Forget any user_id
-    session.clear()
-
-    # Redirect user to login form
-    return redirect("/")
-
     
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
@@ -962,7 +638,7 @@ def game():
     for u in game["player_ids"].split(","):
         users.append(db.execute("SELECT id, username FROM users WHERE id = ?", int(u))[0]["username"])
 
-    return jsonify({"message": "Good luck!", "game": game, "users": users, "user_id": int(user_id)}), 200
+    return jsonify({"message": "Good luck!", "gata": game, "users": users, "user_id": int(user_id)}), 200
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
@@ -1040,6 +716,229 @@ def host():
         game_id = db.execute("SELECT game_id FROM games WHERE player_ids = ? ORDER BY game_id DESC", playersStr)[0]["game_id"]
 
         return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
+    
+@app.route("/protect", methods=["POST"])
+@cross_origin()
+def protect():
+
+    username = request.json.get("username")
+    password = request.json.get("password")
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+    # Set some variables for the whole function
+    game_id = request.json.get("game_id")
+    protect = request.json.get("protect")
+    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
+    uDex = game["player_ids"].split(",").index(str(user_id))
+    u_hand = game["player_hands"].split(";")[uDex]
+
+
+    # Check if card being protected is in hand
+    cardDex = -1
+    handL = u_hand.split(",")
+    for card in handL:
+        if card == protect:
+            cardDex = handL.index(card)
+            break
+
+
+    if cardDex == -1:
+        print("NON-MATCHING USER INPUT")
+        return jsonify({"message": "non matching user input"}), 401
+    
+    # Card is confirmed to be in hand
+
+
+    # Create new List of protected cards
+    protectedAll = game["player_protecteds"].split(";")
+    protsStr = protectedAll[uDex]
+    protsList = protsStr.split(",")
+    protsList[cardDex] = 1
+
+    # Convert that List to a String
+    protsStr = listToStr(protsList)
+    protectedAll[uDex] = protsStr
+
+    protAllStr = listToStr(protectedAll, sep=";")
+
+    # Update the database
+    db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
+
+    # Tell Clients to refresh data
+
+    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+        
+    return jsonify({"message": "Card protected", "gata": gata}), 200
+
+""" Gameplay REST APIs """
+
+@app.route("/bet", methods=["POST"])
+@cross_origin()
+def bet():
+
+    username = request.json.get("username")
+    password = request.json.get("password")
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+    # Set some variables for the whole function
+    game_id = request.json.get("game_id")
+    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    action = request.json.get("action")
+    amount = request.json.get("amount")
+    users = game["player_ids"].split(",")
+    uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
+    u_dex = game["player_ids"].split(",").index(str(user_id))
+    creditsStr = game["player_credits"]
+    betsStr = game["player_bets"]
+
+    endRound = False
+    foldEnd = False
+
+    if game["phase"] != "betting":
+        return
+
+    player = ""
+    if users.index(str(user_id)) == 0:
+        player = "player1"
+
+    # If it is not this player's turn
+    if game["player_turn"] != int(user_id):
+        return
+
+    # If player 1 bets or checks
+    if action == "bet" and player == "player1":
+
+        pCredits = int(strListRead(creditsStr, 0))
+        newCredits = strListMod(creditsStr, 0, pCredits - amount)
+
+        newBets = strListMod(betsStr, 0, amount)
+
+        act = uName
+        if amount == 0:
+            act += " checks"
+        elif amount != 0:
+            act += f" bets ${amount}"
+
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[1]), act)
+
+
+    elif action == "call":
+
+        pCredits = int(strListRead(creditsStr, u_dex))
+        newCredits = strListMod(creditsStr, u_dex, pCredits - amount)
+
+        newBets = strListMod(betsStr, u_dex, amount + readIntValStrList(betsStr, u_dex))
+
+        nextPlayer = u_dex + 1
+
+        if str(user_id) == users[len(users) - 1]:
+            endRound = True
+
+
+        if endRound == False and readIntValStrList(newBets, nextPlayer) == readIntValStrList(newBets, u_dex):
+
+            if nextPlayer == len(users) - 1:
+                endRound = True
+
+            nextPlayer += 1
+
+        if endRound == True:
+            nextPlayer = 0
+
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} calls")
+
+    elif action == "raise":
+
+        pCredits = int(strListRead(creditsStr, u_dex))
+        newCredits = strListMod(creditsStr, u_dex, pCredits - amount)
+
+        newBets = strListMod(betsStr, u_dex, amount + readIntValStrList(betsStr, u_dex))
+
+        nextPlayer = 0
+
+        if str(user_id) == users[0]:
+            nextPlayer = 1
+
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} raises to ${newBets.split(',')[u_dex]}")
+
+
+    elif action == "fold":
+
+        newPlayers = strListPop(game["player_ids"], u_dex)
+        newHands = strListPop(game["player_hands"], u_dex, sep=";")
+        newProtecteds = strListPop(game["player_protecteds"], u_dex, sep=";")
+        newCredits = strListPop(creditsStr, u_dex,)
+        newBets = strListPop(betsStr, u_dex)
+
+        newFoldedP = strListAppend(game["folded_players"], user_id)
+
+        newFoldedC = strListAppend(game["folded_credits"], int(strListRead(creditsStr, u_dex)) + int(strListRead(betsStr, u_dex, default=0)))
+
+        foldEnd = False
+
+        if len(newPlayers.split(",")) == 1:
+            foldEnd = True
+
+        nextPlayer = u_dex
+
+        if str(user_id) == users[len(users) - 1]:
+            endRound = True
+
+        if endRound == True:
+            nextPlayer = 0
+
+        db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, p_act = ? WHERE game_id = {game_id}", newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC, f"{uName} folds")
+
+    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+    users = game["player_ids"].split(",")
+    creditsStr = game["player_credits"]
+    betsStr = game["player_bets"]
+
+    if foldEnd == True:
+
+        newCredits = creditsStr
+        newCredits = strListMod(creditsStr, 0, int(strListRead(creditsStr, 0)) + game["hand_pot"] + int(strListRead(betsStr, 0)))
+
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, hand_pot = ?, player_turn = ?, completed = ? WHERE game_id = {game_id}", newCredits, "", 0, int(users[0]), True)
+
+    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+    users = game["player_ids"].split(",")
+    creditsStr = game["player_credits"]
+    betsStr = game["player_bets"]
+
+    if endRound == True:
+        
+        betsSum = 0
+
+        newBets = ""
+        for i in range(len(users) - 1):
+            newBets += ","
+
+        for i in range(len(users)):
+
+            try:
+                betsSum += int(strListRead(betsStr, i))
+            except ValueError:
+                pass
+
+        if foldEnd == True:
+            betsSum = 0
+
+        db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
+
+    # Tell Clients to refresh data
+    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+    
+    return jsonify({"message": "Card protected", "gata": gata}), 200
 
 def errorhandler(e):
     """Handle error"""

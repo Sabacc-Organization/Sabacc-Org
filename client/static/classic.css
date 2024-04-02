@@ -45,7 +45,7 @@ h5
 #pots
 {
     background-color: #787777;
-    background-image: url("/static/images/rebels_pot.jpeg");
+    background-image: url("/images/rebels_pot.jpeg");
     background-blend-mode: multiply;
     color: #ffffff;
 }
@@ -82,7 +82,7 @@ h5
 }
 
 .card {
-    background-image: url("/static/images/rebels-card-back.png");
+    background-image: url("/images/rebels-card-back.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     width: 174px;
@@ -128,7 +128,7 @@ h5
 }
 
 .alderaan {
-    background-image: url("/static/images/alderaan.png");
+    background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     width: 200px;
@@ -143,7 +143,7 @@ h5
 }
 
 #alderaan.blown {
-    background-image: url("/static/images/alderaanExplode.webp");
+    background-image: url("/images/alderaanExplode.webp");
 }
 
 #dieOne {

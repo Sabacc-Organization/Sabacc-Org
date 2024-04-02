@@ -1,6 +1,6 @@
 main.game
 {
-    background-image: url("/static/images/red_poker_table.jpeg");
+    background-image: url("/images/red_poker_table.jpeg");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
 }
@@ -17,7 +17,7 @@ main.game
     margin: 1%;
     padding: 1%;
     background-color: #787777;
-    background-image: url("/static/images/rebels_pot.jpeg");
+    background-image: url("/images/rebels_pot.jpeg");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     background-blend-mode: multiply;
@@ -62,7 +62,7 @@ main.game
     margin: 0;
     /* How to make more clip art https://bennettfeely.com/clippy/ */
     clip-path: polygon(31% 2%, 69% 2%, 87% 50%, 70% 98%, 30% 98%, 13% 50%);
-    background-image: url("/static/images/solo-card-back.png");
+    background-image: url("/images/solo-card-back.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     background-position: center;
@@ -80,7 +80,7 @@ main.game
 
 .alderaan {
     padding: 0;
-    background-image: url("/static/images/alderaan.png");
+    background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     width: 60px;
@@ -123,7 +123,7 @@ main.game
 
 #table {
     position: relative;
-    background-image: url("/static/images/octogonal-poker-table.svg");
+    background-image: url("/images/octogonal-poker-table.svg");
     clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
     background-repeat: no-repeat, no-repeat;
     background-size: cover;

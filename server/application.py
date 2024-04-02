@@ -95,28 +95,6 @@ def game_connect():
     sid = request.sid
     users[user_id] = sid
 
-
-    
-@app.route("/settings", methods=["GET", "POST"])
-@login_required
-def settings():
-
-    if request.method == "POST":
-
-        dark = request.form.get("dark")
-        if dark == "on":
-            session["dark"] = True
-        elif dark == None:
-            session["dark"] = False
-
-        theme = request.form.get("theme")
-        session["theme"] = theme
-
-        return redirect("/")
-
-    elif request.method == "GET":
-        return render_template("settings.html")
-
 """ REST APIs """
 
 @app.route("/login", methods=["POST"])
@@ -164,8 +142,6 @@ def login():
         return jsonify({"message": "Logged in!"}), 200
 
     # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("login.html")
     
 @app.route("/", methods=["POST"])
 @cross_origin()

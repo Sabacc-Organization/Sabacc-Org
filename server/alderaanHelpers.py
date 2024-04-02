@@ -33,7 +33,7 @@ def calcBestVal(handVals):
                 bestVal = val
 
             elif abs(val) == abs(bestVal):
-                if val > bestVal: # aka if this new val is positive and the old one is negative
+                if val < bestVal: # aka if this new val is negative and the old one is positive
                     bestVal = val
 
     if bestVal == 0:
@@ -85,7 +85,7 @@ def alderaanEnd(hL : list, deckStrIn : str, pL : list, suddenDemise : bool, bD :
                 closestVal = val
 
             elif abs(abs(val) - 23) == closestDist:
-                if val > closestVal: # aka if this new val is positive and the old one is negative
+                if val < closestVal: # aka if this new val is negative and the old one is positive
                     closestVal = val
 
         closestDexes = findBestDexes(handVals, closestVal)

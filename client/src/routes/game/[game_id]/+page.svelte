@@ -241,10 +241,18 @@
     let tradeCard = "";
 
     $: {
-        if (game["player_turn"] === user_id && game["phase"] === "card") {
-            cardBool = true;
-            if (game["cycle_count"] != 0) {
-                alderaanActive = true;
+        if (game["player_turn"] === user_id) {
+
+            if (game["phase"] === "card") {
+                cardBool = true;
+                if (game["cycle_count"] != 0) {
+                    alderaanActive = true;
+                }
+            }
+
+            if (game["phase"] === "alderaan") {
+                cardBool = true;
+                alderaanActive = false;
             }
         } else {
             cardBool = false;
@@ -303,6 +311,12 @@
         card("stand");
     }
 
+    async function alderaan() {
+        if (alderaanActive) {
+            card("alderaan");
+        }
+    }
+
 </script>
 
 <h1>{header}</h1>
@@ -333,7 +347,9 @@
 
         <div id="dieTwo" class="child die shift{game["shift"]}"></div>
 
-        <div class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
 
     </div>
     {#each players as p, i}

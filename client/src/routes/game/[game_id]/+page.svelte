@@ -1,6 +1,5 @@
 <script lang="ts">
     import { page } from '$app/stores';
-    import jq from 'jquery';
 
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';

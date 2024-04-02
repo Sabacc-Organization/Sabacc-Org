@@ -17,6 +17,9 @@
 
     onMount( async () => {
         loggedIn = await checkLogin(username, password, BACKEND_URL);
+        if (!loggedIn) {
+            customRedirect(FRONTEND_URL + "/login");
+        }
     });
 
     let players: string[] = [];

@@ -41,7 +41,7 @@ Session(app)
 
 # CORS
 link = config["DOMAIN"]
-linkTwo = "http://localhost:5173"
+linkTwo = config["CROSS_ORIGIN"]
 
 allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/card", f"{link}/shift", f"{link}/protect", f"{link}/cont", linkTwo, f"{linkTwo}/chat", f"{linkTwo}/game", f"{linkTwo}/bet", f"{linkTwo}/card", f"{linkTwo}/shift", f"{linkTwo}/protect", f"{linkTwo}/cont"]
 

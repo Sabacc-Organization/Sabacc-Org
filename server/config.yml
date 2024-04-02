@@ -2,5 +2,5 @@
 DEBUG: False
 IP: 127.0.0.1
 DOMAIN: "http://127.0.0.1:5000"
-DOMAINTWO: ""
+CROSS_ORIGIN: "http://localhost:5173"
 PORT: 5000

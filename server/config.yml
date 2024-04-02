@@ -1,0 +1,6 @@
+# APP
+DEBUG: False
+IP: 127.0.0.1
+DOMAIN: "http://127.0.0.1:5000"
+DOMAINTWO: ""
+PORT: 5000

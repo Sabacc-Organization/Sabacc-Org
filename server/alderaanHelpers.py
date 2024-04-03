@@ -77,32 +77,6 @@ def alderaanEnd(hL : list, deckStrIn : str, pL : list, suddenDemise : bool, bD :
         return alderaanEnd(handsList, newDeck, protsList, True, bD=bestDexes)
     
     elif len(bestDexes) == 0: # Everyone bombed out
-        # closestDist = 1000
-        # closestVal = 0
-        # for val in handVals:
-        #     if abs(abs(val) - 23) < closestDist:
-        #         closestDist = abs(abs(val) - 23)
-        #         closestVal = val
-
-        #     elif abs(abs(val) - 23) == closestDist:
-        #         if val < closestVal: # aka if this new val is negative and the old one is positive
-        #             closestVal = val
-
-        # closestDexes = findBestDexes(handVals, closestVal)
-
-        # if len(closestDexes) > 1:
-        #     return alderaanEnd(handsList, newDeck, protsList, True, bD=closestDexes)
-        
-        # elif len(closestDexes) == 1:
-
-        #     returnData = {
-        #         "handsList": handsList,
-        #         "deck": newDeck,
-        #         "protsList": protsList,
-        #         "winner": closestDexes[0],
-        #         "winnerVal": closestVal
-        #     }
-        #     return returnData
         
         returnData = {
             "handsList": handsList,

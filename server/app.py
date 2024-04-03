@@ -776,23 +776,32 @@ def card():
             if (val == 0 or abs(val) > 23) and val != winnerVal:
                 bombOutDexes.append(handVals.index(val))
 
-
         newSabaccPot = game["sabacc_pot"]
+        bombOutPrice = int(round((handPot * 0.1)))
         for b in bombOutDexes:
-            creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - int(round((handPot * 0.1))))
-            newSabaccPot += int(round(handPot) * 0.1)
+            creditsStr = strListMod(creditsStr, b, int(strListRead(creditsStr, b)) - bombOutPrice)
+            newSabaccPot += bombOutPrice
 
-        creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + handPot)
-        if abs(winnerVal) == 23 or winnerVal == 230:
-            creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + newSabaccPot)
-            newSabaccPot = 0
+        winStr = ""
+
+        if winnerDex != -1:
+            creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + handPot)
+            if abs(winnerVal) == 23 or winnerVal == 230:
+                creditsStr = strListMod(creditsStr, winnerDex, int(strListRead(creditsStr, winnerDex)) + newSabaccPot)
+                newSabaccPot = 0
+
+            winner = db.execute(f"SELECT username FROM users where id = {int(users[winnerDex])}")[0]["username"]
+            winStr = f"{winner} wins!"
+        
+        elif winnerDex == -1:
+            newSabaccPot += handPot
+            winStr = "Everyone bombs out and loses!"
+            
 
         
 
-        winner = db.execute(f"SELECT username FROM users where id = {int(users[winnerDex])}")[0]["username"]
 
-
-        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), f"{winner} wins!", True)
+        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, True)
 
     # Tell Client to refresh data
     gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]

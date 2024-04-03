@@ -23,6 +23,10 @@
 
 </script>
 
+<svelte:head>
+  <title>Sabacc: Home</title>
+</svelte:head>
+
 {#if loggedIn === false}
 
     <h2>Sabacc</h2>

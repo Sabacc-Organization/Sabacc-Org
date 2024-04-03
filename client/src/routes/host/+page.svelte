@@ -109,6 +109,10 @@
 
 </script>
 
+<svelte:head>
+  <title>Sabacc: Host</title>
+</svelte:head>
+
 <h2>Host a game of Sabacc</h2>
 <br>
 <h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>

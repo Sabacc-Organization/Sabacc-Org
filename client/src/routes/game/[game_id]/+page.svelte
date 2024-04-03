@@ -348,6 +348,10 @@
 
 </script>
 
+<svelte:head>
+  <title>Sabacc: Game {game_id}</title>
+</svelte:head>
+
 <h1>{header}</h1>
 <h2>{game["phase"]} phase</h2>
 

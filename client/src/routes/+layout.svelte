@@ -21,6 +21,10 @@
 
 </script>
 
+<svelte:head>
+    <title>Sabacc</title>
+</svelte:head>
+
 <html lang="en">
 
     <head>
@@ -55,7 +59,6 @@
             {/if}
         {/if}
 
-        <title>Sabacc: <slot name="title"></slot></title>
 
     </head>
 

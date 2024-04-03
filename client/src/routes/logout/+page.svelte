@@ -11,3 +11,7 @@
     customRedirect(FRONTEND_URL);
 
 </script>
+
+<svelte:head>
+  <title>Sabacc: Logout</title>
+</svelte:head>

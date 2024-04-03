@@ -45,6 +45,10 @@
 
 </script>
 
+<svelte:head>
+  <title>Sabacc: Settings</title>
+</svelte:head>
+
 <h2>Settings</h2>
 <br>
 

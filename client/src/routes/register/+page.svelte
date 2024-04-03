@@ -46,6 +46,10 @@
 
 </script>
 
+<svelte:head>
+  <title>Sabacc: Register</title>
+</svelte:head>
+
 <input bind:value={username} type="text" class="form-control form-group" name="username" placeholder="Username" autocomplete="off" required>
 <br>
 <input bind:value={password} type="password" class="form-control form-group" name="password" placeholder="Password" autocomplete="off" required>

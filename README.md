@@ -51,6 +51,9 @@ The door is wide open for new gameplay features. My ideas include:
 - Leaderboards
 - Persistent Credits between games
 - Different planets to play on
+- Better playing UX and GUI (Click add credits, manual dice rolling, images of cards, etc.)
+- Other Sabacc Variants (Corellian Spike, Coruscant Shift)
+- Prized Items for the Sabacc Pot
 
 ## Running the Project Locally
 Start by cloning the repo (or download the code in a .zip):

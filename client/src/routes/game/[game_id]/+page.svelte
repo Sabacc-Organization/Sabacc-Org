@@ -412,10 +412,14 @@
                             <div class="card child own protected"><h5>{c}</h5></div>
                         {/if}
                     {:else}
-                        {#if game["player_protecteds"].split(";")[i].split(",")[ci] === "0"}
-                            <div class="card child"></div>
-                        {:else}
-                            <div class="card child protected"><h5>{c}</h5></div>
+                        {#if game["completed"] === 0}
+                            {#if game["player_protecteds"].split(";")[i].split(",")[ci] === "0"}
+                                <div class="card child"></div>
+                            {:else}
+                                <div class="card child protected"><h5>{c}</h5></div>
+                            {/if}
+                        {:else if game["completed"] === 1}
+                            <div class="card child"><h5>{c}</h5></div>
                         {/if}
                     {/if}
 

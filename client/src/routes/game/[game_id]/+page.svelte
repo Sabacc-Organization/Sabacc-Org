@@ -37,6 +37,7 @@
         "cycle_count": 0
     };
     let players: any[] = [];
+    let orderedPlayers: any[] = [];
     let user_id = -1;
     let u_dex = -1;
 
@@ -54,7 +55,7 @@
         if (!loggedIn) {
             customRedirect(FRONTEND_URL + "/login");
         }
-        refreshGame();
+        await refreshGame();
         refreshInterval = setInterval(refreshGame, 5000);
 
     });
@@ -79,16 +80,23 @@
             let res = await response.json();
             if (response.ok) {
                 game = res["gata"];
-                players = res["users"];
                 user_id = res["user_id"];
                 u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
+
+                let ps: any[] = []; 
                 header = "";
-                for (let i = 0; i < players.length; i++) {
+                for (let i = 0; i < res["users"].length; i++) {
                     if (i != 0) {
                         header += " vs. "
                     }
-                    header += players[i]
+                    players[i] = res["users"][i];
+                    ps[i] = res["users"][i];
+                    header += res["users"][i];
                 }
+
+                let frontVal = ps.splice(u_dex, 1);
+                orderedPlayers = frontVal.concat(ps);
+
             }
             errorMsg = res["message"];
         } catch (e) {
@@ -389,9 +397,10 @@
         {/if}
 
     </div>
+
     {#each players as p, i}
 
-        <div id="{p}Stuff" class="parent player{i}">
+        <div id="{p}Stuff" class="parent player{orderedPlayers.indexOf(p)}">
 
             <!-- Bet boxes -->
             {#if p === username}

@@ -57,17 +57,17 @@ The door is wide open for new gameplay features. My ideas include:
 
 ## Running the Project Locally
 Start by cloning the repo (or download the code in a .zip):
-`git clone https://github.com/Heinoushare/Sabacc-Multiplayer.git`
+`git clone https://github.com/Sabacc-Organization/Sabacc-Org.git`
 
 Setup the server side by installing all of the dependencies in server/requirements.txt. The Python version probably isn't crucial but it's the only one that I know works. Don't forget to install sqlite3!
-1. cd server
+1. `cd server`
 2. Install Python(==3.9.6) (https://www.python.org/downloads/) (or via terminal)
     - Install Pip if it did not install with Python
 3. Install pip dependencies `pip install -r pipRequirements.txt`
 4. Install sqlite3 (https://www.sqlite.org) (or via terminal)
 
 Setup the client side by installing Node.js, npm, and vite.
-1. cd client
+1. `cd client`
 2. Install Node.js and npm (https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (or via terminal)
 3. Making sure npm dependencies are installed: `npm install`
 4. You can might need to install vite separately like this: `npm install --save-dev vite`

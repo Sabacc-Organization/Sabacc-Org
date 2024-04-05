@@ -1,0 +1,10 @@
+server/sabacc.db
+client/.DS_Store
+client/node_modules
+client//build
+client//.svelte-kit
+client//package
+client/.env.*
+client/!.env.example
+client/vite.config.js.timestamp-*
+client/vite.config.ts.timestamp-*

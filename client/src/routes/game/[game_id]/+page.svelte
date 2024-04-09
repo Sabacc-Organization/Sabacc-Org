@@ -1,26 +1,30 @@
 <script lang="ts">
     import { page } from '$app/stores';
-
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
 
+    // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
+    // Cookie info
     let username = Cookies.get("username");
     let password = Cookies.get("password");
     let loggedIn = false;
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 
+    // Page header (plaer vs. player vs. player)
     let header = "";
 
+    // Error message for invalid inputs
     let errorMsg = "";
 
     // Accessing the 'username' parameter from the URL
     $: game_id = $page.params.game_id;
 
+    // Game information
     let game = {
         "p_act": "",
         "hand_pot": 0,
@@ -38,35 +42,52 @@
     };
     let players: any[] = [];
     let orderedPlayers: any[] = [];
+
+    // User ID
     let user_id = -1;
+
+    // Index of user in list of users
     let u_dex = -1;
 
 
-    // Refresh interval
+    // Game data refresh interval
     let refreshInterval: NodeJS.Timeout;
 
+    // Clean up request cycle
     onDestroy(() => {
-        clearInterval(refreshInterval); // Cleanup
+        clearInterval(refreshInterval);
+
     });
 
+    // Once page is mounted
     onMount(async() => {
 
-        loggedIn = await checkLogin(username, password, BACKEND_URL);
-        if (!loggedIn) {
-            customRedirect(FRONTEND_URL + "/login");
-        }
+        // Popolate page content
         await refreshGame();
+
+        // Set refresh intervla for game data (5000 ms)
         refreshInterval = setInterval(refreshGame, 5000);
 
     });
 
+    // refresh game date function
     async function refreshGame() {
         try {
 
-            let requestData = {
-                "username": username,
-                "password": password,
-                "game_id": game_id
+            // Request data
+
+            let requestData = {};
+
+            if (username != undefined) {
+                requestData = {
+                    "username": username,
+                    "game_id": game_id
+                }
+            } else {
+                requestData = {
+                    "username": "",
+                    "game_id": game_id
+                }
             }
 
             const response = await fetch(BACKEND_URL + "/game", {
@@ -90,12 +111,15 @@
                         header += " vs. "
                     }
                     players[i] = res["users"][i];
+                    orderedPlayers[i] = res["users"][i];
                     ps[i] = res["users"][i];
                     header += res["users"][i];
                 }
 
-                let frontVal = ps.splice(u_dex, 1);
-                orderedPlayers = frontVal.concat(ps);
+                if (u_dex != -1) {
+                    let frontVal = ps.splice(u_dex, 1);
+                    orderedPlayers = frontVal.concat(ps);
+                }
 
             }
             errorMsg = res["message"];

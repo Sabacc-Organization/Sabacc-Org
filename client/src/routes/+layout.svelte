@@ -57,6 +57,8 @@
                 <!-- Theme -->
                 <link href="/{theme}.css" rel="stylesheet">
             {/if}
+        {:else}
+            <link href="/rebels.css" rel="stylesheet">
         {/if}
 
 

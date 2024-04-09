@@ -202,29 +202,18 @@ def register():
 def game():
     """ Get game info for game <game_id> """
 
-    # Authenticate User
+    # Get username (if any, guests will not have usernames)
     username = request.json.get("username")
-    password = request.json.get("password")
-    check = checkLogin(username, password)
-    if check["status"] != 200:
-        return jsonify({"message": check["message"]}), check["status"]
+    print(request.json.get("username"))
     
-    # Get the user's id for later use
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    # Get the user's id if the user is in the game
+    user_id = -1
+    if username != "":
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
     
     # Get game
     game_id = request.json.get("game_id")
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-
-    # Verify the user making the request is in the game
-    yours = False
-    for id in game["player_ids"].split(","):
-        if id == str(user_id):
-            yours = True
-            break
-
-    if yours == False:
-        return jsonify({"message": "This is not one of your games"}), 403
 
     # Get list of usernames of players in game
     users = []

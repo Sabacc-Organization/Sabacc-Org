@@ -206,6 +206,7 @@
                 }
             }
             raising = false;
+            betCreds = 0;
         }
     }
 
@@ -216,12 +217,24 @@
         }
     }
 
+    $: {
+        if (game["completed"] === 0 && game["player_turn"] === user_id && game["phase"] === "betting"){
+            if (u_dex === 0 && game["player_bets"].split(",")[u_dex + 1] === ""){
+                if (betCreds == null){
+                    betCreds = 0;
+                }
+                chipInput = true;
+            }
+            if (raising && betCreds <= raiseAmount){
+                betCreds = raiseAmount+1;
+            }
+        }
+    }
+
     let chipInput = false;
     function handleChipPress(chipValue: number){
-        console.log('we got here1')
         if (chipInput){
             betCreds += chipValue;
-            console.log('we got here 2')
         }
     }
 
@@ -502,7 +515,6 @@
                 {#if game["phase"] === "betting"}
                     {#if u_dex === 0}
                         {#if game["player_bets"].split(",")[u_dex + 1] === ""}
-                            {chipInput = true}
                             <div id="betDiv" class="backBlue"> 
                                 <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
                                 <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button> 

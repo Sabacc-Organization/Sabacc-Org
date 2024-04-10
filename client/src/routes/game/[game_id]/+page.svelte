@@ -225,7 +225,7 @@
                 }
                 chipInput = true;
             }
-            if (raising && betCreds <= raiseAmount){
+            if (raising && (betCreds <= raiseAmount || betCreds == null)){
                 betCreds = raiseAmount+1;
             }
         }

@@ -75,21 +75,24 @@
         try {
 
             // Request data
-
             let requestData = {};
 
+            // If logged in user
             if (username != undefined) {
                 requestData = {
                     "username": username,
                     "game_id": game_id
                 }
-            } else {
+            } 
+            // If not logged in
+            else {
                 requestData = {
                     "username": "",
                     "game_id": game_id
                 }
             }
 
+            // Send request
             const response = await fetch(BACKEND_URL + "/game", {
                 method: 'POST', // Set the method to POST
                 headers: {
@@ -98,31 +101,51 @@
                 body: JSON.stringify(requestData) // Convert your data to JSON
             });
 
+            // Wait for response
             let res = await response.json();
+
+            // If response was OK
             if (response.ok) {
+                // Set game data
                 game = res["gata"];
+
+                // Set user ID
                 user_id = res["user_id"];
+
+                // Set u_dex
                 u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
 
+                // Creat p(layer)s array
                 let ps: any[] = []; 
+
+                // Prepare header var (p vs. p vs. p)
                 header = "";
+
+                // For every user in users
                 for (let i = 0; i < res["users"].length; i++) {
+                    // Add vs. except on first loop through
                     if (i != 0) {
                         header += " vs. "
                     }
+
+                    // Update all player arrays
                     players[i] = res["users"][i];
                     orderedPlayers[i] = res["users"][i];
                     ps[i] = res["users"][i];
+
+                    // Add username to header
                     header += res["users"][i];
                 }
 
+                // If player is in game, make orderedPlayers proper
                 if (u_dex != -1) {
                     let frontVal = ps.splice(u_dex, 1);
                     orderedPlayers = frontVal.concat(ps);
                 }
 
+            } else {
+                errorMsg = res["message"];
             }
-            errorMsg = res["message"];
         } catch (e) {
             console.log(e);
         }

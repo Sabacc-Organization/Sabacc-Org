@@ -229,6 +229,7 @@
                 }
             }
             raising = false;
+            betCreds = 0;
         }
     }
 
@@ -236,6 +237,27 @@
         if (u_dex === 0) {
             betCreds = 0;
             bet("bet");
+        }
+    }
+
+    $: {
+        if (game["completed"] === 0 && game["player_turn"] === user_id && game["phase"] === "betting"){
+            if (u_dex === 0 && game["player_bets"].split(",")[u_dex + 1] === ""){
+                if (betCreds == null){
+                    betCreds = 0;
+                }
+                chipInput = true;
+            }
+            if (raising && (betCreds <= raiseAmount || betCreds == null)){
+                betCreds = raiseAmount+1;
+            }
+        }
+    }
+
+    let chipInput = false;
+    function handleChipPress(chipValue: number){
+        if (chipInput){
+            betCreds += chipValue;
         }
     }
 
@@ -483,7 +505,23 @@
 
             <!-- Player boxes -->
             {#if p === username}
-                <div id="{p}Box" class="backBlue"><h5>{p}</h5> <div class="parent"> <div class="ownChip child chip bigChip"></div> <div class="ownChip child chip midChip"></div><div class="ownChip child chip lowChip"></div> </div> <h5>$<span id="credits">{game["player_credits"].split(",")[i]}</span></h5></div>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div id="{p}Box" class="backBlue">
+                    <h5>{p}</h5> 
+                    <div class="parent">
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div class="ownChip child chip bigChip" on:click={() => handleChipPress(10)}></div>
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div class="ownChip child chip midChip" on:click={() => handleChipPress(5)}></div>
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div class="ownChip child chip lowChip" on:click={() => handleChipPress(1)}></div> 
+                    </div> 
+                    <h5>$<span id="credits">{game["player_credits"].split(",")[i]}</span></h5>
+                </div>
             {:else}
                 <div id="{p}Box" class="backRed"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5>$<span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
             {/if}
@@ -502,20 +540,20 @@
                         {#if game["player_bets"].split(",")[u_dex + 1] === ""}
                             <div id="betDiv" class="backBlue"> 
                                 <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
-                                <button on:click={() => bet("bet")} id="betBtn" type="button" class="btn btn-primary">Bet</button> 
+                                <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button> 
                                 <p class="red">{betErr}</p>
                             </div>
                         {:else}
                             {#if raising === false}
                                 <div id="betDiv" class="backBlue"> 
                                     <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                    <button on:click={() => raising = true} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
+                                    <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                                 </div>
                             {:else}
                                 <div id="betDiv" class="backBlue"> 
                                     <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
-                                    <button on:click={raise} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
+                                    <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
                                     <p class="red">{betErr}</p>
                                 </div>
                             {/if}
@@ -526,13 +564,13 @@
                         {#if raising === false}
                             <div id="betDiv" class="backBlue"> 
                                 <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                <button on:click={() => {raising = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
+                                <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                 <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                             </div>
                         {:else}
                             <div id="betDiv" class="backBlue"> 
                                 <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
-                                <button on:click={raise} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
+                                <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
                                 <p class="red">{betErr}</p>
                             </div>
                         {/if}

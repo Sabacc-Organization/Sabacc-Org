@@ -487,7 +487,9 @@
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div on:click={() => trade("card" + ci.toString())} on:dblclick={() => protect("card" + ci.toString())} id="card{ci.toString()}" class="card child own"><h5>{c}</h5></div>
                         {:else}
-                            <div class="card child own protected"><h5>{c}</h5></div>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div on:click={() => trade("card" + ci.toString())} id="card{ci.toString()}" class="card child own protected"><h5>{c}</h5></div>
                         {/if}
                     {:else}
                         {#if game["completed"] === 0}

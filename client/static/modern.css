@@ -1,17 +1,10 @@
-main.game
-{
-    background-color: #323232;
-}
-
-.backBlue
-{
+.backBlue{
     background-color: rgb(14, 148, 201);
-    border-radius: 10%;
+    border-radius: 10px;
     margin-top: 10%;
 }
 
-#pots
-{
+#pots{
     padding: 1%;
     margin: 1%;
     background-color: #787777;
@@ -20,16 +13,16 @@ main.game
     background-size: cover;
     background-blend-mode: multiply;
     color: #ffffff;
+    grid-row: 1/3;
 }
 
-#pots.active:hover
-{
+#pots.active:hover{
     box-shadow:
     inset 0 0 50px #fff,
     0 0 50px #fff
 }
 
-#deck {
+#deck{
     box-shadow: 3px 3px 0px 3px #323232;
 }
 
@@ -41,7 +34,7 @@ main.game
 .backRed
 {
     background-color: #ed3b3b;
-    border-radius: 10%;
+    border-radius: 10px;
     margin-top: 10%;
 }
 
@@ -50,15 +43,15 @@ main.game
     color: #ed3b3b;
 }
 
-#psHeader {
+#psHeader{
     color: #ffffff;
 }
 
-#phase {
+#phase{
     color: #ffffff;
 }
 
-.card {
+.card{
     padding: 0;
     background-image: url("/images/rebels-card-back.png");
     background-repeat: no-repeat, no-repeat;
@@ -71,12 +64,12 @@ main.game
     text-align: center;
 }
 
-.protected {
+.protected{
     background-image: none;
     background-color: firebrick;
 }
 
-.alderaan {
+.alderaan{
     padding: 0;
     background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
@@ -84,9 +77,15 @@ main.game
     width: 60px;
     height: 60px;
     border-radius: 30px;
+    grid-area: 1/2/3/3;
 }
 
-.die {
+.dieContainer{
+    display: block;
+    grid-column: 3/5;
+}
+
+.die{
     width: 25px;
     height: 25px;
     border-radius: 3px;
@@ -94,29 +93,27 @@ main.game
     margin: 3px;
 }
 
-#dieOne {
+#dieOne{
     background-color: #0cc23c;
 }
 
-#dieTwo.shift0 {
+#dieTwo.shift0{
     background-color: #ed3b3b;
 }
 
-#dieTwo.shift1 {
+#dieTwo.shift1{
     background-color: #0cc23c;
 }
 
-#pAction
-{
+#pAction{
     color: white;
 }
 
-#tableCont
-{
+#tableCont{
     position: relative;
     z-index: 1;
     height: 750px;
-    width: 750px;
+    width: 1300px;
     margin: 10% auto;
     display: flex;
     justify-content: center;
@@ -126,181 +123,242 @@ main.game
 #table {
     position: relative;
     background-image: url("/modern-theme-images/SabaccTable-NoBackground.png");
-    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     margin: auto auto;
     z-index: 1;
     width: 100%;
-    height: 100%;
+    aspect-ratio: 128 / 87;
 }
 
-#pAction
-{
+#pAction{
     position: absolute;
     z-index: 2;
 
-    top: 35%;
+    top: 40%;
     
     margin: 0 auto;
 }
 
-#gameInfo
-{
+#gameInfo{
     position: absolute;
-    top: 40%;
+    top: 51%;
     z-index: 2;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 160px 1fr 1fr;
+    grid-template-rows: 3fr 1fr;
+    justify-items: center;
+    align-items: center;
+}
+
+#actBox{
+    position: absolute;
+    z-index: 2;
+    top: 70%;
     margin: 0 auto;
 }
 
-#actBox
-{
-    position: absolute;
-    z-index: 2;
-    top: 60%;
-    margin: 0 auto;
-}
-#betDiv
-{
+#betDiv{
     padding: 1%;
 }
 
-#betDiv > form > input
-{
+#betDiv > form > input{
     margin: 0;
     padding: 0;
 }
 
-#betDiv > input > button
-{
+#betDiv > input > button{
     margin: 0;
     padding: 0;
 }
 
-#betDiv > p
-{
+#betDiv > p{
     margin: 0;
     padding: 0;
 }
 
-.player0
-{
+.chip{
+    background-size: contain;
+}
+
+.bigChip{
+  background-image: url("modern-theme-images/Credit\ Gold.png");
+}
+
+.midChip{
+  background-image: url("modern-theme-images/Credit\ Silver.png");
+}
+
+.lowChip{
+  background-image: url("modern-theme-images/Credit\ Bronze.png");
+}
+
+.cardContainer{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.card{
+    display: flex;
+    justify-content: center;
+}
+
+.card h5{
+    font-size: 2rem;
+}
+
+#discard{
+    display: block;
+}
+
+.player0{
     position: absolute;
     z-index: 2;
-    top: 83%;
-    left: 32%;
+    top: 105%;
+    left: 33%;
+    width: clamp(90px, 100px, 200px);
 }
 
-.player1
-{
+.player0 > .cardContainer{
     position: absolute;
     z-index: 2;
-    rotate: 45deg;
-    top: 63%;
-    left: 5%;
+    rotate: 0deg;
+    top: -34%;
+    left: 50%;
+    translate: -50% -50%;
 }
 
-.player2
-{
+.player1{
     position: absolute;
     z-index: 2;
-    rotate: 90deg;
-    bottom: 50%;
-    left: -3%;
+    top: 80%;
+    left: 3%;
+    width: clamp(90px, 100px, 200px);
 }
 
-.player3
-{
+.player1 > .cardContainer{
     position: absolute;
     z-index: 2;
-    rotate: 135deg;
-    top: 0%;
-    right: 70%;
+    rotate: 58deg;
+    top: -6%;
+    left: 148%;
+    translate: -50% -50%;
 }
 
-.player3 > .card
-{
-    rotate: 180deg;
-}
-
-.player3 > .backRed
-{
-    rotate: 180deg;
-}
-
-.player3 > .backBlue
-{
-    rotate: 180deg;
-}
-
-
-
-
-.player4
-{
+.player2{
     position: absolute;
     z-index: 2;
-    rotate: 180deg;
-    bottom: 83%;
-    right: 35%;
+    top: 20%;
+    left: 3%;
+    width: clamp(90px, 100px, 200px);
 }
 
-.player4 > .card
-{
-    rotate: 180deg;
-}
-
-.player4 > .backRed
-{
-    rotate: 180deg;
-}
-
-.player4 > .backBlue
-{
-    rotate: 180deg;
-}
-
-.player5
-{
+.player2 > .cardContainer{
     position: absolute;
     z-index: 2;
-    rotate: -135deg;
-    bottom: 63%;
-    right: 5%;
+    rotate: 302deg;
+    top: 108%;
+    left: 153%;
+    translate: -50% -50%;
 }
 
-.player5 > .card
-{
-    rotate: 180deg;
-}
-
-.player5 > .backRed
-{
-    rotate: 180deg;
-}
-
-.player5 > .backBlue
-{
-    rotate: 180deg;
-}
-
-
-
-
-.player6
-{
+.player3{
     position: absolute;
     z-index: 2;
-    rotate: -90deg;
-    bottom: 25%;
-    left: 85%;
+    top: -5%;
+    left: 33%;
+    width: clamp(90px, 100px, 200px);
 }
 
-.player7
-{
+.player3 > .cardContainer{
     position: absolute;
     z-index: 2;
-    rotate: -45deg;
-    top: 75%;
-    left: 67%;
+    rotate: 0deg;
+    top: 137%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.player4{
+    position: absolute;
+    z-index: 2;
+    top: -5%;
+    left: 59%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player4 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 0deg;
+    top: 137%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.player5{
+    position: absolute;
+    z-index: 2;
+    top: 20%;
+    left: 90%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player5 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 58deg;
+    top: 112%;
+    left: -57%;
+    translate: -50% -50%;
+}
+
+.player6{
+    position: absolute;
+    z-index: 2;
+    top: 80%;
+    left: 90%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player6 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 302deg;
+    top: -10%;
+    left: -50%;
+    translate: -50% -50%;
+}
+
+.player7{
+    position: absolute;
+    z-index: 2;
+    top: 105%;
+    left: 59%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player7 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 0deg;
+    top: -34%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.credit-attribution{
+    margin-top: 300px;
+    margin-left: 80%;
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+    justify-items: right;
+}
+
+#jacob-densford-credit-attribution{
+    background-image: url("modern-theme-images/Attribution-ShareAlike\ CC\ BY-SA.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: 100px;
 }

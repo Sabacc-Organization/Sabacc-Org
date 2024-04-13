@@ -41,6 +41,9 @@
         <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
 
+        <!-- font awesome -->
+        <script src="https://kit.fontawesome.com/75b19c7a56.js" crossorigin="anonymous"></script>
+
         <!-- Favicon -->
         <link href="favicon.png" rel="icon">
 
@@ -89,7 +92,7 @@
             </div>
         </nav>
 
-        <main class="container p-5">
+        <main class="container-fluid p-5">
             <slot></slot>
         </main>
 

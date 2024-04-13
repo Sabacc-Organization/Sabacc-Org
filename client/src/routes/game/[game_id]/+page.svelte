@@ -448,14 +448,21 @@
         <div on:click={draw} class:active={cardBool} id="deck" class="card child"></div>
 
         <div class:active={cardBool} id="discard" class="card child">
-            <button on:click={tradeBtn} type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
-            <br>
-            <button on:click={stand} type="button" id="standBtn" class="btn btn-primary smol">Stand</button>
+            {#if game["completed"] === 0}
+                {#if game["player_turn"] === user_id}
+                    {#if game["phase"] === "card"}
+                        <button on:click={tradeBtn} type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
+                        <br>
+                        <button on:click={stand} type="button" id="standBtn" class="btn btn-primary smol">Stand</button>
+                    {/if}
+                {/if}
+            {/if}
         </div>
 
-        <div id="dieOne" class="child die"></div>
-
-        <div id="dieTwo" class="child die shift{game["shift"]}"></div>
+        <div class="dieContainer">
+            <div id="dieOne" class="child die"></div>
+            <div id="dieTwo" class="child die shift{game["shift"]}"></div>
+        </div>
 
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -473,13 +480,14 @@
 
             <!-- Bet boxes -->
             {#if p === username}
-                <div id="{p}BetBox" class="backBlue"><h5>$<span id="betSpan">{game["player_bets"].split(",")[i]}</span></h5> <div id="{p}BetPile"></div></div>
+                <div id="{p}BetBox" class="backBlue"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{game["player_bets"].split(",")[i]}</span></h5> <div id="{p}BetPile"></div></div>
             {:else}
-                <div id="{p}BetBox" class="backRed"><h5>${game["player_bets"].split(",")[i]}</h5></div>
+                <div id="{p}BetBox" class="backRed"><h5><div class="imperial-credits-logo"></div>{game["player_bets"].split(",")[i]}</h5></div>
             {/if}
 
             <!-- Cards -->
-            {#each game["player_hands"].split(";")[i].split(",") as c, ci}
+            <div class="cardContainer">
+                {#each game["player_hands"].split(";")[i].split(",") as c, ci}
 
                     {#if p === username}
                         {#if game["player_protecteds"].split(";")[i].split(",")[ci] === "0"}
@@ -500,8 +508,8 @@
                             <div class="card child"><h5>{c}</h5></div>
                         {/if}
                     {/if}
-
-            {/each}
+                {/each}
+            </div>
 
             <!-- Player boxes -->
             {#if p === username}
@@ -520,10 +528,10 @@
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <div class="ownChip child chip lowChip" on:click={() => handleChipPress(1)}></div> 
                     </div> 
-                    <h5>$<span id="credits">{game["player_credits"].split(",")[i]}</span></h5>
+                    <h5><div class="imperial-credits-logo"></div><span id="credits">{game["player_credits"].split(",")[i]}</span></h5>
                 </div>
             {:else}
-                <div id="{p}Box" class="backRed"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5>$<span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
+                <div id="{p}Box" class="backRed"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
             {/if}
 
         </div>
@@ -583,6 +591,13 @@
 
     </div>
 </div>
+
+{#if theme == 'modern'}
+    <div class="credit-attribution">
+        <div id="jacob-densford-credit-attribution"></div>
+        <p>Credit to Jacob Densford for Art</p>
+    </div>
+{/if}
 
 <style>
     main {

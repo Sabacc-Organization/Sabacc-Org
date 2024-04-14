@@ -1,5 +1,5 @@
 # Sabacc
-## Video Demo: https://www.youtube.com/watch?v=tgRam9fhVJQ (OUTDATED)
+## Video: https://youtu.be/pSN39eC3kik
 ## Play On the Website: http://sabacc.samuelanes.com
 ## Join the Sabacc Discord: https://discord.gg/AaYrNZjBus
 ## Description:

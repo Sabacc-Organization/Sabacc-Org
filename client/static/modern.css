@@ -1,6 +1,6 @@
 .backBlue{
     border-radius: 10px;
-    margin-top: 10%;
+    margin-top: 10px;
 }
 
 #pots{
@@ -33,7 +33,7 @@
 .backRed
 {
     border-radius: 10px;
-    margin-top: 10%;
+    margin-top: 10px;
 }
 
 .red
@@ -210,19 +210,25 @@
     display: block;
 }
 
+.playerBox{
+    padding: 0px 10px;
+    min-width: 100px;
+}
+
 .player0{
     position: absolute;
     z-index: 2;
     top: 105%;
-    left: 33%;
-    width: clamp(90px, 100px, 200px);
+    left: 38%;
+    translate: -50% 0%;
+    width: max-content;
 }
 
 .player0 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
-    top: -34%;
+    top: -36px;
     left: 50%;
     translate: -50% -50%;
 }
@@ -231,16 +237,17 @@
     position: absolute;
     z-index: 2;
     top: 80%;
-    left: 3%;
-    width: clamp(90px, 100px, 200px);
+    left: 9%;
+    translate: -100% 0%;
+    width: max-content;
 }
 
 .player1 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 58deg;
-    top: -6%;
-    left: 148%;
+    top: -6px;
+    left: calc(100% + 60px);
     translate: -50% -50%;
 }
 
@@ -248,16 +255,17 @@
     position: absolute;
     z-index: 2;
     top: 20%;
-    left: 3%;
-    width: clamp(90px, 100px, 200px);
+    left: 9%;
+    translate: -100% 0%;
+    width: max-content;
 }
 
 .player2 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 302deg;
-    top: 108%;
-    left: 153%;
+    top: 130px;
+    left: calc(100% + 64px);
     translate: -50% -50%;
 }
 
@@ -265,15 +273,16 @@
     position: absolute;
     z-index: 2;
     top: -5%;
-    left: 33%;
-    width: clamp(90px, 100px, 200px);
+    left: 38%;
+    translate: -50% 0%;
+    width: max-content;
 }
 
 .player3 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
-    top: 137%;
+    top: 180px;
     left: 50%;
     translate: -50% -50%;
 }
@@ -282,15 +291,16 @@
     position: absolute;
     z-index: 2;
     top: -5%;
-    left: 59%;
-    width: clamp(90px, 100px, 200px);
+    left: 62%;
+    translate: -50% 0%;
+    width: max-content;
 }
 
 .player4 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
-    top: 137%;
+    top: 180px;
     left: 50%;
     translate: -50% -50%;
 }
@@ -299,16 +309,17 @@
     position: absolute;
     z-index: 2;
     top: 20%;
-    left: 90%;
-    width: clamp(90px, 100px, 200px);
+    right: 10%;
+    translate: 100% 0%;
+    width: max-content;
 }
 
 .player5 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 58deg;
-    top: 112%;
-    left: -57%;
+    top: 130px;
+    right: calc(100% - 60px);
     translate: -50% -50%;
 }
 
@@ -316,16 +327,17 @@
     position: absolute;
     z-index: 2;
     top: 80%;
-    left: 90%;
-    width: clamp(90px, 100px, 200px);
+    right: 10%;
+    translate: 100% 0%;
+    width: max-content;
 }
 
 .player6 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 302deg;
-    top: -10%;
-    left: -50%;
+    top: -6px;
+    right: calc(100% - 64px);
     translate: -50% -50%;
 }
 
@@ -333,15 +345,16 @@
     position: absolute;
     z-index: 2;
     top: 105%;
-    left: 59%;
-    width: clamp(90px, 100px, 200px);
+    left: 62%;
+    translate: -50% 0%;
+    width: max-content;
 }
 
 .player7 > .cardContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
-    top: -34%;
+    top: -36px;
     left: 50%;
     translate: -50% -50%;
 }

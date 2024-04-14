@@ -571,7 +571,7 @@
             {#if p === username}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div id="{p}Box" class="backBlue {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"}">
+                <div id="{p}Box" class="backBlue {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"} playerBox">
                     <h5>{p}</h5> 
                     <div class="parent">
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -587,7 +587,7 @@
                     <h5><div class="imperial-credits-logo"></div><span id="credits">{game["player_credits"].split(",")[i]}</span></h5>
                 </div>
             {:else}
-                <div id="{p}Box" class="backRed {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"}"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
+                <div id="{p}Box" class="backRed {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"} playerBox"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
             {/if}
 
         </div>

@@ -1,0 +1,368 @@
+.backBlue{
+    background-color: rgb(14, 148, 201);
+    border-radius: 10px;
+    margin-top: 10%;
+}
+
+#pots{
+    padding: 1%;
+    margin: 1%;
+    background-color: #787777;
+    background-image: url("/images/rebels_pot.jpeg");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    background-blend-mode: multiply;
+    color: #ffffff;
+    grid-row: 1/3;
+}
+
+#pots.active:hover{
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#deck{
+    box-shadow: 3px 3px 0px 3px #323232;
+}
+
+.smol
+{
+    padding: 1%;
+}
+
+.backRed
+{
+    background-color: #ed3b3b;
+    border-radius: 10px;
+    margin-top: 10%;
+}
+
+.red
+{
+    color: #ed3b3b;
+}
+
+#psHeader{
+    color: #ffffff;
+}
+
+#phase{
+    color: #ffffff;
+}
+
+.card{
+    padding: 0;
+    background-image: url("/images/rebels-card-back.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    margin: 3px;
+    width: 50px;
+    height: 67px;
+    border-radius: 5px;
+    color: #ffffff;
+    text-align: center;
+}
+
+.protected{
+    background-image: none;
+    background-color: firebrick;
+}
+
+.alderaan{
+    padding: 0;
+    background-image: url("/images/alderaan.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    grid-area: 1/2/3/3;
+}
+
+.dieContainer{
+    display: block;
+    grid-column: 3/5;
+}
+
+.die{
+    width: 25px;
+    height: 25px;
+    border-radius: 3px;
+    padding: 0;
+    margin: 3px;
+}
+
+#dieOne{
+    background-color: #0cc23c;
+}
+
+#dieTwo.shift0{
+    background-color: #ed3b3b;
+}
+
+#dieTwo.shift1{
+    background-color: #0cc23c;
+}
+
+#pAction{
+    color: white;
+}
+
+#tableCont{
+    position: relative;
+    z-index: 1;
+    height: 750px;
+    width: 1300px;
+    margin: 10% auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#table {
+    position: relative;
+    background-image: url("/modern-theme-images/SabaccTable-NoBackground.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    margin: auto auto;
+    z-index: 1;
+    width: 100%;
+    aspect-ratio: 128 / 87;
+}
+
+#pAction{
+    position: absolute;
+    z-index: 2;
+
+    top: 40%;
+    
+    margin: 0 auto;
+}
+
+#gameInfo{
+    position: absolute;
+    top: 51%;
+    z-index: 2;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 160px 1fr 1fr;
+    grid-template-rows: 3fr 1fr;
+    justify-items: center;
+    align-items: center;
+}
+
+#actBox{
+    position: absolute;
+    z-index: 2;
+    top: 70%;
+    margin: 0 auto;
+}
+
+#betDiv{
+    padding: 1%;
+}
+
+#betDiv > form > input{
+    margin: 0;
+    padding: 0;
+}
+
+#betDiv > input > button{
+    margin: 0;
+    padding: 0;
+}
+
+#betDiv > p{
+    margin: 0;
+    padding: 0;
+}
+
+.chip{
+    background-size: contain;
+}
+
+.bigChip{
+  background-image: url("modern-theme-images/Credit\ Gold.png");
+}
+
+.midChip{
+  background-image: url("modern-theme-images/Credit\ Silver.png");
+}
+
+.lowChip{
+  background-image: url("modern-theme-images/Credit\ Bronze.png");
+}
+
+.cardContainer{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.card{
+    display: flex;
+    justify-content: center;
+}
+
+.card h5{
+    font-size: 2rem;
+}
+
+#discard{
+    display: block;
+}
+
+.player0{
+    position: absolute;
+    z-index: 2;
+    top: 105%;
+    left: 33%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player0 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 0deg;
+    top: -34%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.player1{
+    position: absolute;
+    z-index: 2;
+    top: 80%;
+    left: 3%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player1 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 58deg;
+    top: -6%;
+    left: 148%;
+    translate: -50% -50%;
+}
+
+.player2{
+    position: absolute;
+    z-index: 2;
+    top: 20%;
+    left: 3%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player2 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 302deg;
+    top: 108%;
+    left: 153%;
+    translate: -50% -50%;
+}
+
+.player3{
+    position: absolute;
+    z-index: 2;
+    top: -5%;
+    left: 33%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player3 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 0deg;
+    top: 137%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.player4{
+    position: absolute;
+    z-index: 2;
+    top: -5%;
+    left: 59%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player4 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 0deg;
+    top: 137%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.player5{
+    position: absolute;
+    z-index: 2;
+    top: 20%;
+    left: 90%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player5 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 58deg;
+    top: 112%;
+    left: -57%;
+    translate: -50% -50%;
+}
+
+.player6{
+    position: absolute;
+    z-index: 2;
+    top: 80%;
+    left: 90%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player6 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 302deg;
+    top: -10%;
+    left: -50%;
+    translate: -50% -50%;
+}
+
+.player7{
+    position: absolute;
+    z-index: 2;
+    top: 105%;
+    left: 59%;
+    width: clamp(90px, 100px, 200px);
+}
+
+.player7 > .cardContainer{
+    position: absolute;
+    z-index: 2;
+    rotate: 0deg;
+    top: -34%;
+    left: 50%;
+    translate: -50% -50%;
+}
+
+.credit-attribution{
+    margin-top: 300px;
+    margin-left: 70%;
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+    justify-items: right;
+}
+
+.credit-attribution a{
+    display: contents;
+}
+
+#jacob-densford-credit-attribution{
+    background-image: url("modern-theme-images/attribution-image.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: 100px;
+}

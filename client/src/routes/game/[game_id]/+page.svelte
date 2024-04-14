@@ -49,9 +49,10 @@
     // Index of user in list of users
     let u_dex = -1;
 
-
     // Game data refresh interval
     let refreshInterval: NodeJS.Timeout;
+
+    let turnSound: HTMLAudioElement;
 
     // Clean up request cycle
     onDestroy(() => {
@@ -68,7 +69,11 @@
         // Set refresh intervla for game data (5000 ms)
         refreshInterval = setInterval(refreshGame, 5000);
 
+        turnSound = new Audio("/move-sound.mp3");
+
     });
+
+    let soundPlayed = false;
 
     // refresh game date function
     async function refreshGame() {
@@ -139,8 +144,18 @@
 
                 // If player is in game, make orderedPlayers proper
                 if (u_dex != -1) {
-                    let frontVal = ps.splice(u_dex, 1);
-                    orderedPlayers = frontVal.concat(ps);
+                    for (let i = 0; i < players.length; i++) {
+                        orderedPlayers[i] = players[(i + u_dex) % players.length]
+                    }
+                }
+
+                if (game["player_turn"] === user_id) {
+                    if (!soundPlayed) {
+                        turnSound.play();
+                        soundPlayed = true;
+                    }
+                } else {
+                    soundPlayed = false;
                 }
 
             } else {
@@ -519,9 +534,9 @@
 
             <!-- Bet boxes -->
             {#if p === username}
-                <div id="{p}BetBox" class="backBlue"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{game["player_bets"].split(",")[i]}</span></h5> <div id="{p}BetPile"></div></div>
+                <div id="{p}BetBox" class="backBlue {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{game["player_bets"].split(",")[i]}</span></h5> <div id="{p}BetPile"></div></div>
             {:else}
-                <div id="{p}BetBox" class="backRed"><h5><div class="imperial-credits-logo"></div>{game["player_bets"].split(",")[i]}</h5></div>
+                <div id="{p}BetBox" class="backRed {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div>{game["player_bets"].split(",")[i]}</h5></div>
             {/if}
 
             <!-- Cards -->
@@ -556,7 +571,7 @@
             {#if p === username}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div id="{p}Box" class="backBlue">
+                <div id="{p}Box" class="backBlue {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"}">
                     <h5>{p}</h5> 
                     <div class="parent">
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -572,7 +587,7 @@
                     <h5><div class="imperial-credits-logo"></div><span id="credits">{game["player_credits"].split(",")[i]}</span></h5>
                 </div>
             {:else}
-                <div id="{p}Box" class="backRed"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
+                <div id="{p}Box" class="backRed {game["player_turn"] == parseInt(game["player_ids"].split(",")[i])? "turnGlow" : "noTurnGlow"}"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p}_credits">{game["player_credits"].split(",")[i]}</span></h5></div>
             {/if}
 
         </div>
@@ -587,20 +602,20 @@
                 {#if game["phase"] === "betting"}
                     {#if u_dex === 0}
                         {#if game["player_bets"].split(",")[u_dex + 1] === ""}
-                            <div id="betDiv" class="backBlue"> 
+                            <div id="betDiv" class="backBlue brightBlue"> 
                                 <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
                                 <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button> 
                                 <p class="red">{betErr}</p>
                             </div>
                         {:else}
                             {#if raising === false}
-                                <div id="betDiv" class="backBlue"> 
+                                <div id="betDiv" class="backBlue brightBlue"> 
                                     <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
                                     <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                                 </div>
                             {:else}
-                                <div id="betDiv" class="backBlue"> 
+                                <div id="betDiv" class="backBlue brightBlue"> 
                                     <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
                                     <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
                                     <p class="red">{betErr}</p>
@@ -611,13 +626,13 @@
                     {:else}
 
                         {#if raising === false}
-                            <div id="betDiv" class="backBlue"> 
+                            <div id="betDiv" class="backBlue brightBlue"> 
                                 <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
                                 <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                 <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                             </div>
                         {:else}
-                            <div id="betDiv" class="backBlue"> 
+                            <div id="betDiv" class="backBlue brightBlue"> 
                                 <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
                                 <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
                                 <p class="red">{betErr}</p>

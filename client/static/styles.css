@@ -227,6 +227,28 @@ main img
 }
 
 /* Credits stuff */
+.backBlue{
+  background-color: rgb(14, 91, 121);
+}
+
+.backBlue.turnGlow{
+  background-color: rgb(14, 148, 201);
+  box-shadow: 0px 0px 25px 10px rgba(255,255,0,1);
+}
+
+.backBlue.brightBlue{
+  background-color: rgb(14, 148, 201);
+}
+
+.backRed{
+  background-color: #8d2727;
+}
+
+.backRed.turnGlow{
+  background-color: #ed3b3b;
+  box-shadow: 0px 0px 25px 10px rgba(255,255,0,1);
+}
+
 .chip
 {
   height: 20px;

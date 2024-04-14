@@ -594,8 +594,8 @@
 
 {#if theme == 'modern'}
     <div class="credit-attribution">
-        <div id="jacob-densford-credit-attribution"></div>
-        <p>Credit to Jacob Densford for Art</p>
+        <a href="http://creativecommons.org/licenses/by-sa/4.0/"><div id="jacob-densford-credit-attribution"></div></a>
+        <a href="http://creativecommons.org/licenses/by-sa/4.0/">Credit to Jacob Densford for table and betting chip design</a>
     </div>
 {/if}
 

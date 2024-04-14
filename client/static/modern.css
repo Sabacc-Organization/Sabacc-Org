@@ -350,14 +350,18 @@
 
 .credit-attribution{
     margin-top: 300px;
-    margin-left: 80%;
+    margin-left: 70%;
     display: grid;
     grid-template-columns: 1fr 4fr;
     justify-items: right;
 }
 
+.credit-attribution a{
+    display: contents;
+}
+
 #jacob-densford-credit-attribution{
-    background-image: url("modern-theme-images/Attribution-ShareAlike\ CC\ BY-SA.png");
+    background-image: url("modern-theme-images/attribution-image.png");
     background-size: contain;
     background-repeat: no-repeat;
     width: 100px;

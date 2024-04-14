@@ -33,8 +33,6 @@ h5
 
 .backBlue
 {
-    background-color: rgb(14, 148, 201);
-
     display: inline-block;
     vertical-align: middle;
     padding: 1rem 2rem;
@@ -59,8 +57,6 @@ h5
 
 .backRed
 {
-    background-color: #ed3b3b;
-
     display: inline-block;
     vertical-align: middle;
     padding: 1rem 2rem;

@@ -7,7 +7,6 @@ main.game
 
 .backBlue
 {
-    background-color: rgb(14, 148, 201);
     border-radius: 10%;
     margin-top: 10%;
 }
@@ -42,7 +41,6 @@ main.game
 
 .backRed
 {
-    background-color: #ed3b3b;
     border-radius: 10%;
     margin-top: 10%;
 }

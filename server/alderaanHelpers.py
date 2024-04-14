@@ -40,6 +40,10 @@ def calcBestVal(handVals):
                 bestVal = val
                 break
 
+            # Check for Bomb Outs
+            elif val == 0 or abs(val) > 23:
+                 pass
+
             # Current val is better than stored val
             elif abs(val) > abs(bestVal):
                 bestVal = val

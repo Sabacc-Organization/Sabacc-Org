@@ -487,7 +487,7 @@
         <div class:active={cardBool} id="discard" class="card child">
             {#if game["completed"] === 0}
                 {#if game["player_turn"] === user_id}
-                    {#if game["phase"] === "card"}
+                    {#if game["phase"] === "card" || game["phase"] === "alderaan"}
                         <button on:click={tradeBtn} type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
                         <br>
                         <button on:click={stand} type="button" id="standBtn" class="btn btn-primary smol">Stand</button>

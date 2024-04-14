@@ -768,7 +768,7 @@ def card():
             # Sabacc Shift procedure
 
             
-            db.execute(f"UPDATE games SET phase = ?, cycle_count = ? WHERE game_id = {game_id}", "shift", newCycleCount)
+            db.execute(f"UPDATE games SET phase = ?, player_turn = ?, cycle_count = ? WHERE game_id = {game_id}", "shift", int(users[0]), newCycleCount)
 
 
     # Someone called Alderaan and everyone has done their turn
@@ -868,7 +868,7 @@ def shift():
         return
     
     # verify that the user is player 1
-    if user_id != game['player_ids'].split(',')[0]:
+    if int(user_id) != game["player_turn"]:
         return
     
     # New hands and protected cards variables

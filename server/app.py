@@ -767,84 +767,8 @@ def card():
 
             # Sabacc Shift procedure
 
-            # New hands and protected cards variables
-            newHands = handsStr
-            newProtecteds = protsStr
-
-            # Roll the shift
-            shift = rollShift()
-
-            if shift == True:
-
-                # The amount of cards every player will need to draw due to the shift
-                drawCounts = []
-
-                # The cards that are preserved due to protection
-                hCards = []
-
-                # Iterate through every hand in the hands list
-                for k in range(len(handsList)):
-
-                    # The amount of cards that will need to be drawn by this hand
-                    drawCount = 0
-
-                    # New hands and protected lists
-                    newHandList = handsList[k].split(",")
-                    newProtsList = protsList[k].split(",")
-
-                    # Iterate through protection list to check if each card is protected or not
-                    for p in range(len(protsList[k].split(","))):
-
-                        # If unprotected, it is lost and removed from the hand and protected list.
-                        if protsList[k].split(",")[p] == "0":
-                            newHandList.remove(handsList[k].split(",")[p])
-                            newProtsList.remove(protsList[k].split(",")[p])
-                            # The player has to draw a card to replace this one
-                            drawCount += 1
-                        # If protected, it is kept and put in the hCards list
-                        else:
-                            hCards.append(handsList[k].split(",")[p])
-
-                    # Insert new hand and protected data into lists of all hands and protected cards
-                    newHands = strListMod(newHands, k, listToStr(newHandList), sep=";")
-                    newProtecteds = strListMod(newProtecteds, k, listToStr(newProtsList), sep=";")
-
-                    # Append the amount of cards that need to be drawn to the list
-                    drawCounts.append(drawCount)
-
-                # Reshuffle the deck EXCEPT for cards that were protected
-                deckStr = shuffleDeck(hCards)
-
-                # Update hands and protecteds lists
-                handsList = newHands.split(";")
-                protsList = newProtecteds.split(";")
-
-                # Iterate through every hand
-                for i in range(len(handsList)):
-
-                    # Draw the correct amount of cards into each hand
-                    for c in range(drawCounts[i]):
-                        drawData = drawCard(deckStr)
-                        deckStr = drawData["deck"]
-                        newCard = drawData["card"]
-                        handsList[i] += "," + newCard
-                        handsList[i] = handsList[i].strip(",")
-                        newHands = listToStr(handsList, sep=";")
-
-                        # Add new card to protection list
-                        protsList[i] += ",0"
-                        protsList[i] = protsList[i].strip(",")
-                        newProtecteds = listToStr(protsList, sep=";")
-
-            # Set the Shift message
-            shiftStr = ""
-            if shift == True:
-                shiftStr = "Sabacc shift!"
-            elif shift == False:
-                shiftStr = "No shift!"
-
-            # Update game
-            db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, cycle_count = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), newCycleCount, shift, shiftStr)
+            
+            db.execute(f"UPDATE games SET phase = ?, player_turn = ?, cycle_count = ? WHERE game_id = {game_id}", "shift", int(users[0]), newCycleCount)
 
 
     # Someone called Alderaan and everyone has done their turn
@@ -913,6 +837,118 @@ def card():
     # Return new game data
     gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
     return jsonify({"message": "Card!", "gata": gata}), 200
+
+@app.route("/shift", methods=["POST"])
+@cross_origin()
+def shift():
+    """ Shift phase """
+
+    # Authenticate User
+    username = request.json.get("username")
+    password = request.json.get("password")
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    # Get User ID
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
+    # Set some variables for the whole function
+    game_id = request.json.get("game_id")
+    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    users = game["player_ids"].split(",")
+    handsStr = game["player_hands"]
+    handsList = handsStr.split(";")
+    protsStr = game["player_protecteds"]
+    protsList = protsStr.split(";")
+    deckStr = game["deck"]
+
+    # verify that the current phase is the shift phase
+    if game['phase'] != 'shift':
+        return
+    
+    # verify that the user is player 1
+    if int(user_id) != game["player_turn"]:
+        return
+    
+    # New hands and protected cards variables
+    newHands = handsStr
+    newProtecteds = protsStr
+
+    # Roll the shift
+    shift = rollShift()
+
+    if shift == True:
+
+        # The amount of cards every player will need to draw due to the shift
+        drawCounts = []
+
+        # The cards that are preserved due to protection
+        hCards = []
+
+        # Iterate through every hand in the hands list
+        for k in range(len(handsList)):
+
+            # The amount of cards that will need to be drawn by this hand
+            drawCount = 0
+
+            # New hands and protected lists
+            newHandList = handsList[k].split(",")
+            newProtsList = protsList[k].split(",")
+
+            # Iterate through protection list to check if each card is protected or not
+            for p in range(len(protsList[k].split(","))):
+
+                # If unprotected, it is lost and removed from the hand and protected list.
+                if protsList[k].split(",")[p] == "0":
+                    newHandList.remove(handsList[k].split(",")[p])
+                    newProtsList.remove(protsList[k].split(",")[p])
+                    # The player has to draw a card to replace this one
+                    drawCount += 1
+                # If protected, it is kept and put in the hCards list
+                else:
+                    hCards.append(handsList[k].split(",")[p])
+
+            # Insert new hand and protected data into lists of all hands and protected cards
+            newHands = strListMod(newHands, k, listToStr(newHandList), sep=";")
+            newProtecteds = strListMod(newProtecteds, k, listToStr(newProtsList), sep=";")
+
+            # Append the amount of cards that need to be drawn to the list
+            drawCounts.append(drawCount)
+
+        # Reshuffle the deck EXCEPT for cards that were protected
+        deckStr = shuffleDeck(hCards)
+
+        # Update hands and protecteds lists
+        handsList = newHands.split(";")
+        protsList = newProtecteds.split(";")
+
+        # Iterate through every hand
+        for i in range(len(handsList)):
+
+            # Draw the correct amount of cards into each hand
+            for c in range(drawCounts[i]):
+                drawData = drawCard(deckStr)
+                deckStr = drawData["deck"]
+                newCard = drawData["card"]
+                handsList[i] += "," + newCard
+                handsList[i] = handsList[i].strip(",")
+                newHands = listToStr(handsList, sep=";")
+
+                # Add new card to protection list
+                protsList[i] += ",0"
+                protsList[i] = protsList[i].strip(",")
+                newProtecteds = listToStr(protsList, sep=";")
+
+    # Set the Shift message
+    shiftStr = ""
+    if shift == True:
+        shiftStr = "Sabacc shift!"
+    elif shift == False:
+        shiftStr = "No shift!"
+
+    # Update game
+    db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), shift, shiftStr)
 
 @app.route("/cont", methods=["POST"])
 @cross_origin()

@@ -266,27 +266,26 @@
 
     let potsActive = false;
     $: {
-        if (game["player_turn"] === user_id) {
-            if (game["phase"] === "betting") {
+        if (game["player_turn"] === user_id && game["phase"] === "betting") {
+            potsActive = true;
 
-                potsActive = true;
+            raiseAmount = 0;
+            followAmount = 0;
 
-                raiseAmount = 0;
-                followAmount = 0;
-
-                for (let i = 0; i < game["player_bets"].split(",").length; i++) {
-                    if (game["player_bets"].split(",")[i] != "") {
-                        if (parseInt(game["player_bets"].split(",")[i]) > raiseAmount) {
-                            raiseAmount = parseInt(game["player_bets"].split(",")[i]);
-                        }
+            for (let i = 0; i < game["player_bets"].split(",").length; i++) {
+                if (game["player_bets"].split(",")[i] != "") {
+                    if (parseInt(game["player_bets"].split(",")[i]) > raiseAmount) {
+                        raiseAmount = parseInt(game["player_bets"].split(",")[i]);
                     }
                 }
-                followAmount = raiseAmount - parseInt(game["player_bets"].split(",")[u_dex]);
-                if (isNaN(followAmount)) {
-                    followAmount = raiseAmount;
-                }
-                
             }
+            followAmount = raiseAmount - parseInt(game["player_bets"].split(",")[u_dex]);
+            if (isNaN(followAmount)) {
+                followAmount = raiseAmount;
+            }
+                
+        } else {
+            potsActive = false;
         }
     }
 
@@ -394,6 +393,44 @@
     }
 
     // Shift Phase
+    let shiftActive = false;
+    $: {
+        if (game["phase"] === "shift" && user_id === game["player_turn"]) {
+            shiftActive = true;
+        }
+        else {
+            shiftActive = false;
+        }
+    }
+
+    async function shift() {
+        if (shiftActive) {
+            try {
+
+                let requestData = {
+                    "username": username,
+                    "password": password,
+                    "game_id": game_id
+                }
+
+                const response = await fetch(BACKEND_URL + "/shift", {
+                    method: 'POST', // Set the method to POST
+                    headers: {
+                        'Content-Type': 'application/json' // Set the headers appropriately
+                    },
+                    body: JSON.stringify(requestData) // Convert your data to JSON
+                });
+
+                let res = await response.json();
+                if (response.ok) {
+                    game = res["gata"];
+                }
+                errorMsg = res["message"];
+            } catch (e) {
+                console.log(e);
+            }
+        }
+    }
 
     // Play Again
     async function playAgain() {
@@ -458,11 +495,13 @@
                 {/if}
             {/if}
         </div>
-
-        <div class="dieContainer">
+      
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span on:click={shift} class:shiftActive={shiftActive} class="dieContainer">
             <div id="dieOne" class="child die"></div>
             <div id="dieTwo" class="child die shift{game["shift"]}"></div>
-        </div>
+        </span>
 
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -495,7 +534,9 @@
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div on:click={() => trade("card" + ci.toString())} on:dblclick={() => protect("card" + ci.toString())} id="card{ci.toString()}" class="card child own"><h5>{c}</h5></div>
                         {:else}
-                            <div class="card child own protected"><h5>{c}</h5></div>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div on:click={() => trade("card" + ci.toString())} id="card{ci.toString()}" class="card child own protected"><h5>{c}</h5></div>
                         {/if}
                     {:else}
                         {#if game["completed"] === 0}

@@ -103,44 +103,71 @@ class Hand:
     def getTotal(self):
         return sum([card.value for card in self.cards])
     def getRanking(self):
-        self.sort()
-        vals = self.getListOfVals()
+        # get the values of the cards and take the absolute value (negatives don't matter here)
+        vals = [abs(val) for val in self.getListOfVals()]
+        vals.sort() # sort ascending
         print(vals)
 
         if self.getTotal() == 0: # hands 1-18 total 0
             if 0 in vals: # hands 1-8 have a sylop
                 # 1. Pure Sabacc: 2 sylops
                 if vals == [0, 0]:
-                    return 1
+                    return '1 pure sabacc'
                 if len(vals) == 5: # hands 2-6 have 5 cards
                     # 2-Full sabacc- sylop with 4 10s
-                    if vals == [-10,-10,0,10,10]:
-                        return 2
+                    if vals == [0,10,10,10,10]:
+                        return '2 full sabacc'
                     # 3-Fleet- sylop with 4 of a kind that are not 10s
-                    if len(vals) == 5 and vals[0] == vals[1] and vals[3] == vals[4] and vals[0] == -vals[3]:
-                        return 3
+                    if vals.count(vals[1]) == 4:
+                        return '3 fleet'
                     # 4-Full khyron- sylop with 4 cards in numerically ascending order
-                    copy = vals                     # make a copy so don't mess up orig
-                    copy = [abs(n) for n in copy]   # take absolute val of all values
-                    copy.sort()                     # sort in ascending order
-                    del copy[0]                     # delete sylop in 1st spot
-                    if [copy[i + 1] - copy[i] for i in range(0, 3)] == [1,1,1]:            # find differences b/w values & check that they're all 1
-                        return 4
+                    if [vals[i + 1] - vals[i] for i in range(1, 4)] == [1,1,1]:   # find differences b/w values & check that they're all 1
+                        return '4 full khyron'
                     # 5-Dual Power Couplings- sylop with 2 pair
-                    if(vals[0] == -vals[4] and vals[1] == -vals[3]):
-                        return 5
+                    if(vals[1] == vals[2] and vals[3] == vals[4]):
+                        return '5 Dual Power Couplings'
                     # 6-Akaata- sylop with 4 cards equaling zero
-                    return 6
+                    return '6 Akaata' # conditions alr met if got to this point
                 # 7-Yeeha- Sylop and a pair
-                if len(vals) == 3 and vals[0] == -vals[2]:
-                    return 7
+                if len(vals) == 3 and vals[1] == vals[2]:
+                    return '7 yeeha'
                 # 8-Boss Triad- sylop with 3 cards equaling 0
                 if len(vals) == 4:
-                    return 8
+                    return '8 Boss Triad'
             # 9-Rhylet- 3 of a kind with 2 of a kind
-            # todo
+            if len(vals) == 5 and vals[0] == vals[1] and vals[3] == vals[4] and (vals[2] == vals[1] or vals[2] == vals[3]): # check that the 1st 2 & last 2 are = and the middle one equals either the 2nd or 4th one
+                return '9 rhylet'
+            # 10-Squadron – 4 of a kind
+            if len(vals) == 4 and vals.count(vals[0]) == 4:
+                return '10 squadron'
+            # 11-Gee Whiz- 1,2,3,4 and a 10
+            if vals == [1,2,3,4,10]:
+                return '11 gee whiz'
+            # 12- Banthas Wild- 3 of a kind
+            for val in vals:
+                if vals.count(val) == 3:
+                    return '12 banthas wild'
+            # 13- Rule of 2- two pair
+            if len(vals) == 4 and vals[0] == vals[1] and vals[2] == vals[3]:
+                return '13 rule of 2'
+            # 14-Straight Khyron- 4 cards in numerically ascending order
+            if len(vals) == 4 and [vals[i + 1] - vals[i] for i in range(0, 3)] == [1,1,1]:
+                return '14 straight khyron'
+            # 15-Senate- 5 random cards totaling zero
+            if len(vals) == 5:
+                return '15 senate'
+            # 16- Clan- 4 random cards totaling zero
+            if len(vals) == 4:
+                return '16 clan'
+            # 17- Power Coupling – a pair
+            if len(vals) == 2 and vals[0] == vals[1]:
+                return '17 power coupling'
+            # 18- Triad – 3 random cards totaling zero
+            if len(vals) == 3:
+                return '18 triad'
+            return 'error: hand total was 0 but hand did\'t match any known hand'
         else:
-            return 19
+            return '19 Nulrhek'
 
 class Player:
     def __init__(self, id):
@@ -150,7 +177,7 @@ class Player:
         self.bet = 0
     
     def __str__(self):
-        return f'player {self.id}:\n\tcredits: {self.credits}\n\thand ({addPlusBeforeNumber(self.hand.getTotal())}): {self.hand}\n'
+        return f'player {self.id}:\n\tcredits: {self.credits}\n\thand ({self.hand.getRanking()}): {self.hand} (total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
     
     # these 2 are only helper functions, you can't just draw from the deck for free
     def drawFromDeck(self, deck):
@@ -206,9 +233,9 @@ class CorellianSpikeGame:
         self.sabaccPot = 5 * len(self.players)
 
         # deal 2 cards to each player
-        for i in range(3):
+        for i in range(1):
             for player in self.players:
-                player.hand.cards.append(self.deck.draw())
+                player.hand.cards = self.deck.draw(random.randint(2,5))
 
         # create discard pile with a card from the deck
         self.discardPile = [self.deck.draw()]
@@ -247,8 +274,4 @@ def addPlusBeforeNumber(n):
     return ('+' if n > 0 else '') + str(n)
 
 game = CorellianSpikeGame([1,2])
-player1 = game.players[0]
-sylop = Card(0, Suits.SYLOP)
-player1.hand.cards = [sylop, Card(3, Suits.CIRCLE), Card(-2, Suits.CIRCLE), Card(-1, Suits.CIRCLE)]
-print(player1.hand)
-print(player1.hand.getRanking())
+print(game)

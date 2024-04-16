@@ -203,7 +203,7 @@
 }
 
 .card h5{
-    font-size: 2rem;
+    font-size: 30px;
 }
 
 #discard{
@@ -282,7 +282,7 @@
     position: absolute;
     z-index: 2;
     rotate: 0deg;
-    top: 180px;
+    top: 170px;
     left: 50%;
     translate: -50% -50%;
 }
@@ -300,7 +300,7 @@
     position: absolute;
     z-index: 2;
     rotate: 0deg;
-    top: 180px;
+    top: 170px;
     left: 50%;
     translate: -50% -50%;
 }
@@ -319,8 +319,8 @@
     z-index: 2;
     rotate: 58deg;
     top: 130px;
-    right: calc(100% - 60px);
-    translate: -50% -50%;
+    right: calc(100% + 53px);
+    translate: 50% -50%;
 }
 
 .player6{
@@ -337,8 +337,8 @@
     z-index: 2;
     rotate: 302deg;
     top: -6px;
-    right: calc(100% - 64px);
-    translate: -50% -50%;
+    right: calc(100% + 45px);
+    translate: 50% -50%;
 }
 
 .player7{

@@ -350,7 +350,27 @@ class CorellianSpikeGame:
         
         if len(winningPlayers) == 1:
             return ret + f'player {winningPlayers[0].id} won with a high card of +{mostHighestCard}'
-        ret += f'players {listToStr(winningPlayers)} tied with high cards of +{mostHighestCard}'
+        ret += f'players {listToStr(winningPlayers)} tied with high cards of +{mostHighestCard}\n'
+
+        # 5- blind draw (closest to 0)
+        ret += 'blind draw: '
+        blindDraws = []
+        while len(winningPlayers) > 1:
+            closestTo0 = 0
+            for i in range(len(winningPlayers)):
+                drawnCard = self.deck.draw()
+                val = abs(drawnCard.value)
+                if i == 0 or val < closestTo0:
+                    closestTo0 = val
+                blindDraws.append(drawnCard)
+                ret += f'player {winningPlayers[i].id} drew a {drawnCard}{', ' if i < len(winningPlayers) - 1 else ' - '}'
+            for i in range(len(winningPlayers) - 1, -1, -1):
+                if abs(blindDraws[i].value) != closestTo0:
+                    del winningPlayers[i]
+            if len(winningPlayers) > 1:
+                ret += f'{'everyone' if len(winningPlayers) == len(blindDraws) else listToStr(winningPlayers)} tied with {closestTo0}s\n'
+            else:
+                ret += f'player {winningPlayers[0].id} won with a {closestTo0}'
 
         return ret
 
@@ -367,4 +387,6 @@ def addPlusBeforeNumber(n):
     return ('+' if n > 0 else '') + str(n)
 
 game = CorellianSpikeGame(list(range(1, 3)))
+for player in game.players:
+    player.hand.cards = [Card(7, Suits.CIRCLE), Card(-6, Suits.CIRCLE)]
 print(game)

@@ -3,6 +3,7 @@
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
+    import { motion } from 'svelte-motion';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -382,8 +383,37 @@
         }
     }
 
+
+
     async function draw() {
-        card("draw");
+        if (cardBool) {
+      try {
+        // Call the card action with "draw"
+        await card("draw");
+
+        // Animate the card from the deck to the hand
+        // Set up animation properties
+        const deckElement = document.getElementById('deck');
+        const handElement = document.getElementById(`player${game["player_turn"]}_hand`);
+        const deckRect = deckElement.getBoundingClientRect();
+        const handRect = handElement.getBoundingClientRect();
+
+        const startPosition = { x: deckRect.left, y: deckRect.top };
+        const endPosition = { x: handRect.left, y: handRect.top };
+
+        // Animate the card using Svelte Motion
+        // Possibly change values for smoother animation
+        $: cardAnimation = {
+          initial: startPosition,
+          animate: endPosition,
+          duration: 0.5,
+          easing: "easeInOut"
+        };
+      } catch (e) {
+        console.log(e);
+      }
+      tradeOpen = false;
+    }
     }
 
     function tradeBtn() {

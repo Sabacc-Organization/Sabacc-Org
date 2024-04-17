@@ -50,8 +50,8 @@ socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
 CORS(app, origins=allowedCORS)
 
 # Configure CS50 Library to use SQLite database
-# db = SQL("sqlite:///sabacc.db")
-db = SQL("postgresql://samuelanes:samuelanes@localhost:5432/sabacc")
+# db = SQL("postgresql://samuelanes:samuelanes@localhost:5432/sabacc")
+db = SQL("postgres://username:password@host:port/database")  # For PostgreSQL, fill in with your own database information
 
 
 

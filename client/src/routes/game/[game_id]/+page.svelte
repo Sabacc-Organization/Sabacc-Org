@@ -77,6 +77,7 @@
 
     // refresh game date function
     async function refreshGame() {
+        console.log('refresh to be fresh')
         try {
 
             // Request data
@@ -111,6 +112,18 @@
 
             // If response was OK
             if (response.ok) {
+
+                //sets players, and sets orderedPlayers to the correct length in case of a fold.
+                players = [... res["users"]];
+                orderedPlayers = [... players];
+
+                // If player is in game, make orderedPlayers proper
+                if (u_dex != -1) {
+                    for (let i = 0; i < players.length; i++) {
+                        orderedPlayers[i] = players[(i + u_dex) % players.length]
+                    }
+                }
+
                 // Set game data
                 game = res["gata"];
 
@@ -134,19 +147,10 @@
                     }
 
                     // Update all player arrays
-                    players[i] = res["users"][i];
-                    orderedPlayers[i] = res["users"][i];
                     ps[i] = res["users"][i];
 
                     // Add username to header
                     header += res["users"][i];
-                }
-
-                // If player is in game, make orderedPlayers proper
-                if (u_dex != -1) {
-                    for (let i = 0; i < players.length; i++) {
-                        orderedPlayers[i] = players[(i + u_dex) % players.length]
-                    }
                 }
 
                 if (game["player_turn"] === user_id) {
@@ -236,6 +240,17 @@
 
                     let res = await response.json();
                     if (response.ok) {
+                        //sets players, and sets orderedPlayers to the correct length in case of a fold.
+                        players = [... res["users"]];
+                        orderedPlayers = [... players];
+
+                        // If player is in game, make orderedPlayers proper
+                        if (u_dex != -1) {
+                            for (let i = 0; i < players.length; i++) {
+                                orderedPlayers[i] = players[(i + u_dex) % players.length]
+                            }
+                        }
+                        
                         game = res["gata"];
                     }
                     errorMsg = res["message"];

@@ -50,7 +50,8 @@ socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
 CORS(app, origins=allowedCORS)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///sabacc.db")
+# db = SQL("sqlite:///sabacc.db")
+db = SQL("postgresql://samuelanes:samuelanes@localhost:5432/sabacc")
 
 
 
@@ -553,7 +554,7 @@ def bet():
         newCredits = creditsStr
         newCredits = strListMod(creditsStr, 0, int(strListRead(creditsStr, 0)) + game["hand_pot"] + int(strListRead(betsStr, 0)))
 
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, hand_pot = ?, player_turn = ?, completed = ? WHERE game_id = {game_id}", newCredits, "", 0, int(users[0]), True)
+        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, hand_pot = ?, player_turn = ?, completed = ? WHERE game_id = {game_id}", newCredits, "", 0, int(users[0]), str(int(True)))
 
     # Update game variables for end round steps
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -832,7 +833,7 @@ def card():
             winStr = "Everyone bombs out and loses!"
             
         # Update game
-        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, True)
+        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, str(int(True)))
 
     # Return new game data
     gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -948,7 +949,7 @@ def shift():
         shiftStr = "No shift!"
 
     # Update game
-    db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), shift, shiftStr)
+    db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), str(int(shift)), shiftStr)
 
 @app.route("/cont", methods=["POST"])
 @cross_origin()
@@ -1039,7 +1040,7 @@ def cont():
     handsStr = listToStr(deckData["hands"], sep=";")
 
     # Create game in database
-    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
+    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", str(int(False)))
 
     # Return game
     gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -1086,7 +1087,7 @@ def errorhandler(e):
     """Handle error"""
     if not isinstance(e, HTTPException):
         e = InternalServerError()
-    return apology(e.name, e.code)
+    return str(e)
 
 
 # Listen for errors

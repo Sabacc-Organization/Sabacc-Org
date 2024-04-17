@@ -3,6 +3,7 @@
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
+    import io from 'socket.io-client';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -14,6 +15,9 @@
     let loggedIn = false;
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
+
+    //socket.io
+    let socket;
 
     // Page header (plaer vs. player vs. player)
     let header = "";
@@ -62,9 +66,8 @@
 
     // Once page is mounted
     onMount(async() => {
-
-        // Popolate page content
-        await refreshGame();
+        socket = io(BACKEND_URL);
+        socket.on('connect', async() => {await refreshGame()})
 
         // Set refresh intervla for game data (5000 ms)
         refreshInterval = setInterval(refreshGame, 5000);
@@ -250,7 +253,7 @@
                                 orderedPlayers[i] = players[(i + u_dex) % players.length]
                             }
                         }
-                        
+
                         game = res["gata"];
                     }
                     errorMsg = res["message"];

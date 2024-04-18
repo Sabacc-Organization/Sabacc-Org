@@ -51,7 +51,10 @@ CORS(app, origins=allowedCORS)
 
 # Configure CS50 Library to use SQLite database
 # db = SQL("postgresql://samuelanes:samuelanes@localhost:5432/sabacc")
-db = SQL("postgres://username:password@host:port/database")  # For PostgreSQL, fill in with your own database information
+db = SQL(config["DATABASE"])  # For PostgreSQL, fill in with your own database information
+db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
+db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player_ids TEXT, player_credits TEXT, player_bets TEXT, hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TEXT DEFAULT '1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17', player_hands TEXT, player_protecteds TEXT, player_turn INTEGER, folded_players TEXT, folded_credits TEXT,p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
 
 
 

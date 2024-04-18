@@ -5,10 +5,15 @@ from flask_socketio import emit
 from dataHelpers import *
 from cs50 import SQL
 from werkzeug.security import check_password_hash
+import yaml
+
+# Get config.yml data
+config = {}
+with open("config.yml", "r") as f:
+    config = yaml.safe_load(f)
 
 # Configure CS50 Library to use SQLite database
-# db = SQL("sqlite:///sabacc.db")
-db = SQL("postgresql://samuelanes:samuelanes@localhost:5432/sabacc")
+db = SQL(config["DATABASE"])
 
 # Global deck constant
 DECK = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"

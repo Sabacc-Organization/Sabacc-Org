@@ -157,6 +157,7 @@
     }
 
     function updateClientInfo(serverInfo: any){
+        game = serverInfo["gata"];
         if (username === serverInfo["username"]) {
             // Set user ID
             user_id = serverInfo["user_id"];
@@ -164,6 +165,7 @@
             // Set u_dex
             u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
         }
+        updateClientGame(serverInfo)
     }
 
     function protect(id: string) {

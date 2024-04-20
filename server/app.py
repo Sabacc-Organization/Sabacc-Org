@@ -201,8 +201,7 @@ def getGame(clientInfo):
     game_id = clientInfo['game_id']
     join_room(f'gameRoom{game_id}')
 
-    emit('clientUpdate', returnClientInfo(clientInfo))
-    emit('gameUpdate', returnGameInfo(clientInfo))
+    emit('clientUpdate', returnGameInfo(clientInfo))
 
 def returnGameInfo(clientInfo):
     """ Get game info for game <game_id> """
@@ -214,23 +213,19 @@ def returnGameInfo(clientInfo):
     game_id = clientInfo["game_id"]
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
+    # Get the user's id if the user is in the game
+    user_id = -1
+    if username != "":
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+
     # Get list of usernames of players in game
     users = []
     for u in game["player_ids"].split(","):
         users.append(db.execute("SELECT id, username FROM users WHERE id = ?", int(u))[0]["username"])
 
     # Return game data
-    return {"message": "Good luck!", "gata": game, "users": users}
+    return {"message": "Good luck!", "gata": game, "users": users, "user_id": int(user_id), "username": username}
 
-def returnClientInfo(clientInfo):
-    # Get username (if any, guests will not have usernames)
-    username = clientInfo["username"]
-    # Get the user's id if the user is in the game
-    user_id = -1
-    if username != "":
-        user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
-    
-    return {"message": "Good luck!", "user_id": int(user_id), "username": username}
 
 
 @app.route("/host", methods=["POST"])
@@ -375,7 +370,6 @@ def protect(clientInfo):
     db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
 
     # Return game data
-    emit('clientUpdate', returnClientInfo(clientInfo))
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 
@@ -606,7 +600,6 @@ def bet(clientInfo):
         db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
 
     # Return updated game data
-    emit('clientUpdate', returnClientInfo(clientInfo))
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 @socketio.on('card')
@@ -839,7 +832,6 @@ def card(clientInfo):
         db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, True)
 
     # Return new game data
-    emit('clientUpdate', returnClientInfo(clientInfo))
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 @socketio.on('shift')
@@ -952,7 +944,6 @@ def shift(clientInfo):
 
     # Update game
     db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), shift, shiftStr)
-    emit('clientUpdate', returnClientInfo(clientInfo))
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 @socketio.on('cont')
@@ -1046,7 +1037,6 @@ def cont(clientInfo):
     db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
 
     # Return game
-    emit('clientUpdate', returnClientInfo(clientInfo))
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 

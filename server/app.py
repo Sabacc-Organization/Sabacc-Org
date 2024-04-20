@@ -56,9 +56,6 @@ db = SQL("sqlite:///sabacc.db")
 
 
 """ REST APIs """
-@socketio.on('connect')
-def onSocketConnection():
-    print('EH we got a connection lol')
 
 @app.route("/login", methods=["POST"])
 @cross_origin()
@@ -212,7 +209,6 @@ def returnGameInfo(clientInfo):
 
     # Get username (if any, guests will not have usernames)
     username = clientInfo["username"]
-    print(clientInfo["username"])
     
     # Get game
     game_id = clientInfo["game_id"]

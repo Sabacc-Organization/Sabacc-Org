@@ -66,11 +66,9 @@
 
     // Once page is mounted
     onMount(() => {
-        console.log('well at least were getting here    ' + BACKEND_URL);
         socket = io(BACKEND_URL);
         socket.io.on('error', (err) => {console.log(err)});
         socket.on('connect', () => {
-            console.log('connected!! lol');
             requestGameUpdate();
         });
 
@@ -109,13 +107,11 @@
         }
 
         // Send request
-        console.log('got a game request update lol');
         socket.emit('getGame', clientInfo);
     }
 
     // automatically called when server sends update
     function updateClientGame(serverInfo: any) {
-        console.log('we got a game update!' + serverInfo['gata']['phase'])
         //sets players, and sets orderedPlayers to the correct length in case of a fold.
         players = [... serverInfo["users"]];
         orderedPlayers = [... players];

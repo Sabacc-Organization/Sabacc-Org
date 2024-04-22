@@ -5,11 +5,11 @@ class Card:
         self.protected = False
 
 class Player:
-    def __init__(self, id, username):
+    def __init__(self, id, username, startingCredits):
         self.id = id
         self.username = username
-        self.credits = 985
-        self.bet = 0
+        self.credits = startingCredits
+        self.bet = None
         self.hand = []
         self.folded = False
         self.lastAction = "start"

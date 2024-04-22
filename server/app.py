@@ -60,21 +60,29 @@ conn = psycopg2.connect(
 )
 # create a curor object
 db = conn.cursor()
+
 # register custom types (automatically convert to python obj)
-register_composite('card', db)
-register_composite('player', db)
+card_type = register_composite('Card', db)
+player_type = register_composite('Player', db)
+
 # create tables
 db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
 db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
-db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER, hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, folded_players TEXT, folded_credits TEXT, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, folded_players TEXT, folded_credits TEXT, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+# db.execute("UPDATE games SET players[1].hand = ARRAY[(5,'sabers',False)::card] WHERE game_id = 1")
 # commit changes
 conn.commit()
 
-# read table for testing purposes
-# db.execute('select * from games')
-# rows = db.fetchall()
-# for r in rows:
-#     print(f'id {r[0]} name {r[1]}')
+db.execute("SELECT players[1] FROM games where game_id = 1");
+player1 = db.fetchone()[0]
+db.execute("UPDATE games SET players[1].credits = 1000 WHERE game_id = 1")
+conn.commit()
+print(player1.credits)
+db.execute("UPDATE games SET players[1].credits = 500 WHERE game_id = 1")
+conn.commit()
+db.execute("SELECT players[1] FROM games where game_id = 1");
+player1 = db.fetchone()[0]
+print(player1.credits)
 
 # close cursor
 db.close()

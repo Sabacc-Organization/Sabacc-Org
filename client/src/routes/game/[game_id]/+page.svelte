@@ -66,21 +66,31 @@
 
     // Once page is mounted
     onMount(() => {
+        // defines a new socket object for real-time communication with server
         socket = io(BACKEND_URL);
+
+        // code to catch errors
         socket.io.on('error', (err) => {console.log(err)});
+
+        // when there is a connection established with the server, it will explicitely ask the server for a game update. 
+        // this is the only time it will explicitly ask for a game update.
         socket.on('connect', () => {
             requestGameUpdate();
         });
 
+        // when the server responds to a game update request or recieves new information, it will pass that info on to updateClientGame as serverInfo
         socket.on('gameUpdate', (serverInfo: any) => {
             updateClientGame(serverInfo);
         });
 
+        // sometimes the server wants to give the client information that only applies to them, such as their user ID.
+        // clientUpdate is accessed when the server doesnt want to give that info to every client. it also give the updated game in serverInfo
+        // updateClientGame is called within updateClientInfo. updateClientInfo is only called when first logging on.
         socket.on('clientUpdate', (serverInfo: any) => {
             updateClientInfo(serverInfo);
         });
 
-        //defining the Audio to be play apon your turn (it wouldnt work if i put it outside of onMount)
+        // defining the Audio to be play apon your turn (it wouldnt work if i put it outside of onMount)
         turnSound = new Audio("/move-sound.mp3");
     });
 
@@ -88,7 +98,7 @@
 
     // sends a message from to the server to fetch new game data, useful when first logging on.
     function requestGameUpdate() {
-        // Request data
+        // client info to send to server so it knows who its sending this info back to.
         let clientInfo = {};
 
         // If logged in user
@@ -106,7 +116,7 @@
             }
         }
 
-        // Send request
+        // Send info
         socket.emit('getGame', clientInfo);
     }
 
@@ -156,6 +166,8 @@
         }
     }
 
+    // this is only called as a consequence of requestGameUpdate, and accesses data that should only be updated by one client, such as user_id
+    // calls updateClientGame within it to update the game as well. this is only called when a player opens the game, hence the updateClientGame
     function updateClientInfo(serverInfo: any){
         game = serverInfo["gata"];
         if (username === serverInfo["username"]) {
@@ -168,6 +180,8 @@
         updateClientGame(serverInfo)
     }
 
+    // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
+    // this applies to bet, card, shift, and playAgain.
     function protect(id: string) {
         let elem = document.getElementById(id);
 

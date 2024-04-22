@@ -196,6 +196,7 @@ def register():
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
     
+# this is called manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
 def getGame(clientInfo):
     game_id = clientInfo['game_id']
@@ -203,6 +204,7 @@ def getGame(clientInfo):
 
     emit('clientUpdate', returnGameInfo(clientInfo))
 
+# uses the game_id to find the game, and returns the gmae information. used by protect, bet, card, shift, and cont.
 def returnGameInfo(clientInfo):
     """ Get game info for game <game_id> """
 
@@ -310,6 +312,8 @@ def host():
     
 
 """ Gameplay REST APIs """
+
+# when the server recieves a protect command from a client, it updates the game accordingly and then it sends the new game to all connected clients in that game.
 @socketio.on('protect')
 def protect(clientInfo):
     """ Protect a card """
@@ -369,7 +373,7 @@ def protect(clientInfo):
     # Update the database
     db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
 
-    # Return game data
+    # send game data to all connected clients in the current game. this applies to bet, card, shift, and cont aswell.
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 

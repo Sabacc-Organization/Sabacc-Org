@@ -3,6 +3,7 @@
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
+    import { io } from 'socket.io-client';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -14,6 +15,9 @@
     let loggedIn = false;
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
+
+    //socket.io
+    let socket: any;
 
     // Page header (plaer vs. player vs. player)
     let header = "";
@@ -61,146 +65,134 @@
     });
 
     // Once page is mounted
-    onMount(async() => {
+    onMount(() => {
+        // defines a new socket object for real-time communication with server
+        socket = io(BACKEND_URL);
 
-        // Popolate page content
-        await refreshGame();
+        // code to catch errors
+        socket.io.on('error', (err) => {console.log(err)});
 
-        // Set refresh intervla for game data (5000 ms)
-        refreshInterval = setInterval(refreshGame, 5000);
+        // when there is a connection established with the server, it will explicitely ask the server for a game update. 
+        // this is the only time it will explicitly ask for a game update.
+        socket.on('connect', () => {
+            requestGameUpdate();
+        });
 
+        // when the server responds to a game update request or recieves new information, it will pass that info on to updateClientGame as serverInfo
+        socket.on('gameUpdate', (serverInfo: any) => {
+            updateClientGame(serverInfo);
+        });
+
+        // sometimes the server wants to give the client information that only applies to them, such as their user ID.
+        // clientUpdate is accessed when the server doesnt want to give that info to every client. it also give the updated game in serverInfo
+        // updateClientGame is called within updateClientInfo. updateClientInfo is only called when first logging on.
+        socket.on('clientUpdate', (serverInfo: any) => {
+            updateClientInfo(serverInfo);
+        });
+
+        // defining the Audio to be play apon your turn (it wouldnt work if i put it outside of onMount)
         turnSound = new Audio("/move-sound.mp3");
-
     });
 
     let soundPlayed = false;
 
-    // refresh game date function
-    async function refreshGame() {
-        console.log('refresh to be fresh')
-        try {
+    // sends a message from to the server to fetch new game data, useful when first logging on.
+    function requestGameUpdate() {
+        // client info to send to server so it knows who its sending this info back to.
+        let clientInfo = {};
 
-            // Request data
-            let requestData = {};
+        // If logged in user
+        if (username != undefined) {
+            clientInfo = {
+                "username": username,
+                "game_id": game_id
+            }
+        } 
+        // If not logged in
+        else {
+            clientInfo = {
+                "username": "",
+                "game_id": game_id
+            }
+        }
 
-            // If logged in user
-            if (username != undefined) {
-                requestData = {
-                    "username": username,
-                    "game_id": game_id
-                }
-            } 
-            // If not logged in
-            else {
-                requestData = {
-                    "username": "",
-                    "game_id": game_id
-                }
+        // Send info
+        socket.emit('getGame', clientInfo);
+    }
+
+    // automatically called when server sends update
+    function updateClientGame(serverInfo: any) {
+        //sets players, and sets orderedPlayers to the correct length in case of a fold.
+        players = [... serverInfo["users"]];
+        orderedPlayers = [... players];
+
+        // If player is in game, make orderedPlayers proper
+        if (u_dex != -1) {
+            for (let i = 0; i < players.length; i++) {
+                orderedPlayers[i] = players[(i + u_dex) % players.length]
+            }
+        }
+
+        // Set game data
+        game = serverInfo["gata"];
+
+        // Creat p(layer)s array
+        let ps: any[] = []; 
+
+        // Prepare header var (p vs. p vs. p)
+        header = "";
+
+        // For every user in users
+        for (let i = 0; i < serverInfo["users"].length; i++) {
+            // Add vs. except on first loop through
+            if (i != 0) {
+                header += " vs. "
             }
 
-            // Send request
-            const response = await fetch(BACKEND_URL + "/game", {
-                method: 'POST', // Set the method to POST
-                headers: {
-                    'Content-Type': 'application/json' // Set the headers appropriately
-                },
-                body: JSON.stringify(requestData) // Convert your data to JSON
-            });
+            // Update player array
+            ps[i] = serverInfo["users"][i];
 
-            // Wait for response
-            let res = await response.json();
+            // Add username to header
+            header += serverInfo["users"][i];
+        }
 
-            // If response was OK
-            if (response.ok) {
-
-                //sets players, and sets orderedPlayers to the correct length in case of a fold.
-                players = [... res["users"]];
-                orderedPlayers = [... players];
-
-                // If player is in game, make orderedPlayers proper
-                if (u_dex != -1) {
-                    for (let i = 0; i < players.length; i++) {
-                        orderedPlayers[i] = players[(i + u_dex) % players.length]
-                    }
-                }
-
-                // Set game data
-                game = res["gata"];
-
-                // Set user ID
-                user_id = res["user_id"];
-
-                // Set u_dex
-                u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
-
-                // Creat p(layer)s array
-                let ps: any[] = []; 
-
-                // Prepare header var (p vs. p vs. p)
-                header = "";
-
-                // For every user in users
-                for (let i = 0; i < res["users"].length; i++) {
-                    // Add vs. except on first loop through
-                    if (i != 0) {
-                        header += " vs. "
-                    }
-
-                    // Update all player arrays
-                    ps[i] = res["users"][i];
-
-                    // Add username to header
-                    header += res["users"][i];
-                }
-
-                if (game["player_turn"] === user_id) {
-                    if (!soundPlayed) {
-                        turnSound.play();
-                        soundPlayed = true;
-                    }
-                } else {
-                    soundPlayed = false;
-                }
-
-            } else {
-                errorMsg = res["message"];
+        if (game["player_turn"] === user_id) {
+            if (!soundPlayed) {
+                turnSound.play();
+                soundPlayed = true;
             }
-        } catch (e) {
-            console.log(e);
+        } else {
+            soundPlayed = false;
         }
     }
 
+    // this is only called as a consequence of requestGameUpdate, and accesses data that should only be updated by one client, such as user_id
+    // calls updateClientGame within it to update the game as well. this is only called when a player opens the game, hence the updateClientGame
+    function updateClientInfo(serverInfo: any){
+        game = serverInfo["gata"];
+        if (username === serverInfo["username"]) {
+            // Set user ID
+            user_id = serverInfo["user_id"];
 
-    async function protect(id) {
+            // Set u_dex
+            u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
+        }
+        updateClientGame(serverInfo)
+    }
 
+    // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
+    // this applies to bet, card, shift, and playAgain.
+    function protect(id: string) {
         let elem = document.getElementById(id);
 
-        try {
-
-        let requestData = {
+        let clientInfo = {
             "username": username,
             "password": password,
             "game_id": game_id,
             "protect": elem.innerText
         }
 
-        const response = await fetch(BACKEND_URL + "/protect", {
-            method: 'POST', // Set the method to POST
-            headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
-            },
-            body: JSON.stringify(requestData) // Convert your data to JSON
-        });
-
-        let res = await response.json();
-        if (response.ok) {
-            game = res["gata"];
-        }
-        errorMsg = res["message"];
-        } catch (e) {
-            console.log(e);
-        }
-
+        socket.emit('protect', clientInfo)
     }
 
     // Betting Phase
@@ -210,7 +202,7 @@
 
     let raising = false;
 
-    async function bet(action: string) {
+    function bet(action: string) {
         if (potsActive) {
             if ((isNaN(betCreds) || betCreds < 0 || betCreds > parseInt(game["player_credits"].split(",")[u_dex])) && action != "fold") {
                 betErr = "Please input a number of credits you would like to bet(an integer 0 to " + game["player_credits"].split(",")[u_dex] + ")";
@@ -220,43 +212,16 @@
                 if (raising && !isNaN(parseInt(game["player_bets"].split(",")[u_dex]))) {
                     tempCreds = betCreds - parseInt(game["player_bets"].split(",")[u_dex]);
                 }
-                try {
 
-                    let requestData = {
-                        "username": username,
-                        "password": password,
-                        "game_id": game_id,
-                        "action": action,
-                        "amount": tempCreds
-                    }
-
-                    const response = await fetch(BACKEND_URL + "/bet", {
-                        method: 'POST', // Set the method to POST
-                        headers: {
-                            'Content-Type': 'application/json' // Set the headers appropriately
-                        },
-                        body: JSON.stringify(requestData) // Convert your data to JSON
-                    });
-
-                    let res = await response.json();
-                    if (response.ok) {
-                        //sets players, and sets orderedPlayers to the correct length in case of a fold.
-                        players = [... res["users"]];
-                        orderedPlayers = [... players];
-
-                        // If player is in game, make orderedPlayers proper
-                        if (u_dex != -1) {
-                            for (let i = 0; i < players.length; i++) {
-                                orderedPlayers[i] = players[(i + u_dex) % players.length]
-                            }
-                        }
-                        
-                        game = res["gata"];
-                    }
-                    errorMsg = res["message"];
-                } catch (e) {
-                    console.log(e);
+                let clientInfo = {
+                    "username": username,
+                    "password": password,
+                    "game_id": game_id,
+                    "action": action,
+                    "amount": tempCreds
                 }
+
+                socket.emit('bet', clientInfo);
             }
             raising = false;
             betCreds = 0;
@@ -313,7 +278,7 @@
             if (isNaN(followAmount)) {
                 followAmount = raiseAmount;
             }
-                
+
         } else {
             potsActive = false;
         }
@@ -365,34 +330,18 @@
         }
     }
 
-    async function card(action: string) {
+    function card(action: string) {
         if (cardBool) {
-            try {
 
-                let requestData = {
-                    "username": username,
-                    "password": password,
-                    "game_id": game_id,
-                    "action": action,
-                    "trade": tradeCard
-                }
-
-                const response = await fetch(BACKEND_URL + "/card", {
-                    method: 'POST', // Set the method to POST
-                    headers: {
-                        'Content-Type': 'application/json' // Set the headers appropriately
-                    },
-                    body: JSON.stringify(requestData) // Convert your data to JSON
-                });
-
-                let res = await response.json();
-                if (response.ok) {
-                    game = res["gata"];
-                }
-                errorMsg = res["message"];
-            } catch (e) {
-                console.log(e);
+            let clientInfo = {
+                "username": username,
+                "password": password,
+                "game_id": game_id,
+                "action": action,
+                "trade": tradeCard
             }
+
+            socket.emit('card', clientInfo);
             tradeOpen = false;
         }
     }
@@ -433,61 +382,29 @@
         }
     }
 
-    async function shift() {
+    function shift() {
         if (shiftActive) {
-            try {
 
-                let requestData = {
-                    "username": username,
-                    "password": password,
-                    "game_id": game_id
-                }
-
-                const response = await fetch(BACKEND_URL + "/shift", {
-                    method: 'POST', // Set the method to POST
-                    headers: {
-                        'Content-Type': 'application/json' // Set the headers appropriately
-                    },
-                    body: JSON.stringify(requestData) // Convert your data to JSON
-                });
-
-                let res = await response.json();
-                if (response.ok) {
-                    game = res["gata"];
-                }
-                errorMsg = res["message"];
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    }
-
-    // Play Again
-    async function playAgain() {
-        try {
-
-            let requestData = {
+            let clientInfo = {
                 "username": username,
                 "password": password,
                 "game_id": game_id
             }
 
-            const response = await fetch(BACKEND_URL + "/cont", {
-                method: 'POST', // Set the method to POST
-                headers: {
-                    'Content-Type': 'application/json' // Set the headers appropriately
-                },
-                body: JSON.stringify(requestData) // Convert your data to JSON
-            });
-
-            let res = await response.json();
-            if (response.ok) {
-                game = res["gata"];
-            }
-            errorMsg = res["message"];
-        } catch (e) {
-            console.log(e);
+            socket.emit('shift', clientInfo);
         }
+    }
+
+    // Play Again
+    async function playAgain() {
+
+        let clientInfo = {
+            "username": username,
+            "password": password,
+            "game_id": game_id
+        }
+
+        socket.emit('cont', clientInfo);
     }
 
 </script>

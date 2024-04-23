@@ -12,7 +12,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
 from alderaanHelpers import *
-from flask_socketio import SocketIO, send, emit
+from flask_socketio import SocketIO, send, emit, join_room
 import yaml
 
 # Get config.yml data
@@ -196,24 +196,29 @@ def register():
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
     
+# this is called manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
+@socketio.on('getGame')
+def getGame(clientInfo):
+    game_id = clientInfo['game_id']
+    join_room(f'gameRoom{game_id}')
 
-@app.route("/game", methods=["POST"])
-@cross_origin()
-def game():
+    emit('clientUpdate', returnGameInfo(clientInfo))
+
+# uses the game_id to find the game, and returns the gmae information. used by protect, bet, card, shift, and cont.
+def returnGameInfo(clientInfo):
     """ Get game info for game <game_id> """
 
     # Get username (if any, guests will not have usernames)
-    username = request.json.get("username")
-    print(request.json.get("username"))
+    username = clientInfo["username"]
     
+    # Get game
+    game_id = clientInfo["game_id"]
+    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
+
     # Get the user's id if the user is in the game
     user_id = -1
     if username != "":
         user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
-    
-    # Get game
-    game_id = request.json.get("game_id")
-    game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
 
     # Get list of usernames of players in game
     users = []
@@ -221,7 +226,8 @@ def game():
         users.append(db.execute("SELECT id, username FROM users WHERE id = ?", int(u))[0]["username"])
 
     # Return game data
-    return jsonify({"message": "Good luck!", "gata": game, "users": users, "user_id": int(user_id)}), 200
+    return {"message": "Good luck!", "gata": game, "users": users, "user_id": int(user_id), "username": username}
+
 
 
 @app.route("/host", methods=["POST"])
@@ -307,15 +313,14 @@ def host():
 
 """ Gameplay REST APIs """
 
-@app.route("/protect", methods=["POST"])
-@cross_origin()
-def protect():
-
+# when the server recieves a protect command from a client, it updates the game accordingly and then it sends the new game to all connected clients in that game.
+@socketio.on('protect')
+def protect(clientInfo):
     """ Protect a card """
 
     # Authenticate User
-    username = request.json.get("username")
-    password = request.json.get("password")
+    username = clientInfo["username"]
+    password = clientInfo["password"]
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
@@ -324,11 +329,11 @@ def protect():
     user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
 
     # Get game
-    game_id = request.json.get("game_id")
+    game_id = clientInfo["game_id"]
     game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
 
     # Get card being protected
-    protect = request.json.get("protect")
+    protect = clientInfo["protect"]
 
     # Get username of requester
     uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
@@ -368,20 +373,18 @@ def protect():
     # Update the database
     db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
 
-    # Return game data
-    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    return jsonify({"message": "Card protected", "gata": gata}), 200
+    # send game data to all connected clients in the current game. this applies to bet, card, shift, and cont aswell.
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 
-@app.route("/bet", methods=["POST"])
-@cross_origin()
-def bet():
+@socketio.on('bet')
+def bet(clientInfo):
 
     """ Players make bets and other betting actions """
 
     # Authenticate User
-    username = request.json.get("username")
-    password = request.json.get("password")
+    username = clientInfo["username"]
+    password = clientInfo["password"]
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
@@ -390,14 +393,14 @@ def bet():
     user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
 
     # Get game
-    game_id = request.json.get("game_id")
+    game_id = clientInfo["game_id"]
     game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
 
     # Get betting action
-    action = request.json.get("action")
+    action = clientInfo["action"]
 
     # Get amount player is betting
-    amount = request.json.get("amount")
+    amount = clientInfo["amount"]
 
     # Get users in game
     users = game["player_ids"].split(",")
@@ -601,19 +604,17 @@ def bet():
         db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
 
     # Return updated game data
-    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    return jsonify({"message": "Bet!", "gata": gata}), 200
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
-@app.route("/card", methods=["POST"])
-@cross_origin()
-def card():
+@socketio.on('card')
+def card(clientInfo):
 
 
     """ Any card phase actions """ 
 
     # Authenticate User
-    username = request.json.get("username")
-    password = request.json.get("password")
+    username = clientInfo["username"]
+    password = clientInfo["password"]
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
@@ -622,12 +623,12 @@ def card():
     user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
 
     # Get game
-    game_id = request.json.get("game_id")
+    game_id = clientInfo["game_id"]
     game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
 
     # Action information
-    action = request.json.get("action")
-    tradeCard = request.json.get("trade")
+    action = clientInfo["action"]
+    tradeCard = clientInfo["trade"]
 
     # Players list
     users = game["player_ids"].split(",")
@@ -835,17 +836,15 @@ def card():
         db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, True)
 
     # Return new game data
-    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    return jsonify({"message": "Card!", "gata": gata}), 200
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
-@app.route("/shift", methods=["POST"])
-@cross_origin()
-def shift():
+@socketio.on('shift')
+def shift(clientInfo):
     """ Shift phase """
 
     # Authenticate User
-    username = request.json.get("username")
-    password = request.json.get("password")
+    username = clientInfo["username"]
+    password = clientInfo["password"]
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
@@ -854,7 +853,7 @@ def shift():
     user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
 
     # Set some variables for the whole function
-    game_id = request.json.get("game_id")
+    game_id = clientInfo["game_id"]
     game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
     users = game["player_ids"].split(",")
     handsStr = game["player_hands"]
@@ -949,16 +948,16 @@ def shift():
 
     # Update game
     db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), shift, shiftStr)
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
-@app.route("/cont", methods=["POST"])
-@cross_origin()
-def cont():
+@socketio.on('cont')
+def cont(clientInfo):
 
     """ Request to play again """
 
     # Authenticate User
-    username = request.json.get("username")
-    password = request.json.get("password")
+    username = clientInfo["username"]
+    password = clientInfo["password"]
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
@@ -967,7 +966,7 @@ def cont():
     user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
 
     # Set some variables for the whole function
-    game_id = request.json.get("game_id")
+    game_id = clientInfo["game_id"]
     game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
 
     # Players' credits
@@ -1042,8 +1041,7 @@ def cont():
     db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
 
     # Return game
-    gata = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
-    return jsonify({"message": "Card!", "gata": gata}), 200
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 
 

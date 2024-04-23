@@ -12,10 +12,11 @@ from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
 from alderaanHelpers import *
+from traditional.traditionalHelpers import *
 from flask_socketio import SocketIO, send, emit
 import yaml
-import psycopg2
-from psycopg2.extras import register_composite
+import psycopg
+from psycopg.types.composite import CompositeInfo, register_composite
 
 # Get config.yml data
 config = {}
@@ -51,43 +52,62 @@ allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/car
 socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
 CORS(app, origins=allowedCORS)
 
-# connect to postgresql database
-conn = psycopg2.connect(
-    database="sabacc",
-    user="postgres",
-    password="postgres",
-    host="localhost"
-)
-# create a curor object
-db = conn.cursor()
+# Connect to database
+with psycopg.connect("dbname=sabacc user=postgres password=postgres") as conn:
 
-# register custom types (automatically convert to python obj)
-card_type = register_composite('Card', db)
-player_type = register_composite('Player', db)
+    # Open a cursor to perform database operations
+    with conn.cursor() as db:
 
-# create tables
-db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
-db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
-db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, folded_players TEXT, folded_credits TEXT, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
-# db.execute("UPDATE games SET players[1].hand = ARRAY[(5,'sabers',False)::card] WHERE game_id = 1")
-# commit changes
-conn.commit()
+        # create custom types
+        try:
+            db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+            db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+            db.execute("""
+                CREATE TYPE Player AS (
+                id INTEGER,
+                username TEXT,
+                credits INTEGER,
+                bet INTEGER,
+                hand Card[],
+                folded BOOL,
+                lastAction TEXT);
+            """)
+            print('created custom types')
+        except psycopg.errors.DuplicateObject:
+            # print('custom types alr exist')
+            conn.rollback()
 
-db.execute("SELECT players[1] FROM games where game_id = 1");
-player1 = db.fetchone()[0]
-db.execute("UPDATE games SET players[1].credits = 1000 WHERE game_id = 1")
-conn.commit()
-print(player1.credits)
-db.execute("UPDATE games SET players[1].credits = 500 WHERE game_id = 1")
-conn.commit()
-db.execute("SELECT players[1] FROM games where game_id = 1");
-player1 = db.fetchone()[0]
-print(player1.credits)
+        # register custom types (automatically convert to python obj)
+        card_type = CompositeInfo.fetch(conn, 'card')
+        player_type = CompositeInfo.fetch(conn, 'player')
+        register_composite(card_type, db)
+        register_composite(player_type, db)
 
-# close cursor
-db.close()
-# close the connection
-conn.close()
+        # testing
+        card = Card(1, Suit.FLASKS)
+        dbCard = card.toDatabaseVersion(card_type)
+        hand = [Card(val=n, suit=Suit.COINS) for n in range(1, 4)]
+        # print(f'{listToStr(hand)}')
+        newHand = []
+        for card in hand:
+            newHand.append(card.toDatabaseVersion(card_type))
+        # print(f'{listToStr(newHand)}')
+        # players = [Player(id=1, username='thrawn', credits=1e3, hand=hand).toDatabaseVersion(playerType=player_type, cardType=card_type)]
+
+        # create tables
+        db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+        db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, folded_players TEXT, folded_credits TEXT, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+
+        db.execute("INSERT INTO test (cards) VALUES (%s)", [[dbCard]])
+        # db.execute("UPDATE games SET players[1].hand = ARRAY[(5,'sabers',False)::card] WHERE game_id = 1")
+        
+        # commit changes
+        conn.commit()
+
+        cards = db.execute("SELECT cards FROM test").fetchone()[0]
+        print(listToStr([Card.copy(card) for card in cards]))
+
 
 """ REST APIs """
 

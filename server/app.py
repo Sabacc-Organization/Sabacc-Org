@@ -97,6 +97,7 @@ lastId = db.execute("SELECT game_id FROM games").fetchall()
 game = Game(id=(lastId[-1][0]+1 if lastId else 1),players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
 try:
     db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(card_type, player_type))
+    print(f'created game {game.id}')
 except:
     print(f'game {game.id} alr exists')
     conn.rollback()

@@ -2,6 +2,7 @@ from flask import redirect, render_template, request, session, jsonify
 from functools import wraps
 import random
 from flask_socketio import emit
+import psycopg
 from dataHelpers import *
 from cs50 import SQL
 from werkzeug.security import check_password_hash
@@ -12,8 +13,9 @@ config = {}
 with open("config.yml", "r") as f:
     config = yaml.safe_load(f)
 
-# Configure CS50 Library to use SQLite database
-db = SQL(config["DATABASE"])
+# Connect to database
+conn = psycopg.connect("dbname=sabacc user=postgres password=postgres")
+db = conn.cursor()
 
 # Global deck constant
 DECK = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"

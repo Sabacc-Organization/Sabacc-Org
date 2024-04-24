@@ -78,6 +78,8 @@ class Game:
             'shift': self.shift,
             'completed': self.completed
         }
+    def toList(self, card_type, player_type):
+        return [self.id, [player.toDatabaseVersion(player_type, card_type) for player in self.players], self.hand_pot, self.sabacc_pot, self.phase, [card.toDatabaseVersion(card_type) for card in self.deck], self.player_turn, self.p_act, self.cycle_count, self.shift, self.completed]
     @staticmethod
     def fromTuple(game):
         return Game(id=game[0],players=[Player.fromDatabaseVersion(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=[Card.fromDatabaseVersion(card) for card in game[5]], player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])

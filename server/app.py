@@ -88,6 +88,13 @@ with psycopg.connect("dbname=sabacc user=postgres password=postgres") as conn:
         db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
         db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
 
+        # create test game
+        deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
+        hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
+        players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
+        game = Game(id=3,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10).toList(card_type, player_type)
+        db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game)
+
         # commit changes
         conn.commit()
 

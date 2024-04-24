@@ -92,3 +92,6 @@ class Game:
     @staticmethod
     def fromDict(dict):
         return Game(dict['id'],[Player.fromDict(player) for player in dict['players']],[Card.fromDict(card) for card in dict['deck']],dict['player_turn'],dict['p_act'],dict['hand_pot'],dict['sabacc_pot'],dict['phase'],dict['cycle_count'],dict['shift'],dict['completed'])
+
+    def containsPlayer(self, player_id):
+        return player_id in [player.id for player in self.players]

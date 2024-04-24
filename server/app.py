@@ -52,51 +52,56 @@ allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/car
 socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
 CORS(app, origins=allowedCORS)
 
+
 # Connect to database
-with psycopg.connect("dbname=sabacc user=postgres password=postgres") as conn:
+conn = psycopg.connect("dbname=sabacc user=postgres password=postgres")
 
-    # Open a cursor to perform database operations
-    with conn.cursor() as db:
+# Open a cursor to perform database operations
+db = conn.cursor()
 
-        # create custom types
-        try:
-            db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
-            db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
-            db.execute("""
-                CREATE TYPE Player AS (
-                id INTEGER,
-                username TEXT,
-                credits INTEGER,
-                bet INTEGER,
-                hand Card[],
-                folded BOOL,
-                lastaction TEXT);
-            """)
-            print('created custom types')
-        except psycopg.errors.DuplicateObject:
-            # print('custom types alr exist')
-            conn.rollback()
+# create custom types
+try:
+    db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+    db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+    db.execute("""
+        CREATE TYPE Player AS (
+        id INTEGER,
+        username TEXT,
+        credits INTEGER,
+        bet INTEGER,
+        hand Card[],
+        folded BOOL,
+        lastaction TEXT);
+    """)
+    print('created custom types')
+except psycopg.errors.DuplicateObject:
+    # print('custom types alr exist')
+    conn.rollback()
 
-        # register custom types
-        card_type = CompositeInfo.fetch(conn, 'card')
-        player_type = CompositeInfo.fetch(conn, 'player')
-        register_composite(card_type, db)
-        register_composite(player_type, db)
+# register custom types
+card_type = CompositeInfo.fetch(conn, 'card')
+player_type = CompositeInfo.fetch(conn, 'player')
+register_composite(card_type, db)
+register_composite(player_type, db)
 
-        # create tables
-        db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
-        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
-        db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+# create tables
+db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
+db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
 
-        # create test game
-        deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
-        hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
-        players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
-        game = Game(id=3,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10).toList(card_type, player_type)
-        db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game)
+# create test game
+deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
+hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
+players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
+game = Game(id=2,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10).toList(card_type, player_type)
+db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game)
 
-        # commit changes
-        conn.commit()
+# commit changes
+conn.commit()
+
+# close connection
+conn.close()
+
 
 """ REST APIs """
 

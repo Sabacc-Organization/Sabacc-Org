@@ -236,7 +236,7 @@
     }
 
     $: {
-        if (game["completed"] === 0 && game["player_turn"] === user_id && game["phase"] === "betting"){
+        if (game["completed"] == 0 && game["player_turn"] === user_id && game["phase"] === "betting"){
             if (u_dex === 0 && game["player_bets"].split(",")[u_dex + 1] === ""){
                 if (betCreds == null){
                     betCreds = 0;
@@ -432,7 +432,7 @@
         <div on:click={draw} class:active={cardBool} id="deck" class="card child"></div>
 
         <div class:active={cardBool} id="discard" class="card child">
-            {#if game["completed"] === 0}
+            {#if game["completed"] == 0}
                 {#if game["player_turn"] === user_id}
                     {#if game["phase"] === "card" || game["phase"] === "alderaan"}
                         <button on:click={tradeBtn} type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
@@ -454,7 +454,7 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
 
-        {#if game["completed"] === 1 && game["player_turn"] === user_id}
+        {#if game["completed"] == 1 && game["player_turn"] === user_id}
             <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
         {/if}
 
@@ -486,13 +486,13 @@
                             <div on:click={() => trade("card" + ci.toString())} id="card{ci.toString()}" class="card child own protected"><h5>{c}</h5></div>
                         {/if}
                     {:else}
-                        {#if game["completed"] === 0}
+                        {#if game["completed"] == 0}
                             {#if game["player_protecteds"].split(";")[i].split(",")[ci] === "0"}
                                 <div class="card child"></div>
                             {:else}
                                 <div class="card child protected"><h5>{c}</h5></div>
                             {/if}
-                        {:else if game["completed"] === 1}
+                        {:else if game["completed"] == 1}
                             <div class="card child"><h5>{c}</h5></div>
                         {/if}
                     {/if}
@@ -528,7 +528,7 @@
 
     <div id="actBox">
 
-        {#if game["completed"] === 0}
+        {#if game["completed"] == 0}
             {#if game["player_turn"] === user_id}
         
                 {#if game["phase"] === "betting"}

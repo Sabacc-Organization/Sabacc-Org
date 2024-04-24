@@ -13,7 +13,10 @@ from helpers import *
 from dataHelpers import *
 from alderaanHelpers import *
 from flask_socketio import SocketIO, send, emit, join_room
+from traditional.traditionalHelpers import *
 import yaml
+import psycopg
+from psycopg.types.composite import CompositeInfo, register_composite
 
 # Get config.yml data
 config = {}
@@ -49,10 +52,61 @@ allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/car
 socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
 CORS(app, origins=allowedCORS)
 
-# Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///sabacc.db")
 
+# Connect to database
+conn = psycopg.connect(config['DATABASE'])
 
+# Open a cursor to perform database operations
+db = conn.cursor()
+
+# create custom types
+try:
+    db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+    db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+    db.execute("""
+        CREATE TYPE Player AS (
+        id INTEGER,
+        username TEXT,
+        credits INTEGER,
+        bet INTEGER,
+        hand Card[],
+        folded BOOL,
+        lastaction TEXT);
+    """)
+    print('created custom types')
+except psycopg.errors.DuplicateObject:
+    # print('custom types alr exist')
+    conn.rollback()
+
+# register custom types
+card_type = CompositeInfo.fetch(conn, 'card')
+player_type = CompositeInfo.fetch(conn, 'player')
+register_composite(card_type, db)
+register_composite(player_type, db)
+
+# create tables
+db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
+db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+
+# create test game
+deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
+hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
+players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
+lastId = db.execute("SELECT game_id FROM games").fetchall()
+game = Game(id=(lastId[-1][0]+1 if lastId else 1),players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
+try:
+    db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(card_type, player_type))
+    print(f'created game {game.id}')
+except:
+    print(f'game {game.id} alr exists')
+    conn.rollback()
+
+# commit changes
+conn.commit()
+
+# close connection
+conn.close()
 
 
 """ REST APIs """
@@ -87,7 +141,7 @@ def login():
 
     #     # Change user's password
     #     passHash = str(generate_password_hash(password))
-    #     db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
+    #     db.execute(f"UPDATE users SET hash = %s WHERE username = %s", passHash, username)
 
     # Remember which user has logged in
     # session["user_id"] = rows[0]["id"]
@@ -114,7 +168,7 @@ def index():
         return jsonify({"message": check["message"]}), check["status"]
     
     # Get the user's id for later use
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username])[0]["id"]
 
     # Query the database for all the games
     games = db.execute("SELECT * FROM games")
@@ -128,12 +182,12 @@ def index():
 
     # Remove games that have been completed and that are not relevant to the player
     for game in games:
-        if str(user_id) not in game["player_ids"].split(",") or game["completed"] == True:
+        gameObj = Game.fromDb(game)
+        if not gameObj.containsPlayer(user_id) or gameObj.completed:
             newGames.remove(game)
-
         else:
-            user_ids.append(game["player_ids"].split(","))
-            player_turns.append(db.execute("SELECT username FROM users WHERE id = ?", game["player_turn"])[0]["username"])
+            user_ids.append([player.id for player in gameObj.players])
+            player_turns.append(db.execute("SELECT username FROM users WHERE id = %s", [gameObj.player_turn])[0]["username"])
 
 
     # Get all the relevant usernames from the database
@@ -141,7 +195,7 @@ def index():
     for set in user_ids:
         s = ""
         for user in set:
-            s += str(db.execute("SELECT * FROM users WHERE id = ?", int(user))[0]["username"]) + ", "
+            s += str(db.execute("SELECT * FROM users WHERE id = %s", [int(user)])[0]["username"]) + ", "
 
         st = s.strip(", ")
 
@@ -169,7 +223,7 @@ def register():
         return jsonify({"message": "Please do not put spaces in your username"}), 401
     
     # Check that username has not already been taken
-    if db.execute("SELECT * FROM users WHERE username = ?", username) != []:
+    if db.execute("SELECT * FROM users WHERE username = %s", [username]) != []:
         return jsonify({"message": "Username has already been taken"}), 401
     
     # Ensure password is valid
@@ -191,7 +245,7 @@ def register():
 
     # Complete registration
     passHash = generate_password_hash(password)
-    db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, str(passHash))
+    db.execute("INSERT INTO users (username, hash) VALUES(%s, %s)", [username, str(passHash)])
 
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
@@ -218,12 +272,12 @@ def returnGameInfo(clientInfo):
     # Get the user's id if the user is in the game
     user_id = -1
     if username != "":
-        user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+        user_id = db.execute("SELECT id FROM users WHERE username = %s", [username])[0]["id"]
 
     # Get list of usernames of players in game
     users = []
-    for u in game["player_ids"].split(","):
-        users.append(db.execute("SELECT id, username FROM users WHERE id = ?", int(u))[0]["username"])
+    for u in [player.id for player in Game.fromDb(game).players]:
+        users.append(db.execute("SELECT id, username FROM users WHERE id = %s", [int(u)])[0]["username"])
 
     # Return game data
     return {"message": "Good luck!", "gata": game, "users": users, "user_id": int(user_id), "username": username}
@@ -243,7 +297,7 @@ def host():
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username])[0]["id"]
 
     # Get list of players in the game
     formPlayers = request.json.get("players")
@@ -259,7 +313,7 @@ def host():
     # Ensure each submitted player is valid
     for pForm in formPlayers:
         if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = ?", pForm)
+            p = db.execute(f"SELECT * FROM users WHERE username = %s", [pForm])
             if len(p) == 0:
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
             if str(p[0]["id"]) == str(session.get("user_id")):
@@ -268,9 +322,8 @@ def host():
                 return jsonify({"message": "All players must be different"}), 401
             players.append(p[0]["id"])
 
-    # Pot size variables
-    hPot = 0
-    sPot = 0
+    # create game
+    game = Game.newGame(player_ids=players)
 
     # Make list of credits
     credits = []
@@ -302,10 +355,10 @@ def host():
     handsStr = listToStr(deckData["hands"], sep=";")
 
     # Create game in database
-    db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn, p_act) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, user_id, "")
+    db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, user_id, "")
 
     # Get game ID
-    game_id = db.execute("SELECT game_id FROM games WHERE player_ids = ? ORDER BY game_id DESC", playersStr)[0]["game_id"]
+    game_id = db.execute("SELECT game_id FROM games WHERE player_ids = %s ORDER BY game_id DESC", [playersStr])[0]["game_id"]
 
     # Redirect user to game
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
@@ -326,17 +379,17 @@ def protect(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username])[0]["id"]
 
     # Get game
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    game = db.execute("SELECT * FROM games WHERE game_id = %s", [game_id])[0]
 
     # Get card being protected
     protect = clientInfo["protect"]
 
     # Get username of requester
-    uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
+    uName = db.execute("SELECT username FROM users where id = %s", [user_id])[0]["username"]
 
     # Get requester's index in list of game players
     uDex = game["player_ids"].split(",").index(str(user_id))
@@ -371,7 +424,7 @@ def protect(clientInfo):
     protAllStr = listToStr(protectedAll, sep=";")
 
     # Update the database
-    db.execute(f"UPDATE games SET player_protecteds = ?, p_act = ? WHERE game_id = {game_id}", protAllStr, f"{uName} protected a card")
+    db.execute(f"UPDATE games SET player_protecteds = %s, p_act = %s WHERE game_id = {game_id}", [protAllStr, f"{uName} protected a card"])
 
     # send game data to all connected clients in the current game. this applies to bet, card, shift, and cont aswell.
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -390,11 +443,11 @@ def bet(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username])[0]["id"]
 
     # Get game
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    game = db.execute("SELECT * FROM games WHERE game_id = %s", [game_id])[0]
 
     # Get betting action
     action = clientInfo["action"]
@@ -406,7 +459,7 @@ def bet(clientInfo):
     users = game["player_ids"].split(",")
 
     # Get username of requester
-    uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
+    uName = db.execute("SELECT username FROM users where id = %s", [user_id])[0]["username"]
 
     # Get requester's index in list of game players
     u_dex = game["player_ids"].split(",").index(str(user_id))
@@ -454,7 +507,7 @@ def bet(clientInfo):
             act += f" bets ${amount}"
 
         # Update game
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[1]), act)
+        db.execute(f"UPDATE games SET player_credits = %s, player_bets = %s, player_turn = %s, p_act = %s WHERE game_id = {game_id}", [newCredits, newBets, int(users[1]), act])
 
 
     elif action == "call":
@@ -490,7 +543,7 @@ def bet(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} calls")
+        db.execute(f"UPDATE games SET player_credits = %s, player_bets = %s, player_turn = %s, p_act = %s WHERE game_id = {game_id}", [newCredits, newBets, int(users[nextPlayer]), f"{uName} calls"])
 
     elif action == "raise":
 
@@ -511,7 +564,7 @@ def bet(clientInfo):
             nextPlayer = 1
 
         # Update game
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newCredits, newBets, int(users[nextPlayer]), f"{uName} raises to ${newBets.split(',')[u_dex]}")
+        db.execute(f"UPDATE games SET player_credits = %s, player_bets = %s, player_turn = %s, p_act = %s WHERE game_id = {game_id}", [newCredits, newBets, int(users[nextPlayer]), f"{uName} raises to ${newBets.split(',')[u_dex]}"])
 
 
     elif action == "fold":
@@ -542,7 +595,7 @@ def bet(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, p_act = ? WHERE game_id = {game_id}", newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC, f"{uName} folds")
+        db.execute(f"UPDATE games SET player_ids = %s, player_credits = %s, player_bets = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, folded_players = %s, folded_credits = %s, p_act = %s WHERE game_id = {game_id}", [newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC, f"{uName} folds"])
 
     # Update game variables for foldEnd step
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -556,7 +609,7 @@ def bet(clientInfo):
         newCredits = creditsStr
         newCredits = strListMod(creditsStr, 0, int(strListRead(creditsStr, 0)) + game["hand_pot"] + int(strListRead(betsStr, 0)))
 
-        db.execute(f"UPDATE games SET player_credits = ?, player_bets = ?, hand_pot = ?, player_turn = ?, completed = ? WHERE game_id = {game_id}", newCredits, "", 0, int(users[0]), True)
+        db.execute(f"UPDATE games SET player_credits = %s, player_bets = %s, hand_pot = %s, player_turn = %s, completed = %s WHERE game_id = {game_id}", [newCredits, "", 0, int(users[0]), str(int(True))])
 
     # Update game variables for end round steps
     game = db.execute(f"SELECT * FROM games WHERE game_id = {game_id}")[0]
@@ -601,7 +654,7 @@ def bet(clientInfo):
 
 
         # Update game
-        db.execute(f"UPDATE games SET player_bets = ?, hand_pot = ?, phase = ?, player_turn = ? WHERE game_id = {game_id}", newBets, game["hand_pot"] + betsSum, "card", int(users[0]))
+        db.execute(f"UPDATE games SET player_bets = %s, hand_pot = %s, phase = %s, player_turn = %s WHERE game_id = {game_id}", [newBets, game["hand_pot"] + betsSum, "card", int(users[0])])
 
     # Return updated game data
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -620,11 +673,11 @@ def card(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username])[0]["id"]
 
     # Get game
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    game = db.execute("SELECT * FROM games WHERE game_id = %s", [game_id])[0]
 
     # Action information
     action = clientInfo["action"]
@@ -634,7 +687,7 @@ def card(clientInfo):
     users = game["player_ids"].split(",")
 
     # Username of requester
-    uName = db.execute("SELECT username FROM users where id = ?", user_id)[0]["username"]
+    uName = db.execute("SELECT username FROM users where id = %s", [user_id])[0]["username"]
 
     # The index of ther user in the list of users
     u_dex = game["player_ids"].split(",").index(str(user_id))
@@ -688,7 +741,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} draws")
+        db.execute(f"UPDATE games SET deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, p_act = %s WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} draws")
 
     elif action == "trade":
 
@@ -715,7 +768,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute(f"UPDATE games SET deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} trades")
+        db.execute(f"UPDATE games SET deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, p_act = %s WHERE game_id = {game_id}", newDeck, newHands, newProts, int(users[nextPlayer]), f"{uName} trades")
 
     elif action == "stand":
 
@@ -728,7 +781,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute(f"UPDATE games SET player_turn = ?, p_act = ? WHERE game_id = {game_id}", int(users[nextPlayer]), f"{uName} stands")
+        db.execute(f"UPDATE games SET player_turn = %s, p_act = %s WHERE game_id = {game_id}", int(users[nextPlayer]), f"{uName} stands")
 
 
     elif action == "alderaan" and game["cycle_count"] != 0:
@@ -742,7 +795,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute(f"UPDATE games SET phase = ?, player_turn = ?, p_act = ? WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]), f"{uName} calls Alderaan")
+        db.execute(f"UPDATE games SET phase = %s, player_turn = %s, p_act = %s WHERE game_id = {game_id}", "alderaan", int(users[nextPlayer]), f"{uName} calls Alderaan")
 
 
     # Update game data variables
@@ -769,7 +822,7 @@ def card(clientInfo):
             # Sabacc Shift procedure
 
             
-            db.execute(f"UPDATE games SET phase = ?, player_turn = ?, cycle_count = ? WHERE game_id = {game_id}", "shift", int(users[0]), newCycleCount)
+            db.execute(f"UPDATE games SET phase = %s, player_turn = %s, cycle_count = %s WHERE game_id = {game_id}", "shift", int(users[0]), newCycleCount)
 
 
     # Someone called Alderaan and everyone has done their turn
@@ -833,7 +886,7 @@ def card(clientInfo):
             winStr = "Everyone bombs out and loses!"
             
         # Update game
-        db.execute(f"UPDATE games SET player_credits = ?, hand_pot = ?, sabacc_pot = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, True)
+        db.execute(f"UPDATE games SET player_credits = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = {game_id}", creditsStr, 0, newSabaccPot, newDeck, newHands,  newProtecteds, int(users[0]), winStr, str(int(True)))
 
     # Return new game data
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -850,11 +903,11 @@ def shift(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", username)[0]["id"]
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    game = db.execute("SELECT * FROM games WHERE game_id = %s", game_id)[0]
     users = game["player_ids"].split(",")
     handsStr = game["player_hands"]
     handsList = handsStr.split(";")
@@ -947,9 +1000,9 @@ def shift(clientInfo):
         shiftStr = "No shift!"
 
     # Update game
-    db.execute(f"UPDATE games SET phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), shift, shiftStr)
+    db.execute(f"UPDATE games SET phase = %s, deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), str(int(shift)), shiftStr)
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
-
+    
 @socketio.on('cont')
 def cont(clientInfo):
 
@@ -963,11 +1016,11 @@ def cont(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    user_id = db.execute("SELECT id FROM users WHERE username = ?", username)[0]["id"]
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", username)[0]["id"]
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = ?", game_id)[0]
+    game = db.execute("SELECT * FROM games WHERE game_id = %s", game_id)[0]
 
     # Players' credits
     creditsStr = game["player_credits"]
@@ -1038,7 +1091,7 @@ def cont(clientInfo):
     handsStr = listToStr(deckData["hands"], sep=";")
 
     # Create game in database
-    db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", False)
+    db.execute(f"UPDATE games SET player_ids = %s, player_credits = %s, player_bets = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, folded_players = %s, folded_credits = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", str(int(False)))
 
     # Return game
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -1084,7 +1137,7 @@ def errorhandler(e):
     """Handle error"""
     if not isinstance(e, HTTPException):
         e = InternalServerError()
-    return apology(e.name, e.code)
+    return str(e)
 
 
 # Listen for errors

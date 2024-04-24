@@ -95,15 +95,15 @@
     margin: 3px;
 }
 
-#dieOne{
+#dieOne {
     background-color: #0cc23c;
 }
 
-#dieTwo.shift0{
+#dieTwo.shiftfalse {
     background-color: #ed3b3b;
 }
 
-#dieTwo.shift1{
+#dieTwo.shifttrue {
     background-color: #0cc23c;
 }
 

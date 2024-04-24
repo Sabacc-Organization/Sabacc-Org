@@ -70,44 +70,26 @@ with psycopg.connect("dbname=sabacc user=postgres password=postgres") as conn:
                 bet INTEGER,
                 hand Card[],
                 folded BOOL,
-                lastAction TEXT);
+                lastaction TEXT);
             """)
             print('created custom types')
         except psycopg.errors.DuplicateObject:
             # print('custom types alr exist')
             conn.rollback()
 
-        # register custom types (automatically convert to python obj)
+        # register custom types
         card_type = CompositeInfo.fetch(conn, 'card')
         player_type = CompositeInfo.fetch(conn, 'player')
         register_composite(card_type, db)
         register_composite(player_type, db)
 
-        # testing
-        card = Card(1, Suit.FLASKS)
-        dbCard = card.toDatabaseVersion(card_type)
-        hand = [Card(val=n, suit=Suit.COINS) for n in range(1, 4)]
-        # print(f'{listToStr(hand)}')
-        newHand = []
-        for card in hand:
-            newHand.append(card.toDatabaseVersion(card_type))
-        # print(f'{listToStr(newHand)}')
-        # players = [Player(id=1, username='thrawn', credits=1e3, hand=hand).toDatabaseVersion(playerType=player_type, cardType=card_type)]
-
         # create tables
         db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
         db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
-        db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, folded_players TEXT, folded_credits TEXT, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+        db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
 
-        db.execute("INSERT INTO test (cards) VALUES (%s)", [[dbCard]])
-        # db.execute("UPDATE games SET players[1].hand = ARRAY[(5,'sabers',False)::card] WHERE game_id = 1")
-        
         # commit changes
         conn.commit()
-
-        cards = db.execute("SELECT cards FROM test").fetchone()[0]
-        print(listToStr([Card.copy(card) for card in cards]))
-
 
 """ REST APIs """
 

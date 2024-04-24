@@ -14,7 +14,7 @@ with open("config.yml", "r") as f:
     config = yaml.safe_load(f)
 
 # Connect to database
-conn = psycopg.connect("dbname=sabacc user=postgres password=postgres")
+conn = psycopg.connect(config['DATABASE'])
 db = conn.cursor()
 
 # Global deck constant

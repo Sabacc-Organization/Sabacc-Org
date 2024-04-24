@@ -54,7 +54,7 @@ CORS(app, origins=allowedCORS)
 
 
 # Connect to database
-conn = psycopg.connect("dbname=sabacc user=postgres password=postgres")
+conn = psycopg.connect(config['DATABASE'])
 
 # Open a cursor to perform database operations
 db = conn.cursor()
@@ -93,8 +93,13 @@ db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player
 deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
 hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
 players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
-game = Game(id=2,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10).toList(card_type, player_type)
-db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game)
+lastId = db.execute("SELECT game_id FROM games").fetchall()
+game = Game(id=(lastId[-1][0]+1 if lastId else 1),players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
+try:
+    db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(card_type, player_type))
+except:
+    print(f'game {game.id} alr exists')
+    conn.rollback()
 
 # commit changes
 conn.commit()

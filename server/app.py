@@ -91,17 +91,13 @@ db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
 db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
 
 # create test game
-deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
-hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
-players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
-lastId = db.execute("SELECT game_id FROM games").fetchall()
-game = Game(id=(lastId[-1][0]+1 if lastId else 1),players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
-try:
-    db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(card_type, player_type))
-    print(f'created game {game.id}')
-except:
-    print(f'game {game.id} alr exists')
-    conn.rollback()
+if len(db.execute("SELECT game_id FROM games").fetchall()) == 0:
+    deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
+    hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
+    players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
+    game = Game(id=1,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
+    dbGame = game.toDb(card_type, player_type)
+    db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", dbGame)
 
 # commit changes
 conn.commit()
@@ -309,8 +305,7 @@ def host():
     formPlayers = request.json.get("players")
 
     # Make list of players
-    players = []
-    players.append(user_id)
+    players = [Player(id=user_id,username=username)]
 
     # Make sure there no more than 8 players
     if len(formPlayers) > 8:
@@ -326,50 +321,20 @@ def host():
                 return jsonify({"message": "You cannot play with yourself"}), 401
             if p[0]["id"] in players:
                 return jsonify({"message": "All players must be different"}), 401
-            players.append(p[0]["id"])
+            players.append(Player(p[0]["id"],pForm))
 
     # create game
-    game = Game.newGame(player_ids=players)
-
-    # Make list of credits
-    credits = []
-    for i in range(len(players)):
-        credits.append(985)
-        hPot += 5
-        sPot += 10
-
-
-    # Convert list data to strings
-    playersStr = listToStr(players)
-    creditsStr = listToStr(credits)
-
-    # Protecteds
-    prots = ""
-    for i in range(len(players)):
-        prots += "0,0;"
-
-    prots = prots.strip(";")
-
-    # Bets
-    pBets = ""
-    for i in range(len(players) - 1):
-        pBets += ","
-
-    # Construct deck and hands
-    deckData = constructDeck(len(players))
-    deck = deckData["deck"]
-    handsStr = listToStr(deckData["hands"], sep=";")
+    game = Game.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
 
     # Create game in database
-    db.execute("INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, deck, player_hands, player_protecteds, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", playersStr, creditsStr, pBets, hPot, sPot, deck, handsStr, prots, user_id, "")
+    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [[player.toDb(playerType=player_type,cardType=card_type) for player in game.players], game.hand_pot, game.sabacc_pot, [card.toDb(card_type) for card in game.deck], game.player_turn, game.p_act])
+    conn.commit()
 
     # Get game ID
-    db.execute("SELECT game_id FROM games WHERE player_ids = %s ORDER BY game_id DESC", [playersStr])
-    game_id = getDictsForDB(db)[0]["game_id"]
+    game_id = db.execute("SELECT game_id FROM games WHERE players = %s ORDER BY game_id DESC", [[player.toDb(player_type,card_type) for player in game.players]]).fetchone()[0]
 
     # Redirect user to game
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
-    
 
 """ Gameplay REST APIs """
 

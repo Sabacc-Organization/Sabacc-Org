@@ -17,6 +17,7 @@ from traditional.traditionalHelpers import *
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
+import signal
 
 # Get config.yml data
 config = {}
@@ -104,9 +105,6 @@ except:
 
 # commit changes
 conn.commit()
-
-# close connection
-conn.close()
 
 
 """ REST APIs """
@@ -1143,3 +1141,15 @@ def errorhandler(e):
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
+
+# cleanup code
+def handle_sigint(signum, frame):
+    print('cleaning up resources before shutdown...')
+
+    # close db connection
+    conn.close()
+
+    # After cleanup, raise KeyboardInterrupt to allow the normal exit process
+    raise KeyboardInterrupt
+
+signal.signal(signal.SIGINT, handle_sigint)

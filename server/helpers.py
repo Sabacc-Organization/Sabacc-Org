@@ -20,6 +20,20 @@ db = conn.cursor()
 # Global deck constant
 DECK = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"
 
+# For getting a list of dictionaries for rows in a database.
+def getDictsForDB(cursor: psycopg.Cursor):
+    rows = cursor.fetchall()
+    columns = cursor.description
+
+    returnList = []
+    for row in rows:
+        rowDict = {}
+        for i, col in enumerate(columns):
+            rowDict[col.name] = row[i]
+        returnList.append(rowDict)
+    
+    return returnList
+
 # Deprecated function for returning error pages to users
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -62,7 +76,8 @@ def checkLogin(username, password):
     # Attempt to find the password hash of this user
     orHash = None
     try:
-        orHash = db.execute(f"SELECT * FROM users WHERE username = ?", username)[0]["hash"]
+        db.execute("SELECT * FROM users WHERE username = %s", [username])
+        orHash = getDictsForDB(db)[0]["hash"]
     except IndexError:
         # If user does not exist
         return {"message": f"User {username} does not exist", "status": 401}

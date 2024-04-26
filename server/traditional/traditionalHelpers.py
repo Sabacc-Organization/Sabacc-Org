@@ -91,7 +91,7 @@ class Game:
         self.player_turn = player_turn
         self.p_act = p_act
         self.cycle_count = cycle_count
-        self.shift = shift
+        self._shift = shift
         self.completed = completed
     # create a new game
     @staticmethod
@@ -100,6 +100,15 @@ class Game:
         for player in players:
             player.credits = startingCredits - hand_pot_ante - sabacc_pot_ante
         # construct deck
+        deck = Game.newDeck()
+        
+        game = Game(players=players,deck=deck,player_turn=players[0].id,hand_pot=hand_pot_ante*len(players),sabacc_pot=sabacc_pot_ante*len(players))
+        game.shuffleDeck()
+        game.dealHands()
+        
+        return game
+    @staticmethod
+    def newDeck(cardsToExclude:list=[]):
         deck = 2 * [
             Card(-11,Suit.NEGATIVE_NEUTRAL),
             Card(0,Suit.NEGATIVE_NEUTRAL),
@@ -113,17 +122,19 @@ class Game:
         for suit in [Suit.COINS,Suit.FLASKS,Suit.SABERS,Suit.STAVES]:
             for val in range(1,16):
                 deck.append(Card(val=val,suit=suit))
-        
-        game = Game(players=players,deck=deck,player_turn=players[0].id,hand_pot=hand_pot_ante*len(players),sabacc_pot=sabacc_pot_ante*len(players))
-        game.shuffleDeck()
-        # deal hands
-        for player in game.players:
-            player.hand = [game.deck.pop(),game.deck.pop()]
-        
-        return game
+        for card in cardsToExclude:
+            deck.remove(card)
+        return deck
+    def dealHands(self):
+        for player in self.players:
+            player.hand = [self.drawFromDeck(),self.drawFromDeck()]
 
     def toDb(self, card_type, player_type):
-        return [self.id, [player.toDb(player_type, card_type) for player in self.players], self.hand_pot, self.sabacc_pot, self.phase, [card.toDb(card_type) for card in self.deck], self.player_turn, self.p_act, self.cycle_count, self.shift, self.completed]
+        return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
+    def deckToDb(self, card_type):
+        return [card.toDb(card_type) for card in self.deck]
+    def playersToDb(self, player_type, card_type):
+        return [player.toDb(player_type, card_type) for player in self.players]
     def toDict(self):
         return {
             'id': self.id,
@@ -135,7 +146,7 @@ class Game:
             'player_turn': self.player_turn,
             'p_act': self.p_act,
             'cycle_count': self.cycle_count,
-            'shift': self.shift,
+            'shift': self._shift,
             'completed': self.completed
         }
     @staticmethod
@@ -170,13 +181,52 @@ class Game:
             temp = self.deck[randomIndex]
             self.deck[randomIndex] = self.deck[i]
             self.deck[i] = temp
+    def drawFromDeck(self):
+        # if deck is empty, reshuffle
+        if len(self.deck) == 0:
+            # exclude cards in (active) players' hands
+            cardsToExclude = []
+            for player in self.getActivePlayers():
+                cardsToExclude.extend(player.hand)
+            self.deck = Game.newDeck(cardsToExclude=cardsToExclude)
+            self.shuffleDeck()
+        return self.deck.pop()
     
+    # replace every unprotected card in every player's hand
+    def shift(self):
+        # loop thru players
+        for player in self.players:
+            hand = player.hand
+            # loop thru cards in hand
+            for i in range(len(hand)):
+                if not hand[i].protected: # if card is not protected
+                    hand[i] = self.drawFromDeck()
+    
+    # sets up for next round
+    def nextRound(self):
+        # rotate dealer (1st in list is always dealer) - move 1st player to end
+        self.players.append(self.players.pop(0))
+
+        for player in self.players:
+            player.credits -= 15 # Make users pay Sabacc and Hand pot Antes
+            player.bet = 0 # reset bets
+            player.folded = False # reset folded
+            player.lastAction = '' # reset last action
+        
+        # Update pots
+        self.hand_pot = 5 * len(self.players)
+        self.sabacc_pot += 10 * len(self.players)
+
+        # construct deck and deal hands
+        self.deck = Game.newDeck()
+        self.dealHands()
+
     def alderaan(self, suddenDemise=False, sdPlayers:list=[]):
         # If recursion has been activated due to a tie, and there is sudden demise
         if suddenDemise == True:
             # Give each participant in the sudden demise a card
             for player in sdPlayers:
-                player.hand.append(self.deck.pop())
+                player.hand.append(self.drawFromDeck())
         
         # calculate winners and losers
         winningPlayers, bestHand, bombedOutPlayers = Game.calcWinners(sdPlayers) if suddenDemise else Game.calcWinners(self.players)

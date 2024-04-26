@@ -327,11 +327,11 @@ def host():
     game = Game.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
 
     # Create game in database
-    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [[player.toDb(playerType=player_type,cardType=card_type) for player in game.players], game.hand_pot, game.sabacc_pot, [card.toDb(card_type) for card in game.deck], game.player_turn, game.p_act])
+    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=player_type,card_type=card_type), game.hand_pot, game.sabacc_pot, game.deckToDb(card_type), game.player_turn, game.p_act])
     conn.commit()
 
     # Get game ID
-    game_id = db.execute("SELECT game_id FROM games WHERE players = %s ORDER BY game_id DESC", [[player.toDb(player_type,card_type) for player in players]]).fetchone()[0]
+    game_id = db.execute("SELECT game_id FROM games WHERE players = %s ORDER BY game_id DESC", [game.playersToDb(player_type=player_type,card_type=card_type)]).fetchone()[0]
 
     # Redirect user to game
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
@@ -372,7 +372,7 @@ def protect(clientInfo):
     targetCard.protected = True
 
     # Update the database
-    db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [[player.toDb(player_type, card_type) for player in game.players], f"{username} protected a card", game_id])
+    db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), f"{username} protected a card", game_id])
 
     # send game data to all connected clients in the current game. this applies to bet, card, shift, and cont aswell.
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -446,7 +446,7 @@ def bet(clientInfo):
             act += f" bets ${amount}"
 
         # Update game
-        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [[player.toDb(player_type, card_type) for player in game.players], players[1].id, act, game_id])
+        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), players[1].id, act, game_id])
 
 
     elif action == "call":
@@ -475,7 +475,7 @@ def bet(clientInfo):
             nextPlayerDex = players.index(nextPlayer) + 1
 
         # Update game
-        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [[player.toDb(player_type,card_type) for player in game.players], players[nextPlayerDex].id, f"{uName} calls", game_id])
+        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), players[nextPlayerDex].id, f"{uName} calls", game_id])
 
     elif action == "raise":
         # Remove money from player's credits
@@ -492,7 +492,7 @@ def bet(clientInfo):
             nextPlayer = players[1]
 
         # Update game
-        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [[player.toDb(player_type,card_type) for player in game.players], players[nextPlayerDex].id, f"{uName} raises to ${amount}", game_id])
+        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), players[nextPlayerDex].id, f"{uName} raises to ${amount}", game_id])
 
 
     elif action == "fold":
@@ -514,7 +514,7 @@ def bet(clientInfo):
             foldEnd = True
 
         # Update game
-        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [[player.toDb(player_type,card_type) for player in game.players], nextPlayerId, f"{uName} folds", game_id])
+        db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), nextPlayerId, f"{uName} folds", game_id])
 
     # Update game variables for foldEnd step
     game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
@@ -527,7 +527,7 @@ def bet(clientInfo):
         game.hand_pot = 0
         winningPlayer.bet = None
 
-        db.execute("UPDATE games SET players = %s, hand_pot = %s, player_turn = %s, completed = %s WHERE game_id = %s", [[player.toDb(player_type, card_type) for player in game.players], 0, game.players[0].id, True, game_id])
+        db.execute("UPDATE games SET players = %s, hand_pot = %s, player_turn = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.players[0].id, True, game_id])
     
     # If all the players have participated in the betting round and it time for the card phase
     elif endRound == True:
@@ -540,7 +540,7 @@ def bet(clientInfo):
             game.hand_pot += player.bet
         
         # Update game
-        db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s WHERE game_id = %s", [[player.toDb(player_type, card_type) for player in game.players], game.hand_pot, "card", players[0].id])
+        db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), game.hand_pot, "card", players[0].id])
 
     # Return updated game data
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -596,7 +596,7 @@ def card(clientInfo):
         return
     
     if action == "draw":
-        player.hand.append(game.deck.pop())
+        player.hand.append(game.drawFromDeck())
 
         # Update next player
         nextPlayer = u_dex + 1
@@ -607,7 +607,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [[card.toDb(card_type) for card in game.deck], [player.toDb(player_type, card_type) for player in game.players], players[nextPlayer].id, f"{uName} draws", game_id])
+        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deckToDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} draws", game_id])
 
     elif action == "trade":
 
@@ -615,7 +615,7 @@ def card(clientInfo):
         tradeDex = player.hand.index(tradeCard)
 
         # Draw a card and replace the card being traded with it
-        player.hand[tradeDex] = game.deck.pop()
+        player.hand[tradeDex] = game.drawFromDeck()
 
         # Update next player
         nextPlayer = u_dex + 1
@@ -626,7 +626,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [[card.toDb(card_type) for card in game.deck], [player.toDb(player_type, card_type) for player in game.players], players[nextPlayer].id, f"{uName} trades", game_id])
+        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deckToDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} trades", game_id])
 
     elif action == "stand":
 
@@ -716,7 +716,7 @@ def card(clientInfo):
             winStr = "Everyone bombs out and loses!"
             
         # Update game
-        db.execute(f"UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [[player.toDb(player_type, card_type) for player in game.players], 0, game.sabacc_pot, game.deck, game.players[0].id, winStr, True, game_id])
+        db.execute(f"UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deck, game.players[0].id, winStr, True, game_id])
 
     # Return new game data
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
@@ -738,100 +738,28 @@ def shift(clientInfo):
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = %s", game_id).fetchall()[0]
-    users = game["player_ids"].split(",")
-    handsStr = game["player_hands"]
-    handsList = handsStr.split(";")
-    protsStr = game["player_protecteds"]
-    protsList = protsStr.split(";")
-    deckStr = game["deck"]
+    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", game_id).fetchall()[0])
+    players = game.getActivePlayers()
 
     # verify that the current phase is the shift phase
-    if game['phase'] != 'shift':
+    if game.phase != 'shift':
         return
     
     # verify that the user is player 1
-    if int(user_id) != game["player_turn"]:
+    if user_id != game.player_turn:
         return
     
-    # New hands and protected cards variables
-    newHands = handsStr
-    newProtecteds = protsStr
-
     # Roll the shift
     shift = rollShift()
 
-    if shift == True:
-
-        # The amount of cards every player will need to draw due to the shift
-        drawCounts = []
-
-        # The cards that are preserved due to protection
-        hCards = []
-
-        # Iterate through every hand in the hands list
-        for k in range(len(handsList)):
-
-            # The amount of cards that will need to be drawn by this hand
-            drawCount = 0
-
-            # New hands and protected lists
-            newHandList = handsList[k].split(",")
-            newProtsList = protsList[k].split(",")
-
-            # Iterate through protection list to check if each card is protected or not
-            for p in range(len(protsList[k].split(","))):
-
-                # If unprotected, it is lost and removed from the hand and protected list.
-                if protsList[k].split(",")[p] == "0":
-                    newHandList.remove(handsList[k].split(",")[p])
-                    newProtsList.remove(protsList[k].split(",")[p])
-                    # The player has to draw a card to replace this one
-                    drawCount += 1
-                # If protected, it is kept and put in the hCards list
-                else:
-                    hCards.append(handsList[k].split(",")[p])
-
-            # Insert new hand and protected data into lists of all hands and protected cards
-            newHands = strListMod(newHands, k, listToStr(newHandList), sep=";")
-            newProtecteds = strListMod(newProtecteds, k, listToStr(newProtsList), sep=";")
-
-            # Append the amount of cards that need to be drawn to the list
-            drawCounts.append(drawCount)
-
-        # Reshuffle the deck EXCEPT for cards that were protected
-        deckStr = shuffleDeck(hCards)
-
-        # Update hands and protecteds lists
-        handsList = newHands.split(";")
-        protsList = newProtecteds.split(";")
-
-        # Iterate through every hand
-        for i in range(len(handsList)):
-
-            # Draw the correct amount of cards into each hand
-            for c in range(drawCounts[i]):
-                drawData = drawCard(deckStr)
-                deckStr = drawData["deck"]
-                newCard = drawData["card"]
-                handsList[i] += "," + newCard
-                handsList[i] = handsList[i].strip(",")
-                newHands = listToStr(handsList, sep=";")
-
-                # Add new card to protection list
-                protsList[i] += ",0"
-                protsList[i] = protsList[i].strip(",")
-                newProtecteds = listToStr(protsList, sep=";")
+    if shift:
+        game.shift()
 
     # Set the Shift message
-    shiftStr = ""
-    if shift == True:
-        shiftStr = "Sabacc shift!"
-    elif shift == False:
-        shiftStr = "No shift!"
+    shiftStr = "Sabacc shift!" if shift else "No shift!"
 
     # Update game
-    db.execute(f"UPDATE games SET phase = %s, deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = {game_id}", "betting", deckStr, newHands, newProtecteds, int(users[0]), str(int(shift)), shiftStr)
+    db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", game.deckToDb(card_type), game.playersToDb(player_type, card_type), game.players[0].id, shift, shiftStr, game_id])
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
     
 @socketio.on('cont')
@@ -852,78 +780,19 @@ def cont(clientInfo):
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = %s", game_id).fetchall()[0]
+    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", game_id).fetchall()[0])
 
-    # Players' credits
-    creditsStr = game["player_credits"]
-
-    # Players
-    users = game["player_ids"].split(",")
-
-    if game["completed"] != True:
+    if game.completed != True:
         return
-
+    
     # If it is not this player's turn
-    if game["player_turn"] != int(user_id):
+    if game.player_turn != int(user_id):
         return
     
-    # If any players folded throughout the game, bring them back in
-    newPlayers = game["player_ids"]
-    if game["folded_players"] != None:
-        newPlayers += "," + game["folded_players"]
-
-    # Remove any trailing commas
-    newPlayers = newPlayers.strip(",")
-    users = newPlayers.split(",")
-
-    # Rotate "Dealer"
-    users = shiftList(users)
-    newPlayers = listToStr(users)
-
-    # If any players folded throughout the game, bring their credits back in
-    newCredits = creditsStr
-    if game["folded_credits"] != None:
-        newCredits += "," + game["folded_credits"]
-
-    # Remove any trailing commas
-    newCredits = newCredits.strip(",")
-    creditsList = newCredits.split(",")
-
-    # Rotate "Dealer" credits
-    creditsList = shiftList(creditsList)
-    newCredits = listToStr(creditsList)
-
-    # Make users pay Sabacc and Hand pot Antes
-    for c in creditsList:
-        creditsList[creditsList.index(c)] = str(int(c) - 15)
-    
-    # Update credits variable
-    newCredits = listToStr(creditsList)
-
-    # Update pots
-    hPot = 5 * len(users)
-    sPot = game["sabacc_pot"] + (10 * len(users))
-
-    # Protecteds
-    prots = ""
-    for i in range(len(users)):
-        prots += "0,0;"
-
-    # Remove trailing semicolons
-    prots = prots.strip(";")
-
-    # Bets
-    pBets = ""
-    for i in range(len(users) - 1):
-        pBets += ","
-
-    # Construct deck and hands
-    deckData = constructDeck(len(users))
-    deck = deckData["deck"]
-    handsStr = listToStr(deckData["hands"], sep=";")
+    game.nextRound()
 
     # Create game in database
-    db.execute(f"UPDATE games SET player_ids = %s, player_credits = %s, player_bets = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_hands = %s, player_protecteds = %s, player_turn = %s, folded_players = %s, folded_credits = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = {game_id}", newPlayers, newCredits, pBets, hPot, sPot, "betting", deck, handsStr, prots, int(users[0]), None, None, 0, "", str(int(False)))
+    db.execute(f"UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), game.hand_pot, game.sabacc_pot, "betting", game.deckToDb(card_type), game.players[0].id, 0, "", False, game_id])
 
     # Return game
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')

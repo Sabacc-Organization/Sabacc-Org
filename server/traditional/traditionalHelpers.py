@@ -1,5 +1,5 @@
 import random
-
+from enum import Enum
 
 class Suit:
     FLASKS = 'flasks'
@@ -8,16 +8,22 @@ class Suit:
     COINS = 'coins'
     NEGATIVE_NEUTRAL = 'negative/neutral'
 
+class SpecialHands(Enum):
+    IDIOTS_ARRAY = 230
+    FAIRY_EMPRESS = -22
+
 class Card:
     def __init__(self, val:int, suit:Suit, protected=False):
         self.val = val
         self.suit = suit
         self.protected = protected
+    def __eq__(self, other) -> bool:
+        return self.val == other.val and self.suit == other.suit
     def __str__(self) -> str:
         return f"{self.val} of {str(self.suit)}{' (protected)' if self.protected else ''}"
     def toDb(self, cardType):
         return cardType.python_type(self.val, self.suit, self.protected)
-    def toDict(self):
+    def toDict(self) -> dict:
         return {
             'val': self.val,
             'suit': self.suit,
@@ -31,7 +37,7 @@ class Card:
         return Card(dict['val'],dict['suit'],dict['prot'])
 
 class Player:
-    def __init__(self, id:int, username:str, credits=0, bet:int = None, hand=[], folded=False, lastAction="start"):
+    def __init__(self, id:int, username:str, credits=0, bet:int = None, hand:list=[], folded=False, lastAction="start"):
         self.id = id
         self.username = username
         self.credits = credits
@@ -54,14 +60,28 @@ class Player:
             'lastAction': self.lastAction
         }
     @staticmethod
-    def fromDb(player):
+    def fromDb(player:object):
         return Player(player.id, player.username, player.credits, player.bet, [Card.fromDb(card) for card in player.hand], player.folded, player.lastaction)
     @staticmethod
-    def fromDict(dict):
+    def fromDict(dict:dict):
         return Player(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=[Card.fromDict(card) for card in dict['hand']],folded=dict['folded'],lastAction=dict['lastAction'])
     
+    def calcHandVal(self):
+        cardVals = [card.val for card in self.hand]
+        cardVals.sort()
+
+        '''special hands'''
+        # idiot's array (best)
+        if cardVals == [0, 2, 3]:
+            return SpecialHands.IDIOTS_ARRAY
+        elif cardVals == [-2, -2]:
+            return SpecialHands.FAIRY_EMPRESS
+        
+        return sum(cardVals)
+        
+    
 class Game:
-    def __init__(self, players, id:int=None, deck=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
+    def __init__(self, players:list, id:int=None, deck:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
         self.id = id
         self.players = players
         self.hand_pot = hand_pot
@@ -75,7 +95,7 @@ class Game:
         self.completed = completed
     # create a new game
     @staticmethod
-    def newGame(players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10):
+    def newGame(players:list,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10):
         # give each player credits
         for player in players:
             player.credits = startingCredits - hand_pot_ante - sabacc_pot_ante
@@ -119,14 +139,30 @@ class Game:
             'completed': self.completed
         }
     @staticmethod
-    def fromDb(game):
+    def fromDb(game:object):
         return Game(id=game[0],players=[Player.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=[Card.fromDb(card) for card in game[5]], player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
     @staticmethod
-    def fromDict(dict):
+    def fromDict(dict:dict):
         return Game(id=dict['id'],players=[Player.fromDict(player) for player in dict['players']],deck=[Card.fromDict(card) for card in dict['deck']],player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
 
-    def containsPlayer(self, player_id):
-        return player_id in [player.id for player in self.players]
+    def getActivePlayers(self):
+        activePlayers = []
+        for player in self.players:
+            if not player.folded:
+                activePlayers.append(player)
+        return activePlayers
+
+    def getPlayerDex(self, username:str=None, id:int=None):
+        for i in range(len(self.players)):
+            player = self.players[i]
+            if player.username == username or player.id == id:
+                return i
+        return -1
+    def getPlayer(self, username:str=None, id:int=None):
+        dex = self.getPlayerDex(username=username, id=id)
+        return None if dex == -1 else self.players[dex]
+    def containsPlayer(self, username:str=None, id:int=None) -> bool:
+        return self.getPlayer(username=username, id=id) != None
     
     def shuffleDeck(self):
         for i in range(len(self.deck)):
@@ -134,3 +170,77 @@ class Game:
             temp = self.deck[randomIndex]
             self.deck[randomIndex] = self.deck[i]
             self.deck[i] = temp
+    
+    def alderaan(self, suddenDemise=False, sdPlayers:list=[]):
+        # If recursion has been activated due to a tie, and there is sudden demise
+        if suddenDemise == True:
+            # Give each participant in the sudden demise a card
+            for player in sdPlayers:
+                player.hand.append(self.deck.pop())
+        
+        # calculate winners and losers
+        winningPlayers, bestHand, bombedOutPlayers = Game.calcWinners(sdPlayers) if suddenDemise else Game.calcWinners(self.players)
+
+        winner = None
+
+        # everyone bombed out
+        if winningPlayers == None:
+            bestHand = None
+
+        # if there's a tie, initiate sudden demise through recursion
+        if len(winningPlayers) > 1:
+            return self.alderaan(suddenDemise=True, sdPlayers=winningPlayers)
+        
+        # only 1 winner
+        if len(winningPlayers) == 1:
+            winner = winningPlayers[0]
+        
+        return winner, bestHand, bombedOutPlayers
+        
+    @staticmethod
+    def calcWinners(players) -> dict:
+        bestHand = 0
+        bombedOutPlayers = []
+        for player in players:
+            currentHand = player.calcHandVal()
+
+            # idiot's array, unbeatable
+            if currentHand == SpecialHands.IDIOTS_ARRAY:
+                bestHand = currentHand
+                break
+            # fairy empress, beats 22 or -22
+            tempCurrentHand = currentHand
+            if currentHand == SpecialHands.FAIRY_EMPRESS:
+                tempCurrentHand = -22
+            
+            # convert enum to int
+            tempBestHand = bestHand
+            if bestHand == SpecialHands.FAIRY_EMPRESS:
+                tempBestHand = -22
+
+            # check for bomb outs
+            if tempCurrentHand == 0 or abs(tempCurrentHand) > 23:
+                bombedOutPlayers.append(player)
+                pass
+
+            # current val better than stored val
+            if abs(tempCurrentHand) > abs(tempBestHand):
+                bestHand = currentHand
+            elif abs(tempCurrentHand) == abs(tempBestHand): # same abs val
+                # fairy empress beats 22 or -22
+                if currentHand == SpecialHands.FAIRY_EMPRESS:
+                    bestHand = currentHand
+                elif tempCurrentHand < tempBestHand: # if negative, beats positive
+                    bestHand = currentHand
+
+        winningPlayers = []
+
+        # everyone bombed out
+        if bestHand == 0:
+            bestHand = None
+        else:
+            # find player(s) with the best hand
+            for player in players:
+                if player.calcHandVal() == bestHand:
+                    winningPlayers.append(player)
+        return winningPlayers, bestHand, bombedOutPlayers

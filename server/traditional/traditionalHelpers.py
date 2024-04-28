@@ -2,11 +2,15 @@ import random
 from enum import Enum
 
 class Suit:
+    COINS = 'coins'
     FLASKS = 'flasks'
     SABERS = 'sabers'
     STAVES = 'staves'
-    COINS = 'coins'
     NEGATIVE_NEUTRAL = 'negative/neutral'
+    ALL = [COINS, FLASKS, SABERS, STAVES]
+    @staticmethod
+    def random(val=None):
+        return random.choice(Suit.ALL)
 
 class SpecialHands(Enum):
     IDIOTS_ARRAY = 230
@@ -35,9 +39,27 @@ class Card:
     @staticmethod
     def fromDict(dict):
         return Card(dict['val'],dict['suit'],dict['prot'])
+    @staticmethod
+    def randCardNotInList(val:int, protected=False, unallowedCards=[]):
+        card = None
+        if val <= 0:
+            card = Card(val=val, suit=Suit.NEGATIVE_NEUTRAL, protected=protected)
+            # if unallowedCards.count(card) > 1:
+                # print(f"WARNING: more than 2 {val}'s exist")
+        else: # positive val
+            allowedSuits = [Suit.COINS, Suit.FLASKS, Suit.SABERS, Suit.STAVES]
+            for c in unallowedCards:
+                if c.val == val and c.suit in allowedSuits:
+                    allowedSuits.remove(c.suit)
+            if len(allowedSuits) == 0:
+                # print(f"WARNING: more than 4 {val}'s exist")
+                card = Card(val=val,suit=random.choice([Suit.COINS, Suit.FLASKS, Suit.SABERS, Suit.STAVES]),protected=protected)
+            else:
+                card = Card(val=val,suit=random.choice(allowedSuits), protected=protected)
+        return card
 
 class Player:
-    def __init__(self, id:int, username:str, credits=0, bet:int = None, hand:list=[], folded=False, lastAction="start"):
+    def __init__(self, id:int, username='', credits=0, bet:int = None, hand:list=[], folded=False, lastAction=""):
         self.id = id
         self.username = username
         self.credits = credits

@@ -105,7 +105,7 @@ db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player
 sqlite3_db = SQL("sqlite:///sabacc.db")
 
 # add test users and games
-sqlite3_db.execute('INSERT INTO users (username, hash) VALUES (?, ?)', 'durin', 'the deathless')
+# sqlite3_db.execute('INSERT INTO users (username, hash) VALUES (?, ?)', 'durin', 'the deathless')
 # sqlite3_db.execute('INSERT INTO games (player_ids, player_credits, player_bets, hand_pot, sabacc_pot, phase, player_hands, player_protecteds, player_turn, folded_players, folded_credits, p_act, cycle_count, shift, completed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', '4,1,3','900,5000,300','45,45,20',250,600,'shift','17,-17,0;0,2,3;3,3,3,11','0,0,1;1,1,1;1,0,0,0',1,'2','4000','thrawn folded :O',5,1,0)
 
 # copy over users

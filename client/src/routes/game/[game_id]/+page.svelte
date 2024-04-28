@@ -136,6 +136,9 @@
         // Set game data
         game = serverInfo["gata"];
 
+        // Set u_dex
+        u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
+
         // Creat p(layer)s array
         let ps: any[] = []; 
 
@@ -169,13 +172,9 @@
     // this is only called as a consequence of requestGameUpdate, and accesses data that should only be updated by one client, such as user_id
     // calls updateClientGame within it to update the game as well. this is only called when a player opens the game, hence the updateClientGame
     function updateClientInfo(serverInfo: any){
-        game = serverInfo["gata"];
         if (username === serverInfo["username"]) {
             // Set user ID
             user_id = serverInfo["user_id"];
-
-            // Set u_dex
-            u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
         }
         updateClientGame(serverInfo)
     }

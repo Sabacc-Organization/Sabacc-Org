@@ -168,7 +168,7 @@ def index():
 
     # Query the database for all the games
     games = db.execute("SELECT * FROM games").fetchall()
-    newGames = games.copy()
+    newGames = getDictsForDB(db)
 
     # IDs of users in games
     user_ids = []
@@ -266,7 +266,10 @@ def returnGameInfo(clientInfo):
     
     # Get game
     game_id = clientInfo["game_id"]
-    game = db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0]
+    print(clientInfo)
+    db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)])
+    game = getDictsForDB(db)[0]
+    print(game)
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -314,7 +317,8 @@ def host():
     # Ensure each submitted player is valid
     for pForm in formPlayers:
         if pForm != "":
-            p = db.execute(f"SELECT * FROM users WHERE username = %s", [pForm]).fetchall()
+            db.execute("SELECT * FROM users WHERE username = %s", [pForm])
+            p = getDictsForDB(db)
             if len(p) == 0:
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
             if str(p[0]["id"]) == str(session.get("user_id")):
@@ -331,7 +335,7 @@ def host():
     conn.commit()
 
     # Get game ID
-    game_id = db.execute("SELECT game_id FROM games WHERE players = %s ORDER BY game_id DESC", [game.playersToDb(player_type=player_type,card_type=card_type)]).fetchone()[0]
+    game_id = db.execute("SELECT game_id FROM games ORDER BY game_id DESC").fetchone()[0]
 
     # Redirect user to game
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200

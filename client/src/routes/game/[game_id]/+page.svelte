@@ -102,19 +102,10 @@
         let clientInfo = {};
 
         // If logged in user
-        if (username != undefined) {
             clientInfo = {
-                "username": username,
-                "game_id": game_id
+                "username": username != undefined? username:"",
+                "game_id": game_id != undefined? game_id:"invalid :("
             }
-        } 
-        // If not logged in
-        else {
-            clientInfo = {
-                "username": "",
-                "game_id": game_id
-            }
-        }
 
         // Send info
         socket.emit('getGame', clientInfo);

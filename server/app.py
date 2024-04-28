@@ -180,7 +180,8 @@ for game in games:
 # commit changes
 conn.commit()
 
-print(f"{numUsersAdded} of {len(users)} users and {numGamesCopied} of {len(games)} games copied over from sqlite3 db to postgresql db")
+if numUsersAdded != 0 or numGamesCopied != 0:
+    print(f"{numUsersAdded} of {len(users)} users and {numGamesCopied} of {len(games)} games copied over from sqlite3 db to postgresql db")
 
 
 """ REST APIs """
@@ -247,8 +248,8 @@ def index():
     user_id = getDictsForDB(db)[0]["id"]
 
     # Query the database for all the games
-    games = db.execute("SELECT * FROM games").fetchall()
-    newGames = getDictsForDB(db)
+    games = [Game.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
+    newGames = []
 
     # IDs of users in games
     user_ids = []
@@ -258,14 +259,11 @@ def index():
 
     # Remove games that have been completed and that are not relevant to the player
     for game in games:
-        gameObj = Game.fromDb(game)
-        if not gameObj.containsPlayer(id=user_id) or gameObj.completed:
-            newGames.remove(game)
-        else:
-            user_ids.append([player.id for player in gameObj.players])
-            db.execute("SELECT username FROM users WHERE id = %s", [gameObj.player_turn])
+        if game.containsPlayer(id=user_id) and not game.completed:
+            newGames.append(game)
+            user_ids.append([player.id for player in game.players])
+            db.execute("SELECT username FROM users WHERE id = %s", [game.player_turn])
             player_turns.append(getDictsForDB(db)[0]["username"])
-
 
     # Get all the relevant usernames from the database
     usernames = []
@@ -281,7 +279,7 @@ def index():
 
     # Return data
     return jsonify({
-        "games": newGames, 
+        "games": [game.toDict() for game in newGames], 
         "usernames": usernames, 
         "gamesLen": len(newGames), 
         "player_turns": player_turns

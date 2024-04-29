@@ -100,14 +100,14 @@ db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player
 #     dbGame = game.toDb(card_type, player_type)
 #     db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", dbGame)
 
-# copy over sqlite3 data
-try:
-    dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
-except:
-    print(f"error converting db")
+""" copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
+# try:
+#     dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
+# except:
+#     print(f"error converting db")
 
-# commit changes
-conn.commit()
+# # commit changes
+# conn.commit()
 
 
 """ REST APIs """

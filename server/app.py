@@ -100,7 +100,7 @@ db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player
 #     db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", dbGame)
 
 # copy over data from sqlite3
-
+'''
 # connect to db
 sqlite3_db = SQL("sqlite:///sabacc.db")
 
@@ -181,7 +181,7 @@ for game in games:
 conn.commit()
 
 print(f"{numUsersAdded} of {len(users)} users and {numGamesCopied} of {len(games)} games copied over from sqlite3 db to postgresql db")
-
+'''
 
 """ REST APIs """
 
@@ -248,7 +248,7 @@ def index():
 
     # Query the database for all the games
     games = db.execute("SELECT * FROM games").fetchall()
-    newGames = getDictsForDB(db)
+    newGames = []
 
     # IDs of users in games
     user_ids = []
@@ -259,9 +259,10 @@ def index():
     # Remove games that have been completed and that are not relevant to the player
     for game in games:
         gameObj = Game.fromDb(game)
-        if not gameObj.containsPlayer(id=user_id) or gameObj.completed:
-            newGames.remove(game)
-        else:
+        if gameObj.containsPlayer(id=user_id) or gameObj.completed:
+            temp = gameObj.toDict()
+            temp['game_id'] = temp.pop('id')
+            newGames.append(temp)
             user_ids.append([player.id for player in gameObj.players])
             db.execute("SELECT username FROM users WHERE id = %s", [gameObj.player_turn])
             player_turns.append(getDictsForDB(db)[0]["username"])
@@ -346,10 +347,8 @@ def returnGameInfo(clientInfo):
     
     # Get game
     game_id = clientInfo["game_id"]
-    print(clientInfo)
     db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)])
-    game = getDictsForDB(db)[0]
-    print(game)
+    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -359,12 +358,16 @@ def returnGameInfo(clientInfo):
 
     # Get list of usernames of players in game
     users = []
-    for u in [player.id for player in Game.fromDb(game).players]:
-        db.execute("SELECT id, username FROM users WHERE id = %s", [int(u)])
-        users.append(getDictsForDB(db)[0]["username"])
+    for u in game.players:
+        if not u.folded:
+            db.execute("SELECT id, username FROM users WHERE id = %s", [int(u.id)])
+            users.append(getDictsForDB(db)[0]["username"])
 
     # Return game data
-    return {"message": "Good luck!", "gata": game, "users": users, "user_id": int(user_id), "username": username}
+    temp = game.toDict()
+    temp.pop('deck')
+    print({"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username})
+    return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
 
 
 
@@ -459,6 +462,7 @@ def protect(clientInfo):
     db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), f"{username} protected a card", game_id])
 
     # send game data to all connected clients in the current game. this applies to bet, card, shift, and cont aswell.
+    conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 
@@ -486,7 +490,7 @@ def bet(clientInfo):
     action = clientInfo["action"]
 
     # Get amount player is betting
-    amount = clientInfo["amount"]
+    amount = clientInfo["amount"] if action != 'fold' else 0
 
     # Get active (not folded) players in game
     players = game.getActivePlayers()
@@ -538,6 +542,7 @@ def bet(clientInfo):
         currentPlayer.credits -= amount
 
         # Update the player's bet
+        currentPlayer.bet = currentPlayer.bet if currentPlayer.bet != None else 0
         currentPlayer.bet += amount
 
         # Update whose turn it is
@@ -546,9 +551,10 @@ def bet(clientInfo):
         # If it is the end of the betting phase
         if user_id == players[-1].id:
             endRound = True
-            nextPlayerDex = 0            
+            nextPlayerDex = 0
 
         # If a player raised and it has come back to them
+        nextPlayer = players[nextPlayerDex]
         if endRound == False and nextPlayer.bet == currentPlayer.bet:
 
             # If the player that raised was the last player
@@ -566,6 +572,7 @@ def bet(clientInfo):
         currentPlayer.credits -= amount
 
         # Update their bet
+        currentPlayer.bet = currentPlayer.bet if currentPlayer.bet != None else 0
         currentPlayer.bet += amount
 
         # After a raise, betting loops around to the starting player
@@ -581,7 +588,7 @@ def bet(clientInfo):
 
     elif action == "fold":
         # update next player
-        nextPlayerDex = player.index[currentPlayer] + 1
+        nextPlayerDex = players.index(currentPlayer) + 1
         # If the folding player is the last player in the cycle
         if nextPlayerDex >= len(players):
             endRound = True
@@ -622,11 +629,13 @@ def bet(clientInfo):
         # add all bets to hand pot
         for player in players:
             game.hand_pot += player.bet
+            player.bet = None
         
         # Update game
-        db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), game.hand_pot, "card", players[0].id])
+        db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), game.hand_pot, "card", players[0].id, game_id])
 
     # Return updated game data
+    conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 @socketio.on('card')
@@ -665,14 +674,14 @@ def card(clientInfo):
     u_dex = [player.id for player in players].index(user_id)
 
     # current player
-    player = players[u_dex]
+    player: Player = players[u_dex]
 
     # Indicators of if the card phase and/or game end after an action
     endRound = False
     endGame = False
 
     # If the game phase is incorrect
-    if game["phase"] != "card" and game["phase"] != "alderaan":
+    if game.phase != "card" and game["phase"] != "alderaan":
         return
 
     # If it is not this player's turn
@@ -750,14 +759,11 @@ def card(clientInfo):
         newCycleCount = game.cycle_count + 1
 
         # If someone had called alderaan, end the game
-        if game["phase"] == "alderaan":
+        if game.phase == "alderaan":
             endGame = True
 
         else:
-
             # Sabacc Shift procedure
-
-            
             db.execute("UPDATE games SET phase = %s, player_turn = %s, cycle_count = %s WHERE game_id = %s", ["shift", players[0].id, newCycleCount, game_id])
 
 
@@ -777,7 +783,7 @@ def card(clientInfo):
         # String that shows the winner
         winStr = ""
 
-        # If someone one (i.e. not everyone bombed out)
+        # If someone won (i.e. not everyone bombed out)
         if winner != None:
             # Give winner Hand Pot
             winner.credits += game.hand_pot
@@ -798,11 +804,12 @@ def card(clientInfo):
 
             # Update winStr
             winStr = "Everyone bombs out and loses!"
-            
+
         # Update game
-        db.execute(f"UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deck, game.players[0].id, winStr, True, game_id])
+        db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deck, game.players[0].id, winStr, True, game_id])
 
     # Return new game data
+    conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 @socketio.on('shift')
@@ -817,12 +824,12 @@ def shift(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", username)
+    db.execute("SELECT id FROM users WHERE username = %s", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", game_id).fetchall()[0])
+    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
     players = game.getActivePlayers()
 
     # verify that the current phase is the shift phase
@@ -844,6 +851,7 @@ def shift(clientInfo):
 
     # Update game
     db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", game.deckToDb(card_type), game.playersToDb(player_type, card_type), game.players[0].id, shift, shiftStr, game_id])
+    conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
     
 @socketio.on('cont')
@@ -859,26 +867,27 @@ def cont(clientInfo):
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", username)
+    db.execute("SELECT id FROM users WHERE username = %s", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", game_id).fetchall()[0])
+    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
     if game.completed != True:
         return
-    
+
     # If it is not this player's turn
     if game.player_turn != int(user_id):
         return
-    
+
     game.nextRound()
 
     # Create game in database
-    db.execute(f"UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), game.hand_pot, game.sabacc_pot, "betting", game.deckToDb(card_type), game.players[0].id, 0, "", False, game_id])
+    db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), game.hand_pot, game.sabacc_pot, "betting", game.deckToDb(card_type), game.players[0].id, 0, "", False, game_id])
 
     # Return game
+    conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
 

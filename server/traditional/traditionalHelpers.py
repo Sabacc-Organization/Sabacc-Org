@@ -231,7 +231,7 @@ class Game:
 
         for player in self.players:
             player.credits -= 15 # Make users pay Sabacc and Hand pot Antes
-            player.bet = 0 # reset bets
+            player.bet = None # reset bets
             player.folded = False # reset folded
             player.lastAction = '' # reset last action
         

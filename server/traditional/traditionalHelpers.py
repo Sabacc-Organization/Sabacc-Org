@@ -44,15 +44,15 @@ class Card:
         card = None
         if val <= 0:
             card = Card(val=val, suit=Suit.NEGATIVE_NEUTRAL, protected=protected)
-            # if unallowedCards.count(card) > 1:
-                # print(f"WARNING: more than 2 {val}'s exist")
+            if unallowedCards.count(card) > 1:
+                print(f"WARNING: more than 2 {val}'s exist")
         else: # positive val
             allowedSuits = [Suit.COINS, Suit.FLASKS, Suit.SABERS, Suit.STAVES]
             for c in unallowedCards:
                 if c.val == val and c.suit in allowedSuits:
                     allowedSuits.remove(c.suit)
             if len(allowedSuits) == 0:
-                # print(f"WARNING: more than 4 {val}'s exist")
+                print(f"WARNING: more than 4 {val}'s exist")
                 card = Card(val=val,suit=random.choice([Suit.COINS, Suit.FLASKS, Suit.SABERS, Suit.STAVES]),protected=protected)
             else:
                 card = Card(val=val,suit=random.choice(allowedSuits), protected=protected)
@@ -62,8 +62,14 @@ class Player:
     def __init__(self, id:int, username='', credits=0, bet:int = None, hand:list=[], folded=False, lastAction=""):
         self.id = id
         self.username = username
-        self.credits = credits
-        self.bet = bet
+        if type(credits) == int:
+            self.credits = credits
+        else:
+            print(f"ERROR: type of credits is {type(credits)}, not int")
+        if type(bet) == int or bet == None:
+            self.bet = bet
+        else:
+            print(f"ERROR: bet is not int or none, it's {type(bet)}")
         self.hand = hand
         self.folded = folded
         self.lastAction = lastAction

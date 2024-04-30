@@ -7,7 +7,6 @@ main.game
 
 .backBlue
 {
-    background-color: rgb(14, 148, 201);
     border-radius: 10%;
     margin-top: 10%;
 }
@@ -39,7 +38,6 @@ main.game
 
 .backRed
 {
-    background-color: #ed3b3b;
     border-radius: 10%;
     margin-top: 10%;
 }
@@ -100,11 +98,11 @@ main.game
     background-color: #0cc23c;
 }
 
-#dieTwo.shift0 {
+#dieTwo.shiftfalse {
     background-color: #ed3b3b;
 }
 
-#dieTwo.shift1 {
+#dieTwo.shifttrue {
     background-color: #0cc23c;
 }
 

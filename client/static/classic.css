@@ -33,8 +33,6 @@ h5
 
 .backBlue
 {
-    background-color: rgb(14, 148, 201);
-
     display: inline-block;
     vertical-align: middle;
     padding: 1rem 2rem;
@@ -59,8 +57,6 @@ h5
 
 .backRed
 {
-    background-color: #ed3b3b;
-
     display: inline-block;
     vertical-align: middle;
     padding: 1rem 2rem;
@@ -150,11 +146,11 @@ h5
     background-color: #0cc23c;
 }
 
-#dieTwo.shift0 {
+#dieTwo.shiftfalse {
     background-color: #ed3b3b;
 }
 
-#dieTwo.shift1 {
+#dieTwo.shifttrue {
     background-color: #0cc23c;
 }
 

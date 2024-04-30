@@ -45,6 +45,10 @@ def calcBestVal(handVals):
                 bestVal = val
                 break
 
+            # Check for Bomb Outs
+            elif val == 0 or abs(val) > 23:
+                 pass
+
             # Current val is better than stored val
             elif abs(val) > abs(bestVal):
                 bestVal = val
@@ -75,24 +79,16 @@ def findBestDexes(handVals, bestVal):
 
 
 # Master function that incorporates the other functions to end the game (determine the winner, final hand vals, etc.) (Most big brain piece of code in this project)
-def alderaanEnd(hL : list, deckStrIn : str, pL : list, suddenDemise : bool, bD : list=[]):
+def alderaanEnd(game:object, suddenDemise:bool, bD:list = []):
 
     # Make copies of inputs
-    handsList = hL.copy()
-    newDeck = deckStrIn
-    protsList = pL.copy()
+    
 
     # If recursion has been activated due to a tie, and there is sudden demise
     if suddenDemise == True:
         # Give each participant in the sudden demise a card
         for i in bD:
-                
-                drawData = drawCard(newDeck)
-                newDeck = drawData["deck"]
-                newCard = drawData["card"]
-
-                handsList[i] += "," + newCard
-                protsList[i] += ",0"
+            game.players[i].hand.append(game.deck.pop())
 
     # Calculate hand values
     handVals = calcHandVals(handsList)

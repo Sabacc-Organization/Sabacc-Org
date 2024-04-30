@@ -1,5 +1,5 @@
 # Sabacc
-## Video Demo: https://www.youtube.com/watch?v=tgRam9fhVJQ (OUTDATED)
+## Video: https://youtu.be/pSN39eC3kik
 ## Play On the Website: http://sabacc.samuelanes.com
 ## Join the Sabacc Discord: https://discord.gg/AaYrNZjBus
 ## Description:
@@ -59,12 +59,13 @@ The door is wide open for new gameplay features. My ideas include:
 Start by cloning the repo (or download the code in a .zip):
 `git clone https://github.com/Sabacc-Organization/Sabacc-Org.git`
 
-Setup the server side by installing all of the dependencies in server/requirements.txt. The Python version probably isn't crucial but it's the only one that I know works. Don't forget to install sqlite3!
+Setup the server side by installing all of the dependencies in server/requirements.txt. The Python version probably isn't crucial but it's the only one that I know works. Don't forget to install PostgreSQL!
 1. `cd server`
 2. Install Python(==3.9.6) (https://www.python.org/downloads/) (or via terminal)
     - Install Pip if it did not install with Python
 3. Install pip dependencies `pip install -r pipRequirements.txt`
-4. Install sqlite3 (https://www.sqlite.org) (or via terminal)
+4. Install PostgreSQL (https://www.codecademy.com/article/installing-and-using-postgresql-locally) and make a database. **Postbird** is highly recommended!
+5. Update the `DATABASE` part of config.yml according to your database. If you're not sure how to do that, check CS50's Python library docs: https://cs50.readthedocs.io/libraries/cs50/python/?highlight=postgres#cs50.SQL
 
 Setup the client side by installing Node.js, npm, and vite.
 1. `cd client`

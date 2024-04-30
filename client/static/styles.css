@@ -182,6 +182,19 @@ main img
     0 0 50px #fff
 }
 
+.dieContainer{
+  display: contents;
+}
+
+.imperial-credits-logo{
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url("images/imperial-credit.svg");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
 .alderaan {
     background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
@@ -208,7 +221,34 @@ main img
     background-image: url("/images/alderaanExplode.webp");
 }
 
+/* styles will ignore cardContainer unless they choose to usi */
+.cardContainer{
+  display: contents;
+}
+
 /* Credits stuff */
+.backBlue{
+  background-color: rgb(14, 91, 121);
+}
+
+.backBlue.turnGlow{
+  background-color: rgb(14, 148, 201);
+  box-shadow: 0px 0px 25px 10px rgba(255,255,0,1);
+}
+
+.backBlue.brightBlue{
+  background-color: rgb(14, 148, 201);
+}
+
+.backRed{
+  background-color: #8d2727;
+}
+
+.backRed.turnGlow{
+  background-color: #ed3b3b;
+  box-shadow: 0px 0px 25px 10px rgba(255,255,0,1);
+}
+
 .chip
 {
   height: 20px;
@@ -247,4 +287,15 @@ main img
 
 .draggable.dragging {
   opacity: .5;
+}
+
+.shiftActive {
+  background-color: #2196F3;
+  border-radius: 10%;
+}
+
+.shiftActive:hover {
+  box-shadow:
+  inset 0 0 7px #fff,
+  0 0 7px #fff;
 }

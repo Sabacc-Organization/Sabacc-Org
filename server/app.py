@@ -11,7 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
-from server.traditional.alderaanHelpers import *
+from traditional.alderaanHelpers import *
 import dbConversion
 from flask_socketio import SocketIO, send, emit, join_room
 from traditional.traditionalHelpers import *

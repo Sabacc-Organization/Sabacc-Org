@@ -129,11 +129,11 @@ class Game:
             player.credits = startingCredits - hand_pot_ante - sabacc_pot_ante
         # construct deck
         deck = Game.newDeck()
-        
+
         game = Game(players=players,deck=deck,player_turn=players[0].id,hand_pot=hand_pot_ante*len(players),sabacc_pot=sabacc_pot_ante*len(players))
         game.shuffleDeck()
         game.dealHands()
-        
+
         return game
     @staticmethod
     def newDeck(cardsToExclude:list=[]):

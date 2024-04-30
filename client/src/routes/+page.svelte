@@ -62,7 +62,7 @@
             <tr>
                 <td>{gamesData["usernames"][i]}</td>
                 <td>{gamesData["player_turns"][i]}'s</td>
-                <td><a href="/game/{game["game_id"]}">Play</a></td>
+                <td><a href="/game/{game["id"]}">Play</a></td>
             </tr>
 
         {/each}

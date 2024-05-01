@@ -112,7 +112,7 @@ class Player:
         
     def fold(self):
         self.credits += self.getBet()
-        self.bet = 0
+        self.bet = None
         self.folded = True
     
     def makeBet(self, creditAmount: int, absolute: bool = True):

@@ -89,32 +89,6 @@ def checkLogin(username, password):
     # User authenticated!
     return {"message": "Logged in!", "status": 200}
 
-# Construct new deck and hands
-def constructDeck(playerCount):
-    # Deck variables
-    deck = DECK
-    deckList = list(deck.split(","))
-
-    # Draw 2 cards for every hand
-    hands = []
-    for i in range(playerCount):
-        player_hand = ""
-        for j in range(2):
-            randDex = random.randint(0, len(deckList) - 1)
-            if player_hand == "":
-                player_hand = deckList.pop(randDex)
-            else:
-                player_hand = player_hand + "," + deckList.pop(randDex)
-
-        hands.append(player_hand)
-
-    # New deck after drawing cards
-    deck = listToStr(deckList)
-
-    # Return deck data
-    data = {"deck": deck, "hands": hands}
-    return data
-
 # Draw a card
 def drawCard(deckStr):
 
@@ -143,10 +117,3 @@ def rollShift():
         return True
     else:
         return False
-
-# Shuffle deck, while removing some cards that players have
-def shuffleDeck(outCards):
-    deckList = DECK.split(",")
-    for card in outCards:
-        deckList.remove(card)
-    return listToStr(deckList)

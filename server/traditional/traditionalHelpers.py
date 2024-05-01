@@ -22,7 +22,7 @@ class Card:
         self.suit = suit
         self.protected = protected
     def __eq__(self, other) -> bool:
-        return self.val == other.val and self.suit == other.suit
+        return other != None and (self.val == other.val and self.suit == other.suit)
     def __str__(self) -> str:
         return f"{self.val} of {str(self.suit)}{' (protected)' if self.protected else ''}"
     def toDb(self, cardType):
@@ -106,8 +106,22 @@ class Player:
             return SpecialHands.FAIRY_EMPRESS
         
         return sum(cardVals)
-        
     
+    def getBet(self) -> int:
+        return self.bet if self.bet != None else 0
+        
+    def fold(self):
+        self.credits += self.getBet()
+        self.bet = None
+        self.folded = True
+    
+    def makeBet(self, creditAmount: int, absolute: bool = True):
+        if absolute:
+            self.credits -= creditAmount - self.getBet()
+            self.bet = creditAmount
+        else:
+            self.credits -= creditAmount
+            self.bet += creditAmount
 class Game:
     def __init__(self, players:list, id:int=None, deck:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
         self.id = id

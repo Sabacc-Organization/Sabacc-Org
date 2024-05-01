@@ -365,6 +365,7 @@ def protect(clientInfo):
     game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
     # Get card being protected
+    print(clientInfo)
     protect = Card.fromDict(clientInfo["protect"])
 
     # Check if card being protected is in player's hand
@@ -388,8 +389,103 @@ def protect(clientInfo):
     conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
 
-
 @socketio.on('bet')
+def neoBet(clientInfo):
+    # Authenticate User
+    username = clientInfo["username"]
+    password = clientInfo["password"]
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    # Get User ID
+    db.execute("SELECT id FROM users WHERE username = %s", [username])
+    user_id = getDictsForDB(db)[0]["id"]
+
+    game_id = clientInfo["game_id"]
+    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
+
+    # Get betting action
+    action = clientInfo["action"]
+    if action != 'fold':
+        amount = clientInfo['amount']
+
+    # Get active (not folded) players in game
+    players = game.getActivePlayers()
+
+    # get current player index
+    currentPlayer = game.getPlayer(id=user_id)
+    currentPlayerDex = players.index(currentPlayer)
+
+    gameEnd = False
+    nextPhase = 'betting'
+
+    # If phase is not betting
+    if game.phase != "betting":
+        return
+
+    if action == 'fold':
+        # Remove folding player from player list
+        currentPlayer.fold()
+        players = game.getActivePlayers()
+
+        # if the player folding results in only one player remaining resulting in the end of the
+        if len(players) <= 1:
+            gameEnd = True
+
+        pAct = f'{username} folds'
+
+    elif action == 'bet' and currentPlayerDex == 0:
+        currentPlayer.makeBet(amount)
+        if amount != 0:
+            pAct = f'{username} bets {amount}'
+        else:
+            pAct = f'{username} checks'
+
+    elif action == 'call':
+        currentPlayer.makeBet(amount, False)
+        pAct = f'{username} calls'
+
+    elif action == 'raise':
+        currentPlayer.makeBet(amount, False)
+        pAct = f'{username} raises to {amount}'
+
+    betAmount = [i.getBet() for i in players]
+    betAmount.append(0)
+    betAmount = max(betAmount)
+    nextPlayer = None
+    for i in players:
+        iBet = i.bet if i.bet != None else -1
+        if iBet < betAmount:
+            nextPlayer = i.id
+            break
+
+    if gameEnd == True:
+        winningPlayer = game.players[0]
+        winningPlayer.credits += game.hand_pot + winningPlayer.bet
+        game.hand_pot = 0
+        winningPlayer.bet = None
+
+    if nextPlayer == None:
+        # add all bets to hand pot
+        for player in players:
+            game.hand_pot += player.getBet()
+            player.bet = None
+
+    dbList = [
+        game.playersToDb(player_type, card_type),
+        game.hand_pot,
+        'betting' if nextPlayer != None else 'card',
+        nextPlayer if nextPlayer != None else players[0].id,
+        pAct,
+        gameEnd,
+        game_id
+    ]
+    db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+
+    conn.commit()
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
+
 def bet(clientInfo):
 
     """ Players make bets and other betting actions """
@@ -465,7 +561,7 @@ def bet(clientInfo):
         currentPlayer.credits -= amount
 
         # Update the player's bet
-        currentPlayer.bet = currentPlayer.bet if currentPlayer.bet != None else 0
+        currentPlayer.bet = currentPlayer.getBet()
         currentPlayer.bet += amount
 
         # Update whose turn it is
@@ -491,11 +587,11 @@ def bet(clientInfo):
         db.execute("UPDATE games SET players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), players[nextPlayerDex].id, f"{uName} calls", game_id])
 
     elif action == "raise":
-        # Remove money from player's credits
+        # Remove money from player's credits 
         currentPlayer.credits -= amount
 
         # Update their bet
-        currentPlayer.bet = currentPlayer.bet if currentPlayer.bet != None else 0
+        currentPlayer.bet = currentPlayer.getBet()
         currentPlayer.bet += amount
 
         # After a raise, betting loops around to the starting player

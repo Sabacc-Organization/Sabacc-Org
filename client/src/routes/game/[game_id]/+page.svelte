@@ -206,13 +206,25 @@
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
     // this applies to bet, card, shift, and playAgain.
     function protect(id: string) {
-        let elem = document.getElementById(id);
+        let protectCardDex = player_hands[u_dex].indexOf(parseInt(document.getElementById(id)?.innerText));
+        let protCard = {
+            'val': 0,
+            'suit': 'blah',
+            'prot': false
+        };
+
+        game['players'].forEach((player) => {
+            if (player['id'] === user_id){
+                protCard = player['hand'][protectCardDex];
+            }
+        });
+        console.log(protCard);
 
         let clientInfo = {
             "username": username,
             "password": password,
             "game_id": game_id,
-            "protect": elem.innerText
+            "protect": protCard
         }
 
         socket.emit('protect', clientInfo)

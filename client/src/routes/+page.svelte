@@ -39,7 +39,7 @@
         </div>
         <div class="child">
             <p>Join the <b>Sabacc Lodge</b> Discord to find others to play Sabacc with, play in tournaments, and get important updates!</p>
-            <iframe style="float: right" title="Discord invite" src="https://discord.com/widget?id=846485611955093574&theme=dark" width="700" height="300" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+            <iframe title="Discord invite" src="https://discord.com/widget?id=846485611955093574&theme=dark" width="700" height="300" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
         </div>
     </div>
 

@@ -531,7 +531,7 @@
 
         {#if game["completed"] === 0}
             {#if game["player_turn"] === user_id}
-        
+
                 {#if game["phase"] === "betting"}
                     {#if u_dex === 0}
                         {#if game["player_bets"].split(",")[u_dex + 1] === ""}
@@ -544,13 +544,13 @@
                             {#if raising === false}
                                 <div id="betDiv" class="backBlue brightBlue"> 
                                     <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                    <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
+                                    <button on:click={() => {raising = true; chipInput = true; betCreds = raiseAmount + 1}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                                 </div>
                             {:else}
                                 <div id="betDiv" class="backBlue brightBlue"> 
-                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
-                                    <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
+                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="0" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
+                                    <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                     <p class="red">{betErr}</p>
                                 </div>
                             {/if}
@@ -561,13 +561,13 @@
                         {#if raising === false}
                             <div id="betDiv" class="backBlue brightBlue"> 
                                 <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
+                                <button on:click={() => {raising = true; chipInput = true; betCreds = raiseAmount + 1}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                 <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                             </div>
                         {:else}
                             <div id="betDiv" class="backBlue brightBlue"> 
-                                <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
-                                <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
+                                <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="0" max={game["player_credits"].split(",")[u_dex]} placeholder="Credits" required> 
+                                <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                 <p class="red">{betErr}</p>
                             </div>
                         {/if}

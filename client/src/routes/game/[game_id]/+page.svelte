@@ -122,6 +122,10 @@
 
     // automatically called when server sends update
     function updateClientGame(serverInfo: any) {
+        
+        // Set u_dex
+        u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
+
         //sets players, and sets orderedPlayers to the correct length in case of a fold.
         players = [... serverInfo["users"]];
         orderedPlayers = [... players];
@@ -173,9 +177,6 @@
         if (username === serverInfo["username"]) {
             // Set user ID
             user_id = serverInfo["user_id"];
-
-            // Set u_dex
-            u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
         }
         updateClientGame(serverInfo)
     }

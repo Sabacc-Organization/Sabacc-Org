@@ -122,7 +122,10 @@
 
     // automatically called when server sends update
     function updateClientGame(serverInfo: any) {
-        
+
+        // Set game data
+        game = serverInfo["gata"];
+
         // Set u_dex
         u_dex = game["player_ids"].split(",").indexOf(user_id.toString());
 
@@ -136,9 +139,6 @@
                 orderedPlayers[i] = players[(i + u_dex) % players.length]
             }
         }
-
-        // Set game data
-        game = serverInfo["gata"];
 
         // Creat p(layer)s array
         let ps: any[] = []; 

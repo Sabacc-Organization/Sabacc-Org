@@ -399,8 +399,9 @@ def bet(clientInfo):
     # Get betting action
     action = clientInfo["action"]
 
-    # Get amount player is betting
-    amount = clientInfo["amount"]
+    if action != 'fold':
+        # Get amount player is betting
+        amount = clientInfo["amount"]
 
     # Get users in game
     users = game["player_ids"].split(",")

@@ -43,13 +43,14 @@
         "completed": 0,
         "cycle_count": 0
     };
-    let players: any[] = [];
-    let orderedPlayers: any[] = [];
-    let player_ids: any[] = [];
-    let player_hands: any[] = [];
-    let player_credits: any[] = [];
-    let player_bets: any[] = [];
-    let player_protecteds: any[] = [];
+
+    let players: any[],
+    orderedPlayers: any[],
+    player_ids: any[],
+    player_hands: any[],
+    player_credits: any[],
+    player_bets: any[],
+    player_protecteds: any[] = [];
 
     // User ID
     let user_id = -1;
@@ -201,6 +202,31 @@
             user_id = serverInfo["user_id"];
         }
         updateClientGame(serverInfo)
+    }
+
+    function renderCard(cardValue: {'suit': string, 'val':number}, isProtected: boolean, isMine: boolean, showValue: boolean){
+        let renderText: string = '<div '
+
+        if (isMine){
+            renderText += 'on:click={() => trade("card" + ci.toString())} '
+            if (!isProtected){
+                renderText += 'on:dblclick={() => protect("card" + ci.toString())} '
+            }
+            renderText += 'id="card{ci.toString()}" '
+        }
+
+        renderText += 'class="card child '
+        renderText += isMine? 'own ' : ''
+        renderText += isProtected? 'protected ' : ''
+        renderText += '>'
+
+        if (showValue){
+            renderText += '<h5>'
+            renderText += cardValue["val"].toString()
+            renderText += '</h5>'
+        }
+        renderText += '</div>'
+        return renderText
     }
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
@@ -487,7 +513,7 @@
                     {/if}
                 {/if}
             </div>
-        
+
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <span on:click={shift} class:shiftActive={shiftActive} class="dieContainer">
@@ -516,30 +542,31 @@
                 {/if}
 
                 <!-- Cards -->
-                <div class="cardContainer">
+                <div class="cardsContainer">
                     {#each player_hands[i] as c, ci}
-
-                        {#if p === username}
-                            {#if !player_protecteds[i][ci]}
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                <div on:click={() => trade("card" + ci.toString())} on:dblclick={() => protect("card" + ci.toString())} id="card{ci.toString()}" class="card child own"><h5>{c}</h5></div>
-                            {:else}
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                <div on:click={() => trade("card" + ci.toString())} id="card{ci.toString()}" class="card child own protected"><h5>{c}</h5></div>
-                            {/if}
-                        {:else}
-                            {#if game["completed"] == 0}
+                        <div class="cardContainer">
+                            {#if p === username}
                                 {#if !player_protecteds[i][ci]}
-                                    <div class="card child"></div>
+                                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <div on:click={() => trade("card" + ci.toString())} on:dblclick={() => protect("card" + ci.toString())} id="card{ci.toString()}" class="card child own"><h5>{c}</h5></div>
                                 {:else}
-                                    <div class="card child protected"><h5>{c}</h5></div>
+                                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <div on:click={() => trade("card" + ci.toString())} id="card{ci.toString()}" class="card child own protected"><h5>{c}</h5></div>
                                 {/if}
-                            {:else if game["completed"] == 1}
-                                <div class="card child"><h5>{c}</h5></div>
+                            {:else}
+                                {#if game["completed"] == 0}
+                                    {#if !player_protecteds[i][ci]}
+                                        <div class="card child"></div>
+                                    {:else}
+                                        <div class="card child protected"><h5>{c}</h5></div>
+                                    {/if}
+                                {:else if game["completed"] == 1}
+                                    <div class="card child"><h5>{c}</h5></div>
+                                {/if}
                             {/if}
-                        {/if}
+                        </div>
                     {/each}
                 </div>
 
@@ -559,7 +586,7 @@
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div class="ownChip child chip lowChip" on:click={() => handleChipPress(1)}></div> 
-                        </div> 
+                        </div>
                         <h5><div class="imperial-credits-logo"></div><span id="credits">{player_credits[i]}</span></h5>
                     </div>
                 {:else}

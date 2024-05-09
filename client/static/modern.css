@@ -196,7 +196,7 @@
   background-image: url("modern-theme-images/Credit\ Bronze.png");
 }
 
-.cardContainer{
+.cardsContainer{
     display: grid;
     grid-template-columns: repeat(5, 1fr);
 }
@@ -228,7 +228,7 @@
     width: max-content;
 }
 
-.player0 > .cardContainer{
+.player0 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
@@ -246,7 +246,7 @@
     width: max-content;
 }
 
-.player1 > .cardContainer{
+.player1 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 58deg;
@@ -264,7 +264,7 @@
     width: max-content;
 }
 
-.player2 > .cardContainer{
+.player2 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 302deg;
@@ -282,7 +282,7 @@
     width: max-content;
 }
 
-.player3 > .cardContainer{
+.player3 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
@@ -300,7 +300,7 @@
     width: max-content;
 }
 
-.player4 > .cardContainer{
+.player4 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
@@ -318,7 +318,7 @@
     width: max-content;
 }
 
-.player5 > .cardContainer{
+.player5 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 58deg;
@@ -336,7 +336,7 @@
     width: max-content;
 }
 
-.player6 > .cardContainer{
+.player6 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 302deg;
@@ -354,7 +354,7 @@
     width: max-content;
 }
 
-.player7 > .cardContainer{
+.player7 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;

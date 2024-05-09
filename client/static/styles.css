@@ -222,6 +222,10 @@ main img
 }
 
 /* styles will ignore cardContainer unless they choose to usi */
+.cardsContainer{
+  display: contents;
+}
+
 .cardContainer{
   display: contents;
 }

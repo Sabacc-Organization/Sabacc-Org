@@ -13,7 +13,8 @@
     let username = Cookies.get("username");
     let password = Cookies.get("password");
     let loggedIn = false;
-    let dark = Cookies.get("dark");
+    let dark = (Cookies.get("dark") == "true");
+    let newCards = (Cookies.get("newCards") == "true");
     let theme = Cookies.get("theme");
 
     // dont render the page until dataToRender is true
@@ -44,13 +45,16 @@
         "cycle_count": 0
     };
 
-    let players: any[],
-    orderedPlayers: any[],
-    player_ids: any[],
-    player_hands: any[],
-    player_credits: any[],
-    player_bets: any[],
-    player_protecteds: any[] = [];
+    let players:       any[] = [], //redun
+    orderedPlayers:    any[] = [],
+    player_ids:        any[] = [], //redun
+    player_hands:      any[] = [], //redun
+    player_credits:    any[] = [], //redun
+    player_bets:       any[] = [], //redun
+    player_protecteds: any[] = []; //redun
+
+    let neoPlayers: any[] = []
+    let neoOrderedPlayers: any[] = []
 
     // User ID
     let user_id = -1;
@@ -130,6 +134,7 @@
         player_credits = [];
         player_bets = [];
         player_protecteds = [];
+        neoPlayers = [];
 
         game['players'].forEach(element => {
             if (serverInfo["users"].indexOf(element['username']) != -1){
@@ -138,7 +143,7 @@
 
                 element['hand'].forEach(card => {
                     cardsvals.push(card['val']);
-                    cardsprots.push(card['prot'])
+                    cardsprots.push(card['prot']);
                 });
                 player_hands.push(cardsvals);
                 player_protecteds.push(cardsprots);
@@ -146,6 +151,8 @@
                 player_ids.push(element['id']);
                 player_credits.push(element['credits']);
                 player_bets.push(element['bet']);
+
+                neoPlayers.push(element);
             }
         });
 
@@ -155,13 +162,16 @@
         //sets players, and sets orderedPlayers to the correct length in case of a fold.
         players = [... serverInfo["users"]];
         orderedPlayers = [... players];
+        neoOrderedPlayers = [... neoPlayers];
 
         // If player is in game, make orderedPlayers proper
         if (u_dex != -1) {
             for (let i = 0; i < players.length; i++) {
+                neoOrderedPlayers[i] = neoPlayers[(i + u_dex) % players.length];
                 orderedPlayers[i] = players[(i + u_dex) % players.length];
             }
         }
+        console.log(neoOrderedPlayers)
 
         // Creat p(layer)s array
         let ps: any[] = [];
@@ -204,29 +214,15 @@
         updateClientGame(serverInfo)
     }
 
-    function renderCard(cardValue: {'suit': string, 'val':number}, isProtected: boolean, isMine: boolean, showValue: boolean){
-        let renderText: string = '<div '
-
-        if (isMine){
-            renderText += 'on:click={() => trade("card" + ci.toString())} '
-            if (!isProtected){
-                renderText += 'on:dblclick={() => protect("card" + ci.toString())} '
-            }
-            renderText += 'id="card{ci.toString()}" '
+    function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
+        let returnText: string = "";
+        if (newCards){
+            returnText += "background-image:url(../../../../static/modern-theme-images/dark/";
+            returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
+            returnText += cardValue["val"].toString();
+            returnText += ".png);"
         }
-
-        renderText += 'class="card child '
-        renderText += isMine? 'own ' : ''
-        renderText += isProtected? 'protected ' : ''
-        renderText += '>'
-
-        if (showValue){
-            renderText += '<h5>'
-            renderText += cardValue["val"].toString()
-            renderText += '</h5>'
-        }
-        renderText += '</div>'
-        return renderText
+        return returnText;
     }
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
@@ -543,27 +539,42 @@
 
                 <!-- Cards -->
                 <div class="cardsContainer">
-                    {#each player_hands[i] as c, ci}
+                    {#each neoPlayers[i]["hand"] as c, ci}
                         <div class="cardContainer">
                             {#if p === username}
                                 {#if !player_protecteds[i][ci]}
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                    <div on:click={() => trade("card" + ci.toString())} on:dblclick={() => protect("card" + ci.toString())} id="card{ci.toString()}" class="card child own"><h5>{c}</h5></div>
+                                    <div
+                                    on:click={() => trade("card" + ci.toString())}
+                                    on:dblclick={() => protect("card" + ci.toString())}
+                                    id="card{ci.toString()}"
+                                    class="card child own"
+                                    style="{renderCard(c)}">
+                                    </div>
+                                    <h5>{c['val']}</h5>
                                 {:else}
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                                    <div on:click={() => trade("card" + ci.toString())} id="card{ci.toString()}" class="card child own protected"><h5>{c}</h5></div>
+                                    <div
+                                    on:click={() => trade("card" + ci.toString())}
+                                    id="card{ci.toString()}"
+                                    class="card child own protected"
+                                    style="{renderCard(c)}">
+                                    </div>
+                                    <h5>{c['val']}</h5>
                                 {/if}
                             {:else}
                                 {#if game["completed"] == 0}
                                     {#if !player_protecteds[i][ci]}
                                         <div class="card child"></div>
                                     {:else}
-                                        <div class="card child protected"><h5>{c}</h5></div>
+                                        <div class="card child protected" style="{renderCard(c)}"></div>
+                                        <h5>{c['val']}</h5>
                                     {/if}
                                 {:else if game["completed"] == 1}
-                                    <div class="card child"><h5>{c}</h5></div>
+                                    <div class="card child" style="{renderCard(c)}"></div>
+                                    <h5>{c['val']}</h5>
                                 {/if}
                             {/if}
                         </div>

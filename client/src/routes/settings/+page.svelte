@@ -11,14 +11,16 @@
     let username = Cookies.get("username");
     let password = Cookies.get("password");
     let loggedIn = false;
-    let dark: boolean | string = Cookies.get("dark");
-    if (dark === "true") {
-        dark = true;
-    }
-    else if (dark === "false") {
-        dark = false;
-    }
+
+    let dark: boolean | string | undefined = Cookies.get("dark");
+    dark = (dark == "true");
+    let newCards: boolean | string | undefined = Cookies.get("newCards");
+    newCards = (newCards == "true");
+
     let theme = Cookies.get("theme");
+    if (theme == undefined){
+        theme = "modern"
+    }
 
     onMount(async() => {
 
@@ -30,12 +32,9 @@
     });
 
     function save() {
-        if (dark) {
-            Cookies.set("dark", "true", {"expires": 30});
-        }
-        else {
-            Cookies.set("dark", "false", {"expires": 30});
-        }
+        Cookies.set("dark", dark? "true":"false", {"expires": 30});
+
+        Cookies.set("newCards", newCards? "true":"false", {"expires": 30});
 
         Cookies.set("theme", theme, {"expires": 30});
 
@@ -57,6 +56,15 @@
     <!-- Rounded switch -->
     <label class="switch child">
         <input bind:checked={dark} name="dark" type="checkbox">
+        <span class="slider round"></span>
+    </label>
+
+</div>
+<div class="parent">
+    <h5 class="child">New Card Designs</h5>
+    <!-- Rounded switch -->
+    <label class="switch child">
+        <input bind:checked={newCards} name="newCards" type="checkbox">
         <span class="slider round"></span>
     </label>
 

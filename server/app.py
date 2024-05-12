@@ -530,7 +530,7 @@ def card(clientInfo):
     endGame = False
 
     # If the game phase is incorrect
-    if game.phase != "card" and game["phase"] != "alderaan":
+    if game.phase != "card" and game.phase != "alderaan":
         return
 
     # If it is not this player's turn
@@ -583,7 +583,7 @@ def card(clientInfo):
         # Update game
         db.execute("UPDATE games SET player_turn = %s, p_act = %s WHERE game_id = %s", [players[nextPlayer].id, f"{uName} stands", game_id])
 
-    elif action == "alderaan" and game["cycle_count"] != 0:
+    elif action == "alderaan" and game.cycle_count != 0:
 
         # Pass turn to next player
         nextPlayer = u_dex + 1
@@ -655,7 +655,7 @@ def card(clientInfo):
             winStr = "Everyone bombs out and loses!"
 
         # Update game
-        db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deck, game.players[0].id, winStr, True, game_id])
+        db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deckToDb(card_type), game.players[0].id, winStr, True, game_id])
 
     # Return new game data
     conn.commit()

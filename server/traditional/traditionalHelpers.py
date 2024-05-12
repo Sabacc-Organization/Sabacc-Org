@@ -120,6 +120,7 @@ class Player:
             self.credits -= creditAmount - self.getBet()
             self.bet = creditAmount
         else:
+            self.bet = self.bet if creditAmount == 0 else self.getBet()
             self.credits -= creditAmount
             self.bet += creditAmount
 class Game:

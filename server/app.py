@@ -289,7 +289,6 @@ def returnGameInfo(clientInfo):
     # Return game data
     temp = game.toDict()
     temp.pop('deck')
-    print({"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username})
     return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
 
 

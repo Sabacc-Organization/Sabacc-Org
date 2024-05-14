@@ -211,16 +211,20 @@
             // Set user ID
             user_id = serverInfo["user_id"];
         }
-        updateClientGame(serverInfo)
+        updateClientGame(serverInfo);
     }
 
     function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
         let returnText: string = "";
         if (newCards){
-            returnText += "background-image:url(../../../../static/modern-theme-images/dark/";
+            if (dark) {
+                returnText += "background-image:url(../../../../modern-theme-images/dark/";
+            } else {
+                returnText += "background-image:url(../../../../modern-theme-images/light/";
+            }
             returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
             returnText += cardValue["val"].toString();
-            returnText += ".png);"
+            returnText += ".png);";
         }
         return returnText;
     }

@@ -30,18 +30,34 @@ class Card:
     @staticmethod
     def fromDict(card:dict) -> object:
         return Card(val=card['val'], suit=card['suit'])
+    
+    # changes lists of card objects to lists of dictionaries and vice versa
+    @staticmethod
+    def cardsToDicts(listOfCards:list) -> list:
+        return [card.toDict() for card in listOfCards]
+    @staticmethod
+    def dictsToCards(listOfDicts:list) -> list:
+        return [Card.fromDict(card) for card in listOfDicts]
 
 class Deck:
-    def __init__(self):
-        self.cards = []
-        for suit in [Suit.CIRCLE,Suit.SQUARE,Suit.TRIANGLE]:
-            for val in range(1, 11):
-                self.cards.extend([Card(val, suit), Card(-val, suit)])
-        sylop = Card(0, 'sylop')
-        self.cards.extend([sylop, sylop])
-        self.shuffle()
+    def __init__(self, cards=[]):
+        self.cards = cards
+        # if no cards provided, create new deck
+        if cards == []:
+            for suit in [Suit.CIRCLE,Suit.SQUARE,Suit.TRIANGLE]:
+                for val in range(1, 11):
+                    self.cards.extend([Card(val, suit), Card(-val, suit)])
+            sylop = Card(0, 'sylop')
+            self.cards.extend([sylop, sylop])
+            self.shuffle()
     def __str__(self) -> str:
         return f'[{listToStr(self.cards)}]'
+    
+    def toListOfDicts(self) -> list:
+        return Card.cardsToDicts(self.cards)
+    @staticmethod
+    def fromListOfDicts(deck:list) -> object:
+        return Deck(Card.dictsToCards(deck))
 
     def shuffle(self):
         for i in range(len(self.cards)):
@@ -98,6 +114,12 @@ class Hand:
             if self.cards[i] != other.cards[i]:
                 return False
         return True
+    
+    def toListOfDicts(self) -> list:
+        return Card.cardsToDicts(self.cards)
+    @staticmethod
+    def fromListOfDicts(hand:list) -> object:
+        return Hand(Card.dictsToCards(hand))
     
     def getListOfVals(self) -> list:
         return [card.value for card in self.cards]
@@ -198,17 +220,34 @@ class Hand:
         return lowest
 
 class Player:
-    def __init__(self, id):
+    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=None, folded=False, lastAction = ''):
         self.id = id
-        self.hand = Hand()
-        self.credits = 990
-        self.bet = 0
+        self.username = username
+        self.credits = credits
+        self.bet = bet
+        self.hand = Hand() if hand == None else hand
+        self.folded = folded
+        self.lastAction = lastAction
+    
+    def toDict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'credits': self.credits,
+            'bet': self.bet,
+            'hand': self.hand.toListOfDicts(),
+            'folded': self.folded,
+            'lastAction': self.lastAction
+        }
+    @staticmethod
+    def fromDict(player:dict) -> object:
+        return Player(id=player['id'], username=player['username'], credits=player['credits'], bet=player['bet'], hand=player['hand'], folded=player['folded'], lastAction=player['lastAction'])
     
     def __str__(self) -> str:
         return str(self.id)
     def toString(self) -> str:
         ranking = self.hand.getRanking()
-        return f'player {self.id}:\n\thand ({Hand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
+        return f'player {self.id}:\n\tcredits: {self.credits}, bet: {self.bet}\n\thand ({Hand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
     
     def addToHand(self, cards):
         if type(cards) != list:
@@ -226,6 +265,22 @@ class Player:
             if self.hand[i] == targetCard:
                 return i
         return -1
+    
+    # betting
+    def getBet(self) -> int:
+        return self.bet if self.bet != None else 0
+    def makeBet(self, betAmount:int, absolute:bool=True):
+        if absolute:
+            self.credits -= betAmount - self.getBet()
+            self.bet = betAmount
+        else:
+            self.credits -= betAmount
+            self.bet += betAmount
+    
+    def fold(self):
+        self.credits += self.getBet()
+        self.bet = None
+        self.folded = True
 
 class CorellianSpikeGame:
     def __init__(self, playerIds:list):
@@ -241,7 +296,7 @@ class CorellianSpikeGame:
         ret = '\n'
         for player in self.players:
             ret += player.toString()
-        ret += '\n' + self.determineWinner()
+        #ret += '\n' + self.determineWinner()
         return ret
     
     def newGame(self):
@@ -254,6 +309,10 @@ class CorellianSpikeGame:
         self.discardPile = [self.deck.draw()]
         self.handPot = 5 * len(self.players)
         self.sabaccPot = 5 * len(self.players)
+
+        # distribute credits
+        for player in self.players:
+            player.credits = 1000
 
         # deal cards to each player
         # for i in range(1):
@@ -461,5 +520,10 @@ def addPlusBeforeNumber(n:int) -> str:
 def bothOrAll(num:int):
     return 'both' if num == 2 else 'all'
 
-game = CorellianSpikeGame(list(range(1, 21)))
+game = CorellianSpikeGame(list(range(1, 3)))
+game.players[0].makeBet(10)
+game.players[1].makeBet(10)
+print(game)
+game.players[0].makeBet(10, False)
+game.players[1].makeBet(game.players[0].getBet())
 print(game)

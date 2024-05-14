@@ -220,12 +220,12 @@ class Hand:
         return lowest
 
 class Player:
-    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=None, folded=False, lastAction = ''):
+    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=Hand(), folded=False, lastAction = ''):
         self.id = id
         self.username = username
         self.credits = credits
         self.bet = bet
-        self.hand = Hand() if hand == None else hand
+        self.hand = hand
         self.folded = folded
         self.lastAction = lastAction
     
@@ -241,7 +241,7 @@ class Player:
         }
     @staticmethod
     def fromDict(player:dict) -> object:
-        return Player(id=player['id'], username=player['username'], credits=player['credits'], bet=player['bet'], hand=player['hand'], folded=player['folded'], lastAction=player['lastAction'])
+        return Player(id=player['id'], username=player['username'], credits=player['credits'], bet=player['bet'], hand=Hand.fromListOfDicts(player['hand']), folded=player['folded'], lastAction=player['lastAction'])
     
     def __str__(self) -> str:
         return str(self.id)
@@ -511,7 +511,36 @@ class CorellianSpikeGame:
     def playerDiscardAction(self, player:Player, discardCardIndex:int):
         player.credits -= 20 * self.round
         self._playerDiscard(player, discardCardIndex)
+    
+    # set up for next round
+    def nextRound(self):
+        # rotate dealer (1st in list is always dealer) - move 1st player to end
+        self.players.append(self.players.pop(0))
 
+        for player in self.players:
+            player.credits -= 10 # Make users pay Sabacc and Hand pot Antes
+            player.bet = None # reset bets
+            player.folded = False # reset folded
+            player.lastAction = '' # reset last action
+        
+        # Update pots
+        self.hand_pot = 5 * len(self.players)
+        self.sabacc_pot += 5 * len(self.players)
+
+        # construct deck and deal hands
+        self.deck = Deck()
+        self.dealHands()
+    
+    def dealHands(self):
+        for player in self.players:
+            player.hand.cards = self._drawFromDeck(2)
+    
+    def getActivePlayers(self):
+        activePlayers = []
+        for player in self.players:
+            if not player.folded:
+                activePlayers.append(player)
+        return activePlayers
 
 # if the number is positive, it adds a plus in front of it (otherwise just returns the number)
 def addPlusBeforeNumber(n:int) -> str:

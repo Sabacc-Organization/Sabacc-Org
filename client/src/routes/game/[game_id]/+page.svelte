@@ -231,21 +231,7 @@
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
     // this applies to bet, card, shift, and playAgain.
-    function protect(id: string) {
-        let protectCardDex = player_hands[u_dex].indexOf(parseInt(document.getElementById(id)?.innerText));
-        let protCard = {
-            'val': 0,
-            'suit': 'blah',
-            'prot': false
-        };
-
-        game['players'].forEach((player) => {
-            if (player['id'] === user_id){
-                protCard = player['hand'][protectCardDex];
-            }
-        });
-        console.log(protCard);
-
+    function protect(protCard : {[id: string]: any}) {
         let clientInfo = {
             "username": username,
             "password": password,
@@ -551,7 +537,7 @@
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
                                     on:click={() => trade("card" + ci.toString())}
-                                    on:dblclick={() => protect("card" + ci.toString())}
+                                    on:dblclick={() => protect(c)}
                                     id="card{ci.toString()}"
                                     class="card child own"
                                     style="{renderCard(c)}">
@@ -566,7 +552,7 @@
                                     class="card child own protected"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5>{c['val']}</h5>
+                                    <h5 class="protected">{c['val']}</h5>
                                 {/if}
                             {:else}
                                 {#if game["completed"] == 0}
@@ -574,7 +560,7 @@
                                         <div class="card child"></div>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
-                                        <h5>{c['val']}</h5>
+                                        <h5 class="protected">{c['val']}</h5>
                                     {/if}
                                 {:else if game["completed"] == 1}
                                     <div class="card child" style="{renderCard(c)}"></div>

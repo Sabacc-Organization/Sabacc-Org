@@ -62,9 +62,13 @@
     text-align: center;
 }
 
-.protected{
+.card.protected{
     background-image: none;
     background-color: firebrick;
+}
+
+h5.protected{
+    color: firebrick;
 }
 
 .alderaan{

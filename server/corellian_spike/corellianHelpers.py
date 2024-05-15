@@ -52,6 +52,8 @@ class Deck:
             self.shuffle()
     def __str__(self) -> str:
         return f'[{listToStr(self.cards)}]'
+    def toStr(self) -> str:
+        return f'deck ({len(self.cards)}): {self}'
     
     def toListOfDicts(self) -> list:
         return Card.cardsToDicts(self.cards)
@@ -69,9 +71,10 @@ class Deck:
     # remove a number of cards from the top (end) of the deck and return them
     def draw(self, numCards=1):
         # check there are enuf cards left in deck
-        if len(self.cards) < numCards:
+        cardsLeft = len(self.cards)
+        if cardsLeft < numCards:
             print(f"ERROR: trying to draw from deck but not enough cards left")
-            return None
+            return None if cardsLeft == 0 else self.draw(cardsLeft)
         
         if numCards == 1:
             return self.cards.pop()
@@ -283,41 +286,40 @@ class Player:
         self.folded = True
 
 class CorellianSpikeGame:
-    def __init__(self, playerIds:list):
+    def __init__(self, playerIds:list, startingCredits=1000, hand_pot_ante=5, sabacc_pot_ante=5):
         self.players = []
         for id in playerIds:
             self.players.append(Player(id))
+        self.hand_pot_ante = hand_pot_ante
+        self.sabacc_pot_ante = sabacc_pot_ante
+        # distribute credits
+        for player in self.players:
+            player.credits = startingCredits - hand_pot_ante - sabacc_pot_ante
         self.newGame()
         # designate the 1st player as the 1st dealer
         self.dealer = self.players[0]
         
     # for testing purposes
     def __str__(self) -> str:
-        ret = '\n'
+        ret = f'\ndeck ({len(self.deck.cards)}): {self.deck}\ndiscard pile ({len(self.discardPile)}): [{listToStr(self.discardPile)}]\nhand pot: {self.handPot}\tsabacc pot: {self.sabaccPot}\n\n'
         for player in self.players:
             ret += player.toString()
         #ret += '\n' + self.determineWinner()
         return ret
     
+    # start a new game (with same players)
     def newGame(self):
         # clear players' hands
         for player in self.players:
-            player.hand.cards = []
+            player.hand = Hand()
         
-        # create deck, discard pile, and pots
+        # create deck and pots
         self.deck = Deck()
-        self.discardPile = [self.deck.draw()]
-        self.handPot = 5 * len(self.players)
-        self.sabaccPot = 5 * len(self.players)
-
-        # distribute credits
-        for player in self.players:
-            player.credits = 1000
+        self.handPot = self.hand_pot_ante * len(self.players)
+        self.sabaccPot = self.sabacc_pot_ante * len(self.players)
 
         # deal cards to each player
-        # for i in range(1):
-        for player in self.players:
-            player.hand.cards = self.deck.draw(random.randint(2,5))
+        self.dealHands()
 
         # create discard pile with a card from the deck
         self.discardPile = [self.deck.draw()]
@@ -341,7 +343,7 @@ class CorellianSpikeGame:
             # put player's cards on bottom of deck
             self.deck.cards = player.hand.cards + self.deck.cards
             # deal player as many cards as they had before
-            player.hand.cards = self._drawFromDeck(len(player.hand.cards))
+            player.hand.cards = self.safeDrawFromDeck(len(player.hand.cards))
     
     def determineWinner(self) -> str:
         ret = ''
@@ -446,12 +448,12 @@ class CorellianSpikeGame:
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
-        self.deck.cards = self.discardPile
+        self.deck.cards = self.discardPile + self.deck.cards # keep remaining cards on top (end)
         self.discardPile = []
         self.deck.shuffle()
 
     # draw a number of cards from the deck (reshuffling if necessary)
-    def _drawFromDeck(self, numCards=1):
+    def safeDrawFromDeck(self, numCards=1):
         if(len(self.deck.cards) < numCards):
             self._reshuffle()
         return self.deck.draw(numCards)
@@ -471,7 +473,7 @@ class CorellianSpikeGame:
 
     # draw cards from deck for player
     def _playerDrawFromDeck(self, player:Player, numCards=1):
-        drawnCard = self._drawFromDeck(numCards)
+        drawnCard = self.safeDrawFromDeck(numCards)
         player.addToHand(drawnCard)
         return drawnCard
 
@@ -518,14 +520,14 @@ class CorellianSpikeGame:
         self.players.append(self.players.pop(0))
 
         for player in self.players:
-            player.credits -= 10 # Make users pay Sabacc and Hand pot Antes
+            player.credits -= self.hand_pot_ante + self.sabacc_pot_ante # Make users pay hand and sabacc pot antes
             player.bet = None # reset bets
             player.folded = False # reset folded
             player.lastAction = '' # reset last action
         
         # Update pots
-        self.hand_pot = 5 * len(self.players)
-        self.sabacc_pot += 5 * len(self.players)
+        self.hand_pot = self.hand_pot_ante * len(self.players)
+        self.sabacc_pot += self.sabacc_pot_ante * len(self.players)
 
         # construct deck and deal hands
         self.deck = Deck()
@@ -533,7 +535,7 @@ class CorellianSpikeGame:
     
     def dealHands(self):
         for player in self.players:
-            player.hand.cards = self._drawFromDeck(2)
+            player.hand.cards = self.safeDrawFromDeck(2)
     
     def getActivePlayers(self):
         activePlayers = []
@@ -550,9 +552,7 @@ def bothOrAll(num:int):
     return 'both' if num == 2 else 'all'
 
 game = CorellianSpikeGame(list(range(1, 3)))
-game.players[0].makeBet(10)
-game.players[1].makeBet(10)
 print(game)
-game.players[0].makeBet(10, False)
-game.players[1].makeBet(game.players[0].getBet())
+game.players[0].makeBet(10)
+game.players[1].makeBet(20)
 print(game)

@@ -45,16 +45,8 @@
         "cycle_count": 0
     };
 
-    let players:       any[] = [], //redun
-    orderedPlayers:    any[] = [],
-    player_ids:        any[] = [], //redun
-    player_hands:      any[] = [], //redun
-    player_credits:    any[] = [], //redun
-    player_bets:       any[] = [], //redun
-    player_protecteds: any[] = []; //redun
-
-    let neoPlayers: any[] = []
-    let neoOrderedPlayers: any[] = []
+    let players: any[] = []
+    let orderedPlayers: any[] = []
 
     // User ID
     let user_id = -1;
@@ -79,7 +71,7 @@
         socket = io(BACKEND_URL);
 
         // code to catch errors
-        socket.io.on('error', (err) => {console.log(err)});
+        socket.io.on('error', (err: any) => {console.log(err)});
 
         // when there is a connection established with the server, it will explicitely ask the server for a game update. 
         // this is the only time it will explicitly ask for a game update.
@@ -129,49 +121,28 @@
         }
 
         // sets all player specific elements, such as hands and whatnot
-        player_ids = [];
-        player_hands = [];
-        player_credits = [];
-        player_bets = [];
-        player_protecteds = [];
-        neoPlayers = [];
+        players = [];
 
-        game['players'].forEach(element => {
+        game['players'].forEach((element : any) => {
             if (serverInfo["users"].indexOf(element['username']) != -1){
-                let cardsvals: number[] = [];
-                let cardsprots: number[] = [];
+                players.push(element);
 
-                element['hand'].forEach(card => {
-                    cardsvals.push(card['val']);
-                    cardsprots.push(card['prot']);
-                });
-                player_hands.push(cardsvals);
-                player_protecteds.push(cardsprots);
-
-                player_ids.push(element['id']);
-                player_credits.push(element['credits']);
-                player_bets.push(element['bet']);
-
-                neoPlayers.push(element);
+                //sets u_dex
+                if (user_id === element['id']) {
+                    u_dex = players.indexOf(element);
+                }
             }
         });
 
-        // Set u_dex
-        u_dex = player_ids.indexOf(user_id);
-
         //sets players, and sets orderedPlayers to the correct length in case of a fold.
-        players = [... serverInfo["users"]];
         orderedPlayers = [... players];
-        neoOrderedPlayers = [... neoPlayers];
 
         // If player is in game, make orderedPlayers proper
         if (u_dex != -1) {
             for (let i = 0; i < players.length; i++) {
-                neoOrderedPlayers[i] = neoPlayers[(i + u_dex) % players.length];
                 orderedPlayers[i] = players[(i + u_dex) % players.length];
             }
         }
-        console.log(neoOrderedPlayers)
 
         // Creat p(layer)s array
         let ps: any[] = [];
@@ -251,13 +222,13 @@
 
     function bet(action: string) {
         if (potsActive) {
-            if ((isNaN(betCreds) || betCreds < 0 || betCreds > player_credits[u_dex]) && action != "fold") {
-                betErr = "Please input a number of credits you would like to bet(an integer 0 to " + player_credits[u_dex] + ")";
+            if ((isNaN(betCreds) || betCreds < 0 || betCreds > players[u_dex]['credits']) && action != "fold") {
+                betErr = "Please input a number of credits you would like to bet(an integer 0 to " + players[u_dex]['credits'] + ")";
             } else {
 
                 let tempCreds = betCreds;
-                if (raising && !isNaN(player_bets[u_dex])) {
-                    tempCreds = betCreds - player_bets[u_dex];
+                if (raising && !isNaN(players[u_dex]['bet'])) {
+                    tempCreds = betCreds - players[u_dex]['bet'];
                 }
 
                 let clientInfo = {
@@ -267,7 +238,6 @@
                     "action": action,
                     "amount": tempCreds
                 }
-                console.log(clientInfo)
                 socket.emit('bet', clientInfo);
             }
             raising = false;
@@ -284,7 +254,7 @@
 
     $: {
         if (game["completed"] == 0 && game["player_turn"] === user_id && game["phase"] === "betting"){
-            if (u_dex === 0 && player_bets[u_dex + 1] === null){
+            if (u_dex === 0 && players[u_dex + 1]['bet'] === null){
                 if (betCreds == null){
                     betCreds = 0;
                 }
@@ -314,14 +284,14 @@
             raiseAmount = 0;
             followAmount = 0;
 
-            for (let i = 0; i < player_bets.length; i++) {
-                if (player_bets[i] != null) {
-                    if (player_bets[i] > raiseAmount) {
-                        raiseAmount = player_bets[i];
+            for (let i = 0; i < players.length; i++) {
+                if (players[i]['bet'] != null) {
+                    if (players[i]['bet'] > raiseAmount) {
+                        raiseAmount = players[i]['bet'];
                     }
                 }
             }
-            followAmount = raiseAmount - player_bets[u_dex];
+            followAmount = raiseAmount - players[u_dex]['bet'];
             if (isNaN(followAmount)) {
                 followAmount = raiseAmount;
             }
@@ -337,7 +307,7 @@
     }
 
     function raise() {
-        if (betCreds > raiseAmount && betCreds <= player_credits[u_dex]) {
+        if (betCreds > raiseAmount && betCreds <= players[u_dex]['credits']) {
             bet("raise");
         }
         else {
@@ -357,7 +327,7 @@
     let tradeOpen = false;
     let tradeCard = {
         'val': 0,
-        'suit': null,
+        'suit': 'none',
         'prot': false
     };
 
@@ -405,14 +375,9 @@
         tradeOpen = true;
     }
 
-    function trade(c: string) {
+    function trade(traCard: {'val':number, 'suit':string, 'prot':boolean}) {
         if (tradeOpen) {
-            let tradeCardDex = player_hands[u_dex].indexOf(parseInt(document.getElementById(c)?.innerText));
-            game['players'].forEach((player) => {
-                if (player['id'] === user_id){
-                    tradeCard = player['hand'][tradeCardDex];
-                }
-            });
+            tradeCard = traCard;
             card("trade");
         }
     }
@@ -518,25 +483,25 @@
         </div>
 
         {#each players as p, i}
-            <div id="{p}Stuff" class="parent player{orderedPlayers.indexOf(p)}">
+            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)}">
 
                 <!-- Bet boxes -->
-                {#if p === username}
-                    <div id="{p}BetBox" class="backBlue {game["player_turn"] == player_ids[i]? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{player_bets[i]===null? '':player_bets[i]}</span></h5> <div id="{p}BetPile"></div></div>
+                {#if p['username'] === username}
+                    <div id="{p['username']}BetBox" class="backBlue {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{p['bet']===null? '':p['bet']}</span></h5> <div id="{p['username']}BetPile"></div></div>
                 {:else}
-                    <div id="{p}BetBox" class="backRed {game["player_turn"] == player_ids[i]? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div>{player_bets[i]===null? '':player_bets[i]}</h5></div>
+                    <div id="{p['username']}BetBox" class="backRed {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div>{p['bet']===null? '':p['bet']}</h5></div>
                 {/if}
 
                 <!-- Cards -->
                 <div class="cardsContainer">
-                    {#each neoPlayers[i]["hand"] as c, ci}
+                    {#each players[i]["hand"] as c, ci}
                         <div class="cardContainer">
-                            {#if p === username}
-                                {#if !player_protecteds[i][ci]}
+                            {#if p['username'] === username}
+                                {#if !c['prot']}
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                    on:click={() => trade("card" + ci.toString())}
+                                    on:click={() => trade(c)}
                                     on:dblclick={() => protect(c)}
                                     id="card{ci.toString()}"
                                     class="card child own"
@@ -547,7 +512,7 @@
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                    on:click={() => trade("card" + ci.toString())}
+                                    on:click={() => trade(c)}
                                     id="card{ci.toString()}"
                                     class="card child own protected"
                                     style="{renderCard(c)}">
@@ -556,7 +521,7 @@
                                 {/if}
                             {:else}
                                 {#if game["completed"] == 0}
-                                    {#if !player_protecteds[i][ci]}
+                                    {#if !c['prot']}
                                         <div class="card child"></div>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
@@ -572,11 +537,11 @@
                 </div>
 
                 <!-- Player boxes -->
-                {#if p === username}
+                {#if p['username'] === username}
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div id="{p}Box" class="backBlue {game["player_turn"] == player_ids[i]? "turnGlow" : "noTurnGlow"} playerBox">
-                        <h5>{p}</h5> 
+                    <div id="{p['username']}Box" class="backBlue {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox">
+                        <h5>{p['username']}</h5> 
                         <div class="parent">
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -588,10 +553,10 @@
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div class="ownChip child chip lowChip" on:click={() => handleChipPress(1)}></div> 
                         </div>
-                        <h5><div class="imperial-credits-logo"></div><span id="credits">{player_credits[i]}</span></h5>
+                        <h5><div class="imperial-credits-logo"></div><span id="credits">{p['credits']}</span></h5>
                     </div>
                 {:else}
-                    <div id="{p}Box" class="backRed {game["player_turn"] == player_ids[i]? "turnGlow" : "noTurnGlow"} playerBox"> <h5>{p}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p}_credits">{player_credits[i]}</span></h5></div>
+                    <div id="{p['username']}Box" class="backRed {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox"> <h5>{p['username']}</h5> <div class="parent"> <div class="chip bigChip child"></div> <div class="chip midChip child"></div> <div class="chip lowChip child"></div> </div> <h5><div class="imperial-credits-logo"></div><span id="{p['username']}_credits">{p['credits']}</span></h5></div>
                 {/if}
 
             </div>
@@ -604,9 +569,9 @@
                 {#if game["player_turn"] === user_id}
                     {#if game["phase"] === "betting"}
                         {#if u_dex === 0}
-                            {#if player_bets[u_dex + 1] === null}
+                            {#if players[u_dex + 1]['bet'] === null}
                                 <div id="betDiv" class="backBlue brightBlue"> 
-                                    <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={player_credits[u_dex]} placeholder="Credits" required> 
+                                    <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={players[u_dex]['credits']} placeholder="Credits" required> 
                                     <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button>
                                     <p class="red">{betErr}</p>
                                 </div>
@@ -619,7 +584,7 @@
                                     </div>
                                 {:else}
                                     <div id="betDiv" class="backBlue brightBlue"> 
-                                        <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={player_credits[u_dex]} placeholder="Credits" required> 
+                                        <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={players[u_dex]['credits']} placeholder="Credits" required> 
                                         <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
                                         <p class="red">{betErr}</p>
                                     </div>
@@ -636,7 +601,7 @@
                                 </div>
                             {:else}
                                 <div id="betDiv" class="backBlue brightBlue"> 
-                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={player_credits[u_dex]} placeholder="Credits" required> 
+                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={players[u_dex]['credits']} placeholder="Credits" required> 
                                     <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
                                     <p class="red">{betErr}</p>
                                 </div>

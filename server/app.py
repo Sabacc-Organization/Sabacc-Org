@@ -542,6 +542,26 @@ def bet(clientInfo):
             endRound = True
             nextPlayer = 0
 
+        # If the player which folded was player 1
+        if player == "player1":
+            highestBet = 0
+            for bet in newBets.split(","):
+                try:
+                    if int(bet) > highestBet:
+                        highestBet = int(bet)
+
+                except ValueError:
+                    pass
+
+            for i in range(len(newBets.split(","))):
+                if newBets.split(",")[i] == "":
+                    nextPlayer = i
+                    break
+
+                if int(newBets.split(",")[i]) < highestBet:
+                    nextPlayer = i
+                    break
+
         # Update game
         db.execute(f"UPDATE games SET player_ids = ?, player_credits = ?, player_bets = ?, player_hands = ?, player_protecteds = ?, player_turn = ?, folded_players = ?, folded_credits = ?, p_act = ? WHERE game_id = {game_id}", newPlayers, newCredits, newBets, newHands, newProtecteds, int(newPlayers.split(",")[nextPlayer]), newFoldedP, newFoldedC, f"{uName} folds")
 

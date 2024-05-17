@@ -278,7 +278,7 @@
                 }
                 chipInput = true;
             }
-            if (raising && (betCreds <= raiseAmount || betCreds == null)){
+            if (raising && betCreds == null){
                 betCreds = raiseAmount+1;
             }
         }
@@ -330,6 +330,7 @@
         }
         else {
             betErr = "Invalid amount of credits";
+            betCreds = raiseAmount + 1;
         }
     }
 
@@ -603,7 +604,7 @@
                             {#if raising === false}
                                 <div id="betDiv" class="backBlue brightBlue"> 
                                     <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                    <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
+                                    <button on:click={() => {raising = true; chipInput = true; betCreds = raiseAmount + 1}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
                                 </div>
                             {:else}

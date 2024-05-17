@@ -78,7 +78,7 @@ def findBestDexes(handVals, bestVal):
     return bestDexes
 
 
-# Master function that incorporates the other functions to end the game (determine the winner, final hand vals, etc.) (Most big brain piece of code in this project)
+# Master function that incorporates the other functions to end the game (determine the winner, final hand vals, etc.)
 def alderaanEnd(game:object, suddenDemise:bool, bD:list = []):
 
     # Make copies of inputs

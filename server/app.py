@@ -478,7 +478,7 @@ def bet(clientInfo):
 
 
         # If a player raised and it has come back to them
-        if endRound == False and readIntValStrList(newBets, nextPlayer) == readIntValStrList(newBets, u_dex):
+        if endRound == False and newBets.split(",")[nextPlayer] == newBets.split(",")[u_dex]:
 
             # If the player that raised was the last player
             if nextPlayer == len(users) - 1:

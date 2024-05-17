@@ -7,6 +7,8 @@
 
     Cookies.remove("username");
     Cookies.remove("password");
+    Cookies.remove("theme");
+    Cookies.remove("dark");
 
     customRedirect(FRONTEND_URL);
 

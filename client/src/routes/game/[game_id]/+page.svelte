@@ -186,18 +186,44 @@
     }
 
     function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
-        let returnText: string = "";
-        if (newCards){
-            if (dark) {
-                returnText += "background-image:url(../../../../modern-theme-images/dark/";
-            } else {
-                returnText += "background-image:url(../../../../modern-theme-images/light/";
-            }
-            returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
-            returnText += cardValue["val"].toString();
-            returnText += ".png);";
+        let returnText: string = "background-image:url(";
+
+        let darkPath = "../../../../modern-theme-images/dark/"
+        let lightPath = "../../../../modern-theme-images/light/"
+        let pescadoPath = "../../../../modern-theme-images/pescado/"
+
+        if (cardDesign === "classic"){
+            returnText += "../../../../images/rebels-card-back.png);"
+            return returnText
         }
+
+        else if (cardDesign === "auto"){
+            returnText += dark? darkPath:lightPath
+        }
+
+        else if (cardDesign === "dark"){
+            returnText += darkPath
+        }
+
+        else if (cardDesign === "light"){
+            returnText += lightPath
+        }
+
+        else if (cardDesign === "pescado"){
+            returnText += pescadoPath
+        }
+
+        returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
+        returnText += cardValue["val"].toString();
+        returnText += ".png);";
         return returnText;
+    }
+
+    function renderBack(){
+        if (cardDesign === "pescado"){
+            return "../../../../modern-theme-images/pescado/back.png"
+        }
+        return "../../../../images/rebels-card-back.png"
     }
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
@@ -522,7 +548,7 @@
                             {:else}
                                 {#if game["completed"] == 0}
                                     {#if !c['prot']}
-                                        <div class="card child"></div>
+                                        <div class="card child" style="{renderBack()}"></div>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
                                         <h5 class="protected">{c['val']}</h5>

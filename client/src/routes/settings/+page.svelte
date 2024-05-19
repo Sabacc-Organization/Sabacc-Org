@@ -36,7 +36,7 @@
     function save() {
         Cookies.set("dark", dark? "true":"false", {"expires": 30});
 
-        Cookies.set("cardDesigns", cardDesign, {"expires": 30});
+        Cookies.set("cardDesign", cardDesign, {"expires": 30});
 
         Cookies.set("theme", theme, {"expires": 30});
 

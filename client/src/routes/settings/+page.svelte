@@ -14,12 +14,14 @@
 
     let dark: boolean | string | undefined = Cookies.get("dark");
     dark = (dark == "true");
-    let newCards: boolean | string | undefined = Cookies.get("newCards");
-    newCards = (newCards == "true");
 
     let theme = Cookies.get("theme");
     if (theme == undefined){
         theme = "modern"
+    }
+    let cardDesign = Cookies.get("cardDesign");
+    if (cardDesign == undefined){
+        cardDesign = "auto"
     }
 
     onMount(async() => {
@@ -34,7 +36,7 @@
     function save() {
         Cookies.set("dark", dark? "true":"false", {"expires": 30});
 
-        Cookies.set("newCards", newCards? "true":"false", {"expires": 30});
+        Cookies.set("cardDesigns", cardDesign, {"expires": 30});
 
         Cookies.set("theme", theme, {"expires": 30});
 
@@ -60,15 +62,18 @@
     </label>
 
 </div>
-<div class="parent">
-    <h5 class="child">New Card Designs</h5>
-    <!-- Rounded switch -->
-    <label class="switch child">
-        <input bind:checked={newCards} name="newCards" type="checkbox">
-        <span class="slider round"></span>
-    </label>
 
-</div>
+<br>
+
+<label for="cardDesign">Card Design</label>
+
+<select bind:value={cardDesign} name="cardDesign" id="cardDesign">
+    <option value="classic">Classic</option>
+    <option value="auto">Auto</option>
+    <option value="dark">Dark</option>
+    <option value="light">Light</option>
+    <option value="pescado">Pescado</option>
+</select>
 
 <br>
 

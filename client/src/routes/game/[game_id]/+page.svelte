@@ -14,7 +14,7 @@
     let password = Cookies.get("password");
     let loggedIn = false;
     let dark = (Cookies.get("dark") == "true");
-    let newCards = (Cookies.get("newCards") == "true");
+    let cardDesign = (Cookies.get("cardDesign"));
     let theme = Cookies.get("theme");
 
     // dont render the page until dataToRender is true

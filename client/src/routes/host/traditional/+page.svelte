@@ -89,7 +89,7 @@
                 "players": players
             }
 
-            const response = await fetch(BACKEND_URL + "/host", {
+            const response = await fetch(BACKEND_URL + "/host/traditional", { // TODO it is ok if the link changes
                 method: 'POST', // Set the method to POST
                 headers: {
                     'Content-Type': 'application/json' // Set the headers appropriately
@@ -113,7 +113,7 @@
   <title>Sabacc: Host</title>
 </svelte:head>
 
-<h2>Host a game of Sabacc</h2>
+<h2>Host a game of <b>Traditional</b> Sabacc</h2>
 <br>
 <h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>
 

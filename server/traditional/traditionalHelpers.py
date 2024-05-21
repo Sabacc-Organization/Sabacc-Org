@@ -122,7 +122,7 @@ class Player:
         else:
             self.credits -= creditAmount
             self.bet += creditAmount
-class Game:
+class TraditionalGame:
     def __init__(self, players:list, id:int=None, deck:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
         self.id = id
         self.players = players
@@ -142,9 +142,9 @@ class Game:
         for player in players:
             player.credits = startingCredits - hand_pot_ante - sabacc_pot_ante
         # construct deck
-        deck = Game.newDeck()
+        deck = TraditionalGame.newDeck()
 
-        game = Game(players=players,deck=deck,player_turn=players[0].id,hand_pot=hand_pot_ante*len(players),sabacc_pot=sabacc_pot_ante*len(players))
+        game = TraditionalGame(players=players,deck=deck,player_turn=players[0].id,hand_pot=hand_pot_ante*len(players),sabacc_pot=sabacc_pot_ante*len(players))
         game.shuffleDeck()
         game.dealHands()
 
@@ -193,10 +193,10 @@ class Game:
         }
     @staticmethod
     def fromDb(game:object):
-        return Game(id=game[0],players=[Player.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=[Card.fromDb(card) for card in game[5]], player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
+        return TraditionalGame(id=game[0],players=[Player.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=[Card.fromDb(card) for card in game[5]], player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
     @staticmethod
     def fromDict(dict:dict):
-        return Game(id=dict['id'],players=[Player.fromDict(player) for player in dict['players']],deck=[Card.fromDict(card) for card in dict['deck']],player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
+        return TraditionalGame(id=dict['id'],players=[Player.fromDict(player) for player in dict['players']],deck=[Card.fromDict(card) for card in dict['deck']],player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
 
     def getActivePlayers(self):
         activePlayers = []
@@ -230,7 +230,7 @@ class Game:
             cardsToExclude = []
             for player in self.getActivePlayers():
                 cardsToExclude.extend(player.hand)
-            self.deck = Game.newDeck(cardsToExclude=cardsToExclude)
+            self.deck = TraditionalGame.newDeck(cardsToExclude=cardsToExclude)
             self.shuffleDeck()
         return self.deck.pop()
     
@@ -260,7 +260,7 @@ class Game:
         self.sabacc_pot += 10 * len(self.players)
 
         # construct deck and deal hands
-        self.deck = Game.newDeck()
+        self.deck = TraditionalGame.newDeck()
         self.dealHands()
 
     def alderaan(self, suddenDemise=False, sdPlayers:list=[]):
@@ -271,7 +271,7 @@ class Game:
                 player.hand.append(self.drawFromDeck())
         
         # calculate winners and losers
-        winningPlayers, bestHand, bombedOutPlayers = Game.calcWinners(sdPlayers) if suddenDemise else Game.calcWinners(self.players)
+        winningPlayers, bestHand, bombedOutPlayers = TraditionalGame.calcWinners(sdPlayers) if suddenDemise else TraditionalGame.calcWinners(self.players)
 
         winner = None
 

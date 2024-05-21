@@ -3,6 +3,9 @@ body {
     color: #ffffff;
 }
 
+.cardContainer{
+    text-shadow: none;
+}
 
 tr:nth-child(even)
 {

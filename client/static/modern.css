@@ -62,9 +62,13 @@
     text-align: center;
 }
 
-.protected{
+.card.protected{
     background-image: none;
     background-color: firebrick;
+}
+
+h5.protected{
+    color: firebrick;
 }
 
 .alderaan{
@@ -95,15 +99,15 @@
     margin: 3px;
 }
 
-#dieOne{
+#dieOne {
     background-color: #0cc23c;
 }
 
-#dieTwo.shift0{
+#dieTwo.shiftfalse {
     background-color: #ed3b3b;
 }
 
-#dieTwo.shift1{
+#dieTwo.shifttrue {
     background-color: #0cc23c;
 }
 
@@ -138,7 +142,7 @@
     z-index: 2;
 
     top: 40%;
-    
+
     margin: 0 auto;
 }
 
@@ -196,7 +200,7 @@
   background-image: url("modern-theme-images/Credit\ Bronze.png");
 }
 
-.cardContainer{
+.cardsContainer{
     display: grid;
     grid-template-columns: repeat(5, 1fr);
 }
@@ -228,7 +232,7 @@
     width: max-content;
 }
 
-.player0 > .cardContainer{
+.player0 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
@@ -246,7 +250,7 @@
     width: max-content;
 }
 
-.player1 > .cardContainer{
+.player1 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 58deg;
@@ -264,7 +268,7 @@
     width: max-content;
 }
 
-.player2 > .cardContainer{
+.player2 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 302deg;
@@ -282,7 +286,7 @@
     width: max-content;
 }
 
-.player3 > .cardContainer{
+.player3 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
@@ -300,7 +304,7 @@
     width: max-content;
 }
 
-.player4 > .cardContainer{
+.player4 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;
@@ -318,7 +322,7 @@
     width: max-content;
 }
 
-.player5 > .cardContainer{
+.player5 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 58deg;
@@ -336,7 +340,7 @@
     width: max-content;
 }
 
-.player6 > .cardContainer{
+.player6 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 302deg;
@@ -354,7 +358,7 @@
     width: max-content;
 }
 
-.player7 > .cardContainer{
+.player7 > .cardsContainer{
     position: absolute;
     z-index: 2;
     rotate: 0deg;

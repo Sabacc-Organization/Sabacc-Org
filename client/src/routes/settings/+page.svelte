@@ -11,14 +11,18 @@
     let username = Cookies.get("username");
     let password = Cookies.get("password");
     let loggedIn = false;
-    let dark: boolean | string = Cookies.get("dark");
-    if (dark === "true") {
-        dark = true;
-    }
-    else if (dark === "false") {
-        dark = false;
-    }
+
+    let dark: boolean | string | undefined = Cookies.get("dark");
+    dark = (dark == "true");
+
     let theme = Cookies.get("theme");
+    if (theme == undefined){
+        theme = "modern"
+    }
+    let cardDesign = Cookies.get("cardDesign");
+    if (cardDesign == undefined){
+        cardDesign = "auto"
+    }
 
     onMount(async() => {
 
@@ -30,12 +34,9 @@
     });
 
     function save() {
-        if (dark) {
-            Cookies.set("dark", "true", {"expires": 30});
-        }
-        else {
-            Cookies.set("dark", "false", {"expires": 30});
-        }
+        Cookies.set("dark", dark? "true":"false", {"expires": 30});
+
+        Cookies.set("cardDesign", cardDesign, {"expires": 30});
 
         Cookies.set("theme", theme, {"expires": 30});
 
@@ -61,6 +62,18 @@
     </label>
 
 </div>
+
+<br>
+
+<label for="cardDesign">Card Design</label>
+
+<select bind:value={cardDesign} name="cardDesign" id="cardDesign">
+    <option value="classic">Classic</option>
+    <option value="auto">Auto</option>
+    <option value="dark">Dark</option>
+    <option value="light">Light</option>
+    <option value="pescado">Pescado</option>
+</select>
 
 <br>
 

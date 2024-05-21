@@ -3,11 +3,13 @@ Flask-Session==0.4.0
 Flask-SocketIO==5.3.6
 Flask-Cors==4.0.0
 requests==2.27.1
-SQLAlchemy==1.4.23
+SQLAlchemy==2.0.29
 Jinja2==2.11.3
-cs50==7.0.2
+cs50==9.3.4
+psycopg==3.1.18
+psycopg_binary==3.1.18
 Werkzeug==1.0.1
-PyYAML==6.0
+PyYAML==6.0.1
 MarkupSafe==2.0.1
 python-socketio==5.11.2
 python-engineio==4.9.0

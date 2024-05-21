@@ -4,7 +4,6 @@
     import Cookies from 'js-cookie'
     import { onMount } from 'svelte';
     import { checkLogin} from '$lib/index.js';
-    import { page } from '$app/stores'
 
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
@@ -70,28 +69,24 @@
 
     <body>
 
-        <nav class="navbar navbar-expand-md border" class:navbar-light={dark!="true"} class:bg-light={dark!="true"} class:navbar-dark={dark==="true"} class:bg-dark={dark==="true"}>
+        <nav class="navbar navbar-expand-md navbar-light bg-light border">
             <a class="navbar-brand" href="/"><span class="blue">Sabacc</span></a>
             <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbar" data-toggle="collapse" type="button">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="nav nav-pills collapse navbar-collapse" id="navbar">
+            <div class="collapse navbar-collapse" id="navbar">
                 {#if loggedIn}
                     <ul class="navbar-nav mr-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/host"} href="/host">Host a Game</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/host">Host a Game</a></li>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>
-                        <li class="nav-item"><a class="nav-link" href="https://discord.com/invite/AaYrNZjBus" target="_blank">Join the Discord</a></li>
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/settings"} href="/settings">Settings</a></li>
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/logout"} href="/logout">Log Out</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
                     </ul>
                 {:else}
                     <ul class="navbar-nav ml-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>
-                        <li class="nav-item"><a class="nav-link" href="https://discord.com/invite/AaYrNZjBus" target="_blank">Join the Discord</a></li>
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/register"} href="/register">Register</a></li>
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/login"} href="/login">Log In</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/login">Log In</a></li>
                     </ul>
                 {/if}
             </div>

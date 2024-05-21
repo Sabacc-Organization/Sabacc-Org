@@ -57,6 +57,7 @@ CORS(app, origins=allowedCORS)
 
 # Connect to postgresql database
 conn = psycopg.connect(config['DATABASE'])
+print(conn)
 
 # Open a cursor to perform database operations
 db = conn.cursor()
@@ -77,7 +78,7 @@ try:
     """)
     print('created custom types')
 except psycopg.errors.DuplicateObject:
-    # print('custom types alr exist')
+    print('custom types alr exist')
     conn.rollback()
 
 # register custom types
@@ -91,7 +92,7 @@ db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TE
 db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
 db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
 
-# create test game
+# # create test game
 # if len(db.execute("SELECT game_id FROM games").fetchall()) == 0:
 #     deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
 #     hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
@@ -108,6 +109,11 @@ db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player
 
 # # commit changes
 # conn.commit()
+
+
+
+
+conn.commit()
 
 
 """ REST APIs """

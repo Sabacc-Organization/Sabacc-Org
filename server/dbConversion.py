@@ -1,10 +1,39 @@
-from app import *
+from cs50 import SQL
+from helpers import *
+from dataHelpers import *
+from traditional.alderaanHelpers import *
 from traditional.traditionalHelpers import *
+
+
+# function to clean up deck data from completed games
+def cleanDeckData(sqlite3_db):
+    games = sqlite3_db.execute("SELECT * FROM games WHERE completed = 1 AND phase = 'alderaan'")
+
+    for game in games:
+
+        deck = game["deck"]
+
+        commaString = ""
+        for l in deck:
+            if l != "," and commaString != "":
+                break
+            
+            elif l == ",":
+                commaString += l
+
+        if commaString != ",":
+
+            deck = deck.replace(commaString, ";")
+            deck = deck.replace(",", "")
+            deck = deck.replace(";", ",")
+
+            sqlite3_db.execute("UPDATE games SET deck = ? WHERE game_id = ?", deck, game["game_id"])
 
 # copy over data from sqlite3
 def convertDb(db, card_type, player_type):
     # connect to sqltie3 db
     sqlite3_db = SQL("sqlite:///sabacc.db")
+    cleanDeckData(sqlite3_db)
 
     # add test users and games
     # sqlite3_db.execute('INSERT INTO users (username, hash) VALUES (?, ?)', 'durin', 'the deathless')

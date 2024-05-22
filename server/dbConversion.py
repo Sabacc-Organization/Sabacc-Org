@@ -64,12 +64,6 @@ def convertDb(db, card_type, player_type):
 
     db.execute("DELETE FROM users WHERE HASH = %s", ["empty"])
 
-    # for user in users:
-    #     id = user['id']
-    #     # check if user alr exists first
-    #     if len(db.execute("SELECT * FROM users WHERE id = %s", [id]).fetchall()) == 0:
-    #         db.execute("INSERT INTO users (username, hash) VALUES (%s, %s)", [user['username'], user['hash']])
-
 
     # Copying over games could have a mechanism for empty rows like the users portion, but it's not necessary
     # copy over games

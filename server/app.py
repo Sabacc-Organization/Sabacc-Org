@@ -63,9 +63,23 @@ print(conn)
 db = conn.cursor()
 
 # create custom types
+
+# Create custom Suit type
 try:
     db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+    print("Created custom PostgreSQL type Suit")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type Suit already exists")
+
+# Create custom Card type
+try:
     db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+    print("Created custom PostgreSQL type Card")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type Card already exists")
+
+# Create custom Player type
+try:
     db.execute("""
         CREATE TYPE Player AS (
         id INTEGER,
@@ -76,10 +90,10 @@ try:
         folded BOOL,
         lastaction TEXT);
     """)
-    print('created custom types')
+    print("Created custom PostgreSQL type Player")
 except psycopg.errors.DuplicateObject:
-    print('custom types alr exist')
-    conn.rollback()
+    print("Custom PostgreSQL type Player already exists")
+
 
 # register custom types
 card_type = CompositeInfo.fetch(conn, 'card')

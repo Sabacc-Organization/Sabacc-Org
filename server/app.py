@@ -63,9 +63,27 @@ print(conn)
 db = conn.cursor()
 
 # create custom types
+
+# Create custom Suit type
 try:
     db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+    conn.commit()
+    print("Created custom PostgreSQL type Suit")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type Suit already exists")
+    conn.rollback()
+
+# Create custom Card type
+try:
     db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+    conn.commit()
+    print("Created custom PostgreSQL type Card")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type Card already exists")
+    conn.rollback()
+
+# Create custom Player type
+try:
     db.execute("""
         CREATE TYPE Player AS (
         id INTEGER,
@@ -76,10 +94,12 @@ try:
         folded BOOL,
         lastaction TEXT);
     """)
-    print('created custom types')
+    conn.commit()
+    print("Created custom PostgreSQL type Player")
 except psycopg.errors.DuplicateObject:
-    print('custom types alr exist')
+    print("Custom PostgreSQL type Player already exists")
     conn.rollback()
+
 
 # register custom types
 card_type = CompositeInfo.fetch(conn, 'card')
@@ -91,6 +111,8 @@ register_composite(player_type, db)
 db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
 db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
 db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+conn.commit()
+
 
 # # create test game
 # if len(db.execute("SELECT game_id FROM games").fetchall()) == 0:
@@ -100,20 +122,11 @@ db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, player
 #     game = Game(id=1,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
 #     dbGame = game.toDb(card_type, player_type)
 #     db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", dbGame)
+#     conn.commit()
 
 """ copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
-# try:
-#     dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
-# except:
-#     print(f"error converting db")
-
-# # commit changes
+# dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
 # conn.commit()
-
-
-
-
-conn.commit()
 
 
 """ REST APIs """
@@ -794,7 +807,7 @@ for code in default_exceptions:
 
 # cleanup code
 def handle_sigint(signum, frame):
-    print('cleaning up resources before shutdown...')
+    print("\nCleaning up resources before shutdown...")
 
     # close db connection
     conn.close()

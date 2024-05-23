@@ -221,9 +221,9 @@
 
     function renderBack(){
         if (cardDesign === "pescado"){
-            return "../../../../modern-theme-images/pescado/back.png"
+            return "background-image:url(../../../../modern-theme-images/pescado/back.png);"
         }
-        return "../../../../images/rebels-card-back.png"
+        return "background-image:url(../../../../images/rebels-card-back.png);"
     }
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame

@@ -334,9 +334,11 @@ def host():
     # Make list of players
     players = [Player(id=user_id,username=username)]
 
-    # Make sure there no more than 8 players
-    if len(formPlayers) > 8:
+    # Make sure the number of players is valid
+    if len(formPlayers) > 7:
         return jsonify({"message": "You can only have a maximum of eight players"}), 401
+    elif len(formPlayers) < 1:
+        return jsonify({"message": "You cannot play alone"}), 401
 
     # Ensure each submitted player is valid
     for pForm in formPlayers:
@@ -345,7 +347,7 @@ def host():
             p = getDictsForDB(db)
             if len(p) == 0:
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
-            if str(p[0]["id"]) == str(session.get("user_id")):
+            if str(p[0]["id"]) == str(user_id):
                 return jsonify({"message": "You cannot play with yourself"}), 401
             if p[0]["id"] in players:
                 return jsonify({"message": "All players must be different"}), 401

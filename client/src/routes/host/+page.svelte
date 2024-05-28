@@ -80,8 +80,29 @@
     }
 
     async function host() {
-        try {
 
+        if (players.length > 7) {
+            errorMsg = "You can only have a maximum of eight players";
+            return;
+        }
+        else if (players.length < 1) {
+            errorMsg = "You cannot play alone";
+            return;
+        }
+
+        if (players.indexOf(username) != -1) {
+            errorMsg = "You cannot play with yourself";
+            return;
+        }
+
+        for (let i = 0; i < players.length; i++) {
+            if (players.lastIndexOf(players[i]) != i) {
+                errorMsg = "All players must be different";
+                return;
+            }
+        }
+
+        try {
 
             let requestData = {
                 "username": username,

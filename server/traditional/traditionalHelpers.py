@@ -172,8 +172,11 @@ class Game:
         for player in self.players:
             player.hand = [self.drawFromDeck(),self.drawFromDeck()]
 
-    def toDb(self, card_type, player_type):
-        return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
+    def toDb(self, card_type, player_type, includeId=False):
+        if includeId:
+            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
+        elif includeId == False:
+            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
     def deckToDb(self, card_type):
         return [card.toDb(card_type) for card in self.deck]
     def playersToDb(self, player_type, card_type):

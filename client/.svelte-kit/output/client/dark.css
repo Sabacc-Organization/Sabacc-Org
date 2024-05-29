@@ -1,0 +1,13 @@
+body {
+    background-color: #212121;
+    color: #ffffff;
+}
+
+.cardContainer{
+    text-shadow: none;
+}
+
+tr:nth-child(even)
+{
+    background-color: #434242;
+}

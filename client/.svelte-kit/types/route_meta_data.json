@@ -1,7 +1,9 @@
 {
 	"/": [],
+	"/game": [],
 	"/game/[game_id]": [],
 	"/host": [],
+	"/how-to-play": [],
 	"/login": [],
 	"/logout": [],
 	"/register": [],

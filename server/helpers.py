@@ -17,6 +17,37 @@ with open("config.yml", "r") as f:
 conn = psycopg.connect(config['DATABASE'])
 db = conn.cursor()
 
+class Game:
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
+        self.players = players
+        self.id = id
+        self.player_turn = player_turn
+        self.p_act = p_act
+        self.deck = deck
+        self.hand_pot = hand_pot
+        self.sabacc_pot = sabacc_pot
+        self.phase = phase
+        self.cycle_count = cycle_count
+        self._shift = shift
+        self.completed = completed
+
+class Card:
+    def __init__(self, val:int, suit:Suit):
+        self.value = val
+        self.suit = suit
+    def __str__(self) -> str:
+        return f'{addPlusBeforeNumber(self.value)} {self.suit}'
+    def __eq__(self, other:object) -> bool:
+        return self.value == other.value and self.suit == other.suit
+    def toDict(self) -> dict:
+        return {
+            'val': self.value,
+            'suit': self.suit
+        }
+    @staticmethod
+    def fromDict(card:dict) -> object:
+        return Card(val=card['val'], suit=card['suit'])
+
 # Global deck constant
 DECK = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"
 
@@ -117,3 +148,10 @@ def rollShift():
         return True
     else:
         return False
+
+# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
+def addPlusBeforeNumber(n:int) -> str:
+    return ('+' if n > 0 else '') + str(n)
+
+def bothOrAll(num:int):
+    return 'both' if num == 2 else 'all'

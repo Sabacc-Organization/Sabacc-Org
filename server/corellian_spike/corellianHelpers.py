@@ -7,29 +7,13 @@ current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
 from dataHelpers import *
+from helpers import *
 
 class Suit:
     CIRCLE = 'circle'
     SQUARE = 'square'
     TRIANGLE = 'triangle'
     SYLOP = 'sylop'
-
-class Card:
-    def __init__(self, val:int, suit:Suit):
-        self.value = val
-        self.suit = suit
-    def __str__(self) -> str:
-        return f'{addPlusBeforeNumber(self.value)} {self.suit}'
-    def __eq__(self, other:object) -> bool:
-        return self.value == other.value and self.suit == other.suit
-    def toDict(self) -> dict:
-        return {
-            'val': self.value,
-            'suit': self.suit
-        }
-    @staticmethod
-    def fromDict(card:dict) -> object:
-        return Card(val=card['val'], suit=card['suit'])
 
 class Deck:
     def __init__(self):
@@ -227,7 +211,7 @@ class Player:
                 return i
         return -1
 
-class CorellianSpikeGame:
+class CorellianSpikeGame(Game):
     def __init__(self, playerIds:list):
         self.players = []
         for id in playerIds:
@@ -453,13 +437,6 @@ class CorellianSpikeGame:
         player.credits -= 20 * self.round
         self._playerDiscard(player, discardCardIndex)
 
-
-# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
-def addPlusBeforeNumber(n:int) -> str:
-    return ('+' if n > 0 else '') + str(n)
-
-def bothOrAll(num:int):
-    return 'both' if num == 2 else 'all'
 
 game = CorellianSpikeGame(list(range(1, 21)))
 print(game)

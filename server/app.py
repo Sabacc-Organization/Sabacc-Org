@@ -386,7 +386,7 @@ def protect(clientInfo):
 
     # Get card being protected
     print(clientInfo)
-    protect = Card.fromDict(clientInfo["protect"])
+    protect = TraditionalCard.fromDict(clientInfo["protect"])
 
     # Check if card being protected is in player's hand
     targetCard = None
@@ -530,7 +530,7 @@ def card(clientInfo):
 
     # Action information
     action = clientInfo["action"]
-    tradeCard = Card.fromDict(clientInfo["trade"])
+    tradeCard = TraditionalCard.fromDict(clientInfo["trade"])
 
     # Players list
     players = game.getActivePlayers()

@@ -102,7 +102,7 @@ def convertDb(db, card_type, player_type):
                 newHand = []
                 for j in range(len(oldHand)):
                     try:
-                        card = Card.randCardNotInList(val=int(oldHand[j]), protected=prots[j], unallowedCards=usedCards)
+                        card = TraditionalCard.randCardNotInList(val=int(oldHand[j]), protected=prots[j], unallowedCards=usedCards)
                         newHand.append(card)
                         usedCards.append(card)
                     except ValueError:
@@ -124,14 +124,14 @@ def convertDb(db, card_type, player_type):
         newDeck = []
         for val in oldDeck:
             try:
-                card = Card.randCardNotInList(val=int(val), unallowedCards=usedCards)
+                card = TraditionalCard.randCardNotInList(val=int(val), unallowedCards=usedCards)
                 newDeck.append(card)
                 usedCards.append(card)
             except ValueError:
                 pass
 
         # add game to db
-        newGame = Game(players=players, id=game['game_id'], deck=newDeck, player_turn=game['player_turn'], p_act=game['p_act'], hand_pot=game['hand_pot'], sabacc_pot=game['sabacc_pot'], phase=game['phase'], cycle_count=game['cycle_count'], shift=(game['shift'] == 1), completed=(game['completed'] == 1))
+        newGame = TraditionalGame(players=players, id=game['game_id'], deck=newDeck, player_turn=game['player_turn'], p_act=game['p_act'], hand_pot=game['hand_pot'], sabacc_pot=game['sabacc_pot'], phase=game['phase'], cycle_count=game['cycle_count'], shift=(game['shift'] == 1), completed=(game['completed'] == 1))
         if(len(db.execute("SELECT * FROM games WHERE game_id = %s", [newGame.id]).fetchall()) == 0):
             db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", newGame.toDb(card_type, player_type))
             numGamesCopied += 1

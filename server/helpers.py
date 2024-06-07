@@ -18,7 +18,7 @@ conn = psycopg.connect(config['DATABASE'])
 db = conn.cursor()
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, completed=False):
         self.players = players
         self.id = id
         self.player_turn = player_turn
@@ -28,7 +28,6 @@ class Game:
         self.sabacc_pot = sabacc_pot
         self.phase = phase
         self.cycle_count = cycle_count
-        self._shift = shift
         self.completed = completed
 
 class Card:

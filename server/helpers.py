@@ -18,20 +18,38 @@ conn = psycopg.connect(config['DATABASE'])
 db = conn.cursor()
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, completed=False):
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, phase='betting', cycle_count=0, completed=False):
         self.players = players
         self.id = id
         self.player_turn = player_turn
         self.p_act = p_act
         self.deck = deck
-        self.hand_pot = hand_pot
-        self.sabacc_pot = sabacc_pot
         self.phase = phase
         self.cycle_count = cycle_count
         self.completed = completed
+        
+    def getActivePlayers(self):
+        activePlayers = []
+        for player in self.players:
+            if not player.folded:
+                activePlayers.append(player)
+        return activePlayers
+
+    def getPlayerDex(self, username:str=None, id:int=None):
+        for i in range(len(self.players)):
+            player = self.players[i]
+            if player.username == username or player.id == id:
+                return i
+        return -1
+    def getPlayer(self, username:str=None, id:int=None):
+        dex = self.getPlayerDex(username=username, id=id)
+        return None if dex == -1 else self.players[dex]
+    def containsPlayer(self, username:str=None, id:int=None) -> bool:
+        return self.getPlayer(username=username, id=id) != None
+    
 
 class Card:
-    def __init__(self, val:int, suit:Suit):
+    def __init__(self, val:int, suit:str):
         self.value = val
         self.suit = suit
     def __str__(self) -> str:
@@ -46,9 +64,6 @@ class Card:
     @staticmethod
     def fromDict(card:dict) -> object:
         return Card(val=card['val'], suit=card['suit'])
-
-# Global deck constant
-DECK = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"
 
 # For getting a list of dictionaries for rows in a database.
 def getDictsForDB(cursor: psycopg.Cursor):
@@ -118,35 +133,6 @@ def checkLogin(username, password):
     
     # User authenticated!
     return {"message": "Logged in!", "status": 200}
-
-# Draw a card
-def drawCard(deckStr):
-
-    # Turn deck into a list
-    deckList = deckStr.split(",")
-
-    # Draw the card
-    randDex = random.randint(0, len(deckList) - 1)
-    card = deckList.pop(randDex)
-
-    # Turn deck back into string
-    deck = listToStr(deckList)
-
-    # Return deck and card drawn
-    data = {"deck": deck, "card": card}
-    return data
-
-# Roll the Shift dice
-def rollShift():
-    # Roll the dice
-    dieOne = random.randint(1, 6)
-    dieTwo = random.randint(1, 6)
-    
-    # If doubles, shift
-    if dieOne == dieTwo:
-        return True
-    else:
-        return False
 
 # if the number is positive, it adds a plus in front of it (otherwise just returns the number)
 def addPlusBeforeNumber(n:int) -> str:

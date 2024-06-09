@@ -19,8 +19,7 @@ class SpecialHands(Enum):
 
 class TraditionalCard(Card):
     def __init__(self, val:int, suit:Suit, protected=False):
-        self.val = val
-        self.suit = suit
+        super().__init__(val=val, suit=suit)
         self.protected = protected
     def __eq__(self, other) -> bool:
         return other != None and (self.val == other.val and self.suit == other.suit)
@@ -126,32 +125,52 @@ class Player:
             self.bet += creditAmount
 
 class TraditionalGame(Game):
+    handPotAnte = 5
+    sabaccPotAnte = 10
+
     def __init__(self, players:list, id:int=None, deck:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
-        self.id = id
-        self.players = players
+        super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
-        self.phase = phase
-        self.deck = deck
-        self.player_turn = player_turn
-        self.p_act = p_act
-        self.cycle_count = cycle_count
         self._shift = shift
-        self.completed = completed
+
     # create a new game
     @staticmethod
-    def newGame(players:list,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10):
-        # give each player credits
-        for player in players:
-            player.credits = startingCredits - hand_pot_ante - sabacc_pot_ante
+    def newGame(playerIds:list, startingCredits=1000):
+        # create player list
+        players = []
+        for id in playerIds:
+            players.append(Player(id, credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
+
         # construct deck
         deck = TraditionalGame.newDeck()
 
-        game = TraditionalGame(players=players,deck=deck,player_turn=players[0].id,hand_pot=hand_pot_ante*len(players),sabacc_pot=sabacc_pot_ante*len(players))
+        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=TraditionalGame.handPotAnte*len(players), sabacc_pot=TraditionalGame.sabaccPotAnte*len(players))
         game.shuffleDeck()
         game.dealHands()
 
         return game
+    
+    # sets up for next round
+    def nextRound(self):
+        # rotate dealer (1st in list is always dealer) - move 1st player to end
+        self.players.append(self.players.pop(0))
+
+        for player in self.players:
+            player.credits -= (TraditionalGame.sabaccPotAnte + TraditionalGame.handPotAnte) # Make users pay Sabacc and Hand pot Antes
+            player.bet = None # reset bets
+            player.folded = False # reset folded
+            player.lastAction = '' # reset last action
+        
+        # Update pots
+        self.hand_pot = TraditionalGame.handPotAnte * len(self.players)
+        self.sabacc_pot += TraditionalGame.sabaccPotAnte * len(self.players)
+
+        # construct deck and deal hands
+        self.deck = TraditionalGame.newDeck()
+        self.shuffleDeck()
+        self.dealHands()
+
     @staticmethod
     def newDeck(cardsToExclude:list=[]):
         deck = 2 * [
@@ -204,25 +223,6 @@ class TraditionalGame(Game):
     def fromDict(dict:dict):
         return TraditionalGame(id=dict['id'],players=[Player.fromDict(player) for player in dict['players']],deck=[TraditionalCard.fromDict(card) for card in dict['deck']],player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
 
-    def getActivePlayers(self):
-        activePlayers = []
-        for player in self.players:
-            if not player.folded:
-                activePlayers.append(player)
-        return activePlayers
-
-    def getPlayerDex(self, username:str=None, id:int=None):
-        for i in range(len(self.players)):
-            player = self.players[i]
-            if player.username == username or player.id == id:
-                return i
-        return -1
-    def getPlayer(self, username:str=None, id:int=None):
-        dex = self.getPlayerDex(username=username, id=id)
-        return None if dex == -1 else self.players[dex]
-    def containsPlayer(self, username:str=None, id:int=None) -> bool:
-        return self.getPlayer(username=username, id=id) != None
-    
     def shuffleDeck(self):
         for i in range(len(self.deck)):
             randomIndex = random.randint(0, len(self.deck) - 1)
@@ -250,25 +250,6 @@ class TraditionalGame(Game):
                 if not hand[i].protected: # if card is not protected
                     hand[i] = self.drawFromDeck()
     
-    # sets up for next round
-    def nextRound(self):
-        # rotate dealer (1st in list is always dealer) - move 1st player to end
-        self.players.append(self.players.pop(0))
-
-        for player in self.players:
-            player.credits -= 15 # Make users pay Sabacc and Hand pot Antes
-            player.bet = None # reset bets
-            player.folded = False # reset folded
-            player.lastAction = '' # reset last action
-        
-        # Update pots
-        self.hand_pot = 5 * len(self.players)
-        self.sabacc_pot += 10 * len(self.players)
-
-        # construct deck and deal hands
-        self.deck = TraditionalGame.newDeck()
-        self.dealHands()
-
     def alderaan(self, suddenDemise=False, sdPlayers:list=[]):
         # If recursion has been activated due to a tie, and there is sudden demise
         if suddenDemise == True:

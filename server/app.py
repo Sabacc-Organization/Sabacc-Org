@@ -272,7 +272,7 @@ def register():
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
     
-# this is called manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
+# this is caled manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
 def getGame(clientInfo):
     game_id = clientInfo['game_id']

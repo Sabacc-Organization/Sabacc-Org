@@ -182,11 +182,14 @@ class Hand:
         return lowest
 
 class Player:
-    def __init__(self, id):
+    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=Hand(), folded=False, lastAction='', ):
         self.id = id
-        self.hand = Hand()
-        self.credits = 990
-        self.bet = 0
+        self.username = username
+        self.credits = credits
+        self.bet = bet
+        self.hand = hand
+        self.folded = folded
+        self.lastAction = lastAction
     
     def __str__(self) -> str:
         return str(self.id)
@@ -212,13 +215,15 @@ class Player:
         return -1
 
 class CorellianSpikeGame(Game):
-    def __init__(self, playerIds:list):
-        self.players = []
-        for id in playerIds:
-            self.players.append(Player(id))
-        self.newGame()
-        # designate the 1st player as the 1st dealer
-        self.dealer = self.players[0]
+    handPotAnte = 5
+    sabaccPotAnte = 5
+
+    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', round=1, shift=False, completed=False):
+        super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=round, completed=completed)
+        self.hand_pot = hand_pot
+        self.sabacc_pot = sabacc_pot
+        self._shift = shift
+        self.discardPile = discardPile
         
     # for testing purposes
     def __str__(self) -> str:
@@ -228,39 +233,59 @@ class CorellianSpikeGame(Game):
         ret += '\n' + self.determineWinner()
         return ret
     
-    def newGame(self):
-        # clear players' hands
-        for player in self.players:
-            player.hand.cards = []
+    # create a new game
+    @staticmethod
+    def newGame(playerIds:list, startingCredits=1000) -> object:
+        # create player list
+        players = []
+        for id in playerIds:
+            players.append(Player(id, credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
         
         # create deck, discard pile, and pots
-        self.deck = Deck()
-        self.discardPile = [self.deck.draw()]
-        self.handPot = 5 * len(self.players)
-        self.sabaccPot = 5 * len(self.players)
+        deck = Deck()
+        discardPile = [deck.draw()]
+        handPot = CorellianSpikeGame.handPotAnte * len(players)
+        sabaccPot = CorellianSpikeGame.sabaccPotAnte * len(players)
+
+        # create Game object
+        game = CorellianSpikeGame(players=players, deck=deck, discardPile=discardPile, player_turn=players[0].id, hand_pot=handPot, sabacc_pot=sabaccPot)
 
         # deal cards to each player
-        # for i in range(1):
-        for player in self.players:
-            player.hand.cards = self.deck.draw(random.randint(2,5))
+        game.dealHands()
 
-        # create discard pile with a card from the deck
+        # the 1st player is the 1st dealer
+
+        # return Game object
+        return game
+
+    # set up for next round
+    def nextRound(self):
+        self.round += 1 # update round number
+
+        # rotate dealer (1st in list is always dealer) - move 1st player to end
+        self.players.append(self.players.pop(0))
+
+        for player in self.players:
+            player.credits -= self.sabaccPotAnte + self.handPotAnte # Make users pay antes
+            player.bet = None # reset bets
+            player.folded = False # reset folded
+            player.lastAction = '' # reset last action
+        
+        # Update pots
+        self.hand_pot = self.handPotAnte * len(self.players)
+        self.sabacc_pot += self.sabaccPotAnte * len(self.players)
+
+        # construct deck and discard pile
+        self.deck = Deck()
         self.discardPile = [self.deck.draw()]
 
-        # round number
-        self.round = 1
-
-    def playAgain(self):
-        self.newGame()
-        
-        # rotate dealer
-        self.dealer = self.players.index(self.dealer) + 1
-
-    def getPlayerFromId(self, id:int) -> Player:
+        # deal hands
+        self.dealHands()
+  
+    def dealHands(self):
         for player in self.players:
-            if player.id == id:
-                return player
-    
+            player.hand.cards = self.deck.draw(2)
+
     def shift(self):
         for player in self.players:
             # put player's cards on bottom of deck
@@ -436,7 +461,3 @@ class CorellianSpikeGame(Game):
     def playerDiscardAction(self, player:Player, discardCardIndex:int):
         player.credits -= 20 * self.round
         self._playerDiscard(player, discardCardIndex)
-
-
-game = CorellianSpikeGame(list(range(1, 21)))
-print(game)

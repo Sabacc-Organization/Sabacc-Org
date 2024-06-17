@@ -23,6 +23,9 @@
 
 #deck{
     box-shadow: 3px 3px 0px 3px #323232;
+    width: calc(100% - 6px);
+    height: auto;
+    aspect-ratio: 50 / 67;
 }
 
 .smol
@@ -76,9 +79,9 @@ h5.protected{
     background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
-    width: 60px;
-    height: 60px;
-    border-radius: 30px;
+    width: 40%;
+    height: auto;
+    aspect-ratio: 1 / 1;
     grid-area: 1/2/3/3;
 }
 
@@ -118,8 +121,7 @@ h5.protected{
 #tableCont{
     position: relative;
     z-index: 1;
-    height: 750px;
-    width: 1300px;
+    width: 72%;
     margin: 10% auto;
     display: flex;
     justify-content: center;
@@ -128,13 +130,19 @@ h5.protected{
 
 #table {
     position: relative;
-    background-image: url("/modern-theme-images/SabaccTable-NoBackground.png");
+    background-image: url("/modern-theme-images/SabaccTableFixedAlpha.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     margin: auto auto;
     z-index: 1;
     width: 100%;
-    aspect-ratio: 128 / 87;
+    aspect-ratio: 256 / 159;
+}
+@media screen and (max-width: 800px){
+    #table {
+        background-image: url("/modern-theme-images/SabaccTable90.png");
+        aspect-ratio: 159 / 256;
+    }
 }
 
 #pAction{
@@ -148,11 +156,13 @@ h5.protected{
 
 #gameInfo{
     position: absolute;
-    top: 51%;
+    top: 50%;
+    translate: 0px -33%;
     z-index: 2;
+    width: 30%;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 2fr 160px 1fr 1fr;
+    grid-template-columns: 2fr 3fr 1fr 1fr;
     grid-template-rows: 3fr 1fr 2fr;
     justify-items: center;
     align-items: center;
@@ -161,7 +171,7 @@ h5.protected{
 #actBox{
     position: absolute;
     z-index: 2;
-    top: 70%;
+    top: 65%;
     margin: 0 auto;
 }
 
@@ -216,6 +226,9 @@ h5.protected{
 
 #discard{
     display: block;
+    width: calc(100% - 6px);
+    height: auto;
+    aspect-ratio: 50 / 67;
 }
 
 .playerBox{
@@ -226,8 +239,8 @@ h5.protected{
 .player0{
     position: absolute;
     z-index: 2;
-    top: 105%;
-    left: 38%;
+    top: 100%;
+    left: 36%;
     translate: -50% 0%;
     width: max-content;
 }
@@ -244,8 +257,8 @@ h5.protected{
 .player1{
     position: absolute;
     z-index: 2;
-    top: 80%;
-    left: 9%;
+    top: 74%;
+    left: 2%;
     translate: -100% 0%;
     width: max-content;
 }
@@ -262,8 +275,8 @@ h5.protected{
 .player2{
     position: absolute;
     z-index: 2;
-    top: 20%;
-    left: 9%;
+    top: 10%;
+    left: 2%;
     translate: -100% 0%;
     width: max-content;
 }
@@ -280,8 +293,8 @@ h5.protected{
 .player3{
     position: absolute;
     z-index: 2;
-    top: -5%;
-    left: 38%;
+    top: -17%;
+    left: 36%;
     translate: -50% 0%;
     width: max-content;
 }
@@ -298,8 +311,8 @@ h5.protected{
 .player4{
     position: absolute;
     z-index: 2;
-    top: -5%;
-    left: 62%;
+    top: -17%;
+    left: 64%;
     translate: -50% 0%;
     width: max-content;
 }
@@ -316,8 +329,8 @@ h5.protected{
 .player5{
     position: absolute;
     z-index: 2;
-    top: 20%;
-    right: 10%;
+    top: 10%;
+    right: 3%;
     translate: 100% 0%;
     width: max-content;
 }
@@ -334,8 +347,8 @@ h5.protected{
 .player6{
     position: absolute;
     z-index: 2;
-    top: 80%;
-    right: 10%;
+    top: 74%;
+    right: 3%;
     translate: 100% 0%;
     width: max-content;
 }
@@ -352,8 +365,8 @@ h5.protected{
 .player7{
     position: absolute;
     z-index: 2;
-    top: 105%;
-    left: 62%;
+    top: 100%;
+    left: 64%;
     translate: -50% 0%;
     width: max-content;
 }
@@ -367,10 +380,15 @@ h5.protected{
     translate: -50% -50%;
 }
 
+.credit-attribution-container{
+    width: 100%;
+    display: flex;
+    justify-content: right;
+}
+
 .credit-attribution{
-    margin-top: 300px;
-    margin-left: 70%;
     display: grid;
+    width: 520px;
     grid-template-columns: 1fr 4fr;
     justify-items: right;
 }

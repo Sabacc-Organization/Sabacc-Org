@@ -477,7 +477,7 @@
 
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click={draw} class:active={cardBool} id="deck" class="card child"></div>
+            <div on:click={draw} class:active={cardBool} id="deck" class="card child" style="{renderBack()}"></div>
 
             <div class:active={cardBool} id="discard" class="card child">
                 {#if game["completed"] == 0}
@@ -642,9 +642,11 @@
         </div>
     </div>
     {#if theme == 'modern'}
-        <div class="credit-attribution">
-            <a href="http://creativecommons.org/licenses/by-sa/4.0/"><div id="jacob-densford-credit-attribution"></div></a>
-            <a href="http://creativecommons.org/licenses/by-sa/4.0/">Credit to Jacob Densford for table and betting chip design</a>
+        <div class="credit-attribution-container">
+            <div class="credit-attribution">
+                <a href="http://creativecommons.org/licenses/by-sa/4.0/"><div id="jacob-densford-credit-attribution"></div></a>
+                <a href="http://creativecommons.org/licenses/by-sa/4.0/">Credit to Jacob Densford for table and betting chip design</a>
+            </div>
         </div>
     {/if}
 {/if}

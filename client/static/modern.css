@@ -1,3 +1,12 @@
+@media screen and (max-width: 1300px){
+    h1.header{
+        font-size: 1.25rem;
+    }
+    h2.header{
+        font-size: 1rem;
+    }
+}
+
 .backBlue{
     border-radius: 10px;
     margin-top: 10px;
@@ -13,12 +22,23 @@
     background-blend-mode: multiply;
     color: #ffffff;
     grid-row: 1/3;
+    font-size: 1rem;
 }
 
 #pots.active:hover{
     box-shadow:
     inset 0 0 50px #fff,
     0 0 50px #fff
+}
+
+#pots h5{
+    font-size: 1.25em;
+}
+
+@media screen and (max-width: 1300px) {
+    #pots{
+        font-size: 0.5rem;
+    }
 }
 
 #deck{
@@ -59,10 +79,16 @@
     background-size: cover;
     margin: 3px;
     width: 50px;
-    height: 67px;
+    aspect-ratio: 50 / 67;
     border-radius: 5px;
     color: #ffffff;
     text-align: center;
+}
+
+@media screen and (max-width: 1300px) {
+    .card{
+        width: 30px;
+    }
 }
 
 .card.protected{
@@ -91,12 +117,13 @@ h5.protected{
 
 .dieContainer{
     display: block;
+    width: 100%;
     grid-column: 3/5;
 }
 
 .die{
-    width: 25px;
-    height: 25px;
+    width: min(25px, calc(50% - 9px));
+    aspect-ratio: 1 / 1;
     border-radius: 3px;
     padding: 0;
     margin: 3px;
@@ -138,7 +165,11 @@ h5.protected{
     width: 100%;
     aspect-ratio: 256 / 159;
 }
+
 @media screen and (max-width: 800px){
+    #tableCont{
+        margin: 30% auto;
+    }
     #table {
         background-image: url("/modern-theme-images/SabaccTable90.png");
         aspect-ratio: 159 / 256;
@@ -168,11 +199,35 @@ h5.protected{
     align-items: center;
 }
 
+@media screen and (max-width: 800px){
+    #gameInfo{
+        width: 75%;
+    }
+}
+
 #actBox{
     position: absolute;
     z-index: 2;
     top: 65%;
     margin: 0 auto;
+    width: 15%;
+}
+
+@media screen and (max-width: 1300px) {
+    #betCredits, #betBtn{
+        font-size: 0.5rem;
+    }
+    #betCredits{
+        margin-bottom: 0.5rem;
+    }
+}
+
+#betCredits{
+    width: 80%;
+}
+
+#betBtn{
+    width: 50%;
 }
 
 #betDiv{
@@ -196,6 +251,17 @@ h5.protected{
 
 .chip{
     background-size: contain;
+}
+
+@media screen and (max-width: 1300px){
+    .chip{
+        width: 10px;
+        aspect-ratio: 1 / 1;
+    }
+
+    .imperial-credits-logo{
+        width: 10px;
+    }
 }
 
 .bigChip{
@@ -233,21 +299,27 @@ h5.protected{
 
 .playerBox{
     padding: 0px 10px;
-    min-width: 100px;
+    font-size: 1rem;
+}
+
+@media screen and (max-width: 1300px) {
+    .playerBox{
+        font-size: 0.5rem;
+        margin-top: 0px;
+    }
+}
+
+.playerBox h5{
+    font-size: 1.25em;
 }
 
 .player0{
-    position: absolute;
-    z-index: 2;
     top: 100%;
     left: 36%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player0 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: -36px;
     left: 50%;
@@ -255,17 +327,12 @@ h5.protected{
 }
 
 .player1{
-    position: absolute;
-    z-index: 2;
     top: 74%;
     left: 2%;
     translate: -100% 0%;
-    width: max-content;
 }
 
 .player1 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 58deg;
     top: -6px;
     left: calc(100% + 60px);
@@ -273,17 +340,12 @@ h5.protected{
 }
 
 .player2{
-    position: absolute;
-    z-index: 2;
-    top: 10%;
+    bottom: 73%;
     left: 2%;
     translate: -100% 0%;
-    width: max-content;
 }
 
 .player2 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 302deg;
     top: 130px;
     left: calc(100% + 64px);
@@ -291,17 +353,12 @@ h5.protected{
 }
 
 .player3{
-    position: absolute;
-    z-index: 2;
-    top: -17%;
+    bottom: 100%;
     left: 36%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player3 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: 170px;
     left: 50%;
@@ -309,17 +366,12 @@ h5.protected{
 }
 
 .player4{
-    position: absolute;
-    z-index: 2;
-    top: -17%;
+    bottom: 100%;
     left: 64%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player4 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: 170px;
     left: 50%;
@@ -327,17 +379,12 @@ h5.protected{
 }
 
 .player5{
-    position: absolute;
-    z-index: 2;
-    top: 10%;
+    bottom: 73%;
     right: 3%;
     translate: 100% 0%;
-    width: max-content;
 }
 
 .player5 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 58deg;
     top: 130px;
     right: calc(100% + 53px);
@@ -345,17 +392,12 @@ h5.protected{
 }
 
 .player6{
-    position: absolute;
-    z-index: 2;
     top: 74%;
     right: 3%;
     translate: 100% 0%;
-    width: max-content;
 }
 
 .player6 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 302deg;
     top: -6px;
     right: calc(100% + 45px);
@@ -363,21 +405,45 @@ h5.protected{
 }
 
 .player7{
-    position: absolute;
-    z-index: 2;
     top: 100%;
     left: 64%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player7 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: -36px;
     left: 50%;
     translate: -50% -50%;
+}
+
+.playerStuff{
+    position: absolute;
+    z-index: 2;
+    width: 10%;
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+}
+
+@media screen and (max-width: 800px) {
+    .playerStuff{
+        width: 30%;
+    }
+}
+
+.playerStuff > .cardsContainer{
+    position: absolute;
+    z-index: 2;
+}
+
+@media screen and (max-width: 800px) {
+    .playerStuff > .cardsContainer{
+        position: static;
+        rotate: 0deg;
+        translate: 0% 0%;
+        order: -1;
+    }
 }
 
 .credit-attribution-container{

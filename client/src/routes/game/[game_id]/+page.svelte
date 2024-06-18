@@ -461,8 +461,8 @@
 </svelte:head>
 
 {#if dataToRender}
-    <h1>{header}</h1>
-    <h2>{game["phase"]} phase</h2>
+    <h1 class="header">{header}</h1>
+    <h2 class="header">{game["phase"]} phase</h2>
 
     <div id="tableCont">
         <div id="table"></div>
@@ -509,7 +509,7 @@
         </div>
 
         {#each players as p, i}
-            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)}">
+            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)} playerStuff">
 
                 <!-- Bet boxes -->
                 {#if p['username'] === username}

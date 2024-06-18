@@ -315,3 +315,7 @@ main img
   inset 0 0 7px #fff,
   0 0 7px #fff;
 }
+
+.mobileActBox{
+  display: none;
+}

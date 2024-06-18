@@ -1,15 +1,14 @@
-@media screen and (max-width: 1300px){
-    h1.header{
-        font-size: 1.25rem;
-    }
-    h2.header{
-        font-size: 1rem;
-    }
-}
-
 .backBlue{
     border-radius: 10px;
     margin-top: 10px;
+}
+
+.turnGlow{
+    color: black;
+}
+
+.noTurnGlow{
+    color: white;
 }
 
 #pots{
@@ -33,12 +32,6 @@
 
 #pots h5{
     font-size: 1.25em;
-}
-
-@media screen and (max-width: 1300px) {
-    #pots{
-        font-size: 0.5rem;
-    }
 }
 
 #deck{
@@ -85,12 +78,6 @@
     text-align: center;
 }
 
-@media screen and (max-width: 1300px) {
-    .card{
-        width: 30px;
-    }
-}
-
 .card.protected{
     background-image: none;
     background-color: firebrick;
@@ -105,7 +92,7 @@ h5.protected{
     background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
-    width: 40%;
+    width: 75%;
     height: auto;
     aspect-ratio: 1 / 1;
     grid-area: 1/2/3/3;
@@ -166,22 +153,10 @@ h5.protected{
     aspect-ratio: 256 / 159;
 }
 
-@media screen and (max-width: 800px){
-    #tableCont{
-        margin: 30% auto;
-    }
-    #table {
-        background-image: url("/modern-theme-images/SabaccTable90.png");
-        aspect-ratio: 159 / 256;
-    }
-}
-
 #pAction{
     position: absolute;
-    z-index: 2;
-
-    top: 40%;
-
+    z-index: 4;
+    top: 30%;
     margin: 0 auto;
 }
 
@@ -189,37 +164,22 @@ h5.protected{
     position: absolute;
     top: 50%;
     translate: 0px -33%;
-    z-index: 2;
+    z-index: 4;
     width: 30%;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 2fr 3fr 1fr 1fr;
+    grid-template-columns: 2fr 2fr 1fr 1fr;
     grid-template-rows: 3fr 1fr 2fr;
     justify-items: center;
     align-items: center;
 }
 
-@media screen and (max-width: 800px){
-    #gameInfo{
-        width: 75%;
-    }
-}
-
 #actBox{
     position: absolute;
-    z-index: 2;
+    z-index: 4;
     top: 65%;
     margin: 0 auto;
     width: 15%;
-}
-
-@media screen and (max-width: 1300px) {
-    #betCredits, #betBtn{
-        font-size: 0.5rem;
-    }
-    #betCredits{
-        margin-bottom: 0.5rem;
-    }
 }
 
 #betCredits{
@@ -253,17 +213,6 @@ h5.protected{
     background-size: contain;
 }
 
-@media screen and (max-width: 1300px){
-    .chip{
-        width: 10px;
-        aspect-ratio: 1 / 1;
-    }
-
-    .imperial-credits-logo{
-        width: 10px;
-    }
-}
-
 .bigChip{
   background-image: url("modern-theme-images/Credit\ Gold.png");
 }
@@ -278,7 +227,8 @@ h5.protected{
 
 .cardsContainer{
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-auto-flow: column;
+    column-count: 5;
 }
 
 .card{
@@ -300,13 +250,6 @@ h5.protected{
 .playerBox{
     padding: 0px 10px;
     font-size: 1rem;
-}
-
-@media screen and (max-width: 1300px) {
-    .playerBox{
-        font-size: 0.5rem;
-        margin-top: 0px;
-    }
 }
 
 .playerBox h5{
@@ -420,30 +363,18 @@ h5.protected{
 .playerStuff{
     position: absolute;
     z-index: 2;
-    width: 10%;
     width: max-content;
     display: flex;
     flex-direction: column;
 }
 
-@media screen and (max-width: 800px) {
-    .playerStuff{
-        width: 30%;
-    }
+.playerStuff h5{
+    margin-bottom: 0px;
 }
 
 .playerStuff > .cardsContainer{
     position: absolute;
     z-index: 2;
-}
-
-@media screen and (max-width: 800px) {
-    .playerStuff > .cardsContainer{
-        position: static;
-        rotate: 0deg;
-        translate: 0% 0%;
-        order: -1;
-    }
 }
 
 .credit-attribution-container{
@@ -468,4 +399,194 @@ h5.protected{
     background-size: contain;
     background-repeat: no-repeat;
     width: 100px;
+}
+
+.mobileActBox, .mobileActSpacer{
+    display: none;
+}
+
+@media screen and (max-width: 1300px){
+    h1.header{
+        font-size: 1.25rem;
+    }
+
+    h2.header{
+        font-size: 1rem;
+    }
+
+    #pAction{
+        font-size: 1rem;
+    }
+
+    #pots{
+        font-size: 0.5rem;
+    }
+
+    .card{
+        width: 30px;
+    }
+
+    #betCredits, #betBtn{
+        font-size: 0.5rem;
+    }
+
+    #betCredits{
+        margin-bottom: 0.5rem;
+    }
+
+    .chip, .imperial-credits-logo{
+        width: 10px;
+    }
+
+    .playerBox{
+        margin-top: 5px;
+    }
+
+    .playerStuff h5 {
+        font-size: 0.5rem;
+    }
+}
+
+@media screen and (max-width: 800px){
+    h2.header{
+        margin-bottom: 16vh;
+    }
+
+    .card{
+        width: auto;
+    }
+
+    #tableCont{
+        margin: 30% auto;
+        width: 85%;
+    }
+
+    #table {
+        background-image: url("/modern-theme-images/SabaccTable90.png");
+        aspect-ratio: 159 / 256;
+    }
+
+    #pAction{
+        position: fixed;
+        top: unset;
+        font-size: 1.5rem;
+        bottom: 25%;
+        right: 31%;
+        translate: 50% 0%;
+    }
+
+    #gameInfo{
+        position: fixed;
+        top: unset;
+        bottom: 15%;
+        right: 6%;
+        width: 50%;
+        translate: 0% 50%;
+    }
+
+    #pots{
+        font-size: 0.9rem;
+    }
+
+    #actBox{
+        position: fixed;
+        top: unset;
+        bottom: 7%;
+        right: 4%;
+        width: 50%;
+        translate: 0% 50%;
+    }
+
+    .chip, .imperial-credits-logo{
+        width: 20px;
+    }
+
+    .player0{
+        position: fixed;
+        z-index: 4;
+        width: 30%;
+        top: unset;
+        bottom: 15vh;
+        left: 5%;
+        translate: 0% 50%;
+    }
+
+    .player0 h5{
+        font-size: 0.8rem;
+    }
+
+    .player1{
+        top: unset;
+        bottom: 12%;
+        left: -10%;
+        translate: -50% 0%;
+    }
+
+    .player2{
+        bottom: 52%;
+        left: -10%;
+        translate: -50% 0%;
+    }
+
+    .player3{
+        bottom: 88%;
+        left: 20%;
+        translate: -50% 0%;
+    }
+
+    .player4{
+        bottom: 88%;
+        left: unset;
+        right: 20%;
+        translate: 50% 0%;
+    }
+
+    .player5{
+        bottom: 52%;
+        right: -10%;
+        translate: 50% 0%;
+    }
+
+    .player6{
+        top: unset;
+        bottom: 12%;
+        right: -10%;
+        translate: 50% 0%;
+    }
+
+    .player7{
+        top: unset;
+        bottom: -8%;
+        left: 50%;
+        translate: -50% 0%;
+    }
+
+    .playerStuff h5{
+        font-size: 1.2rem;
+    }
+
+    .playerStuff > .cardsContainer{
+        width: 100%;
+        position: static;
+        rotate: 0deg;
+        translate: 0% 0%;
+        order: -1;
+    }
+
+    .mobileActSpacer{
+        display: block;
+        width: 100vw;
+        height: 30vh;
+    }
+
+    .mobileActBox{
+        background-color: #323232;
+        display: block;
+        position: fixed;
+        width: 100%;
+        height: 30%;
+        bottom: 0%;
+        left: 0%;
+        z-index: 3;
+    }
 }

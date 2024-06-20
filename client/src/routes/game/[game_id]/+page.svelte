@@ -501,11 +501,6 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
-
-            {#if game["completed"] == 1 && game["player_turn"] === user_id}
-                <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
-            {/if}
-
         </div>
 
         {#each players as p, i}
@@ -637,6 +632,10 @@
                     {/if}
 
                 {/if}
+            {:else}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
+                </div>
             {/if}
 
         </div>

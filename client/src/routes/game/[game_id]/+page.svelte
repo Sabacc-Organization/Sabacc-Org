@@ -185,12 +185,28 @@
         updateClientGame(serverInfo);
     }
 
+    let isWaitingOnClick: boolean = false;
+    function clickOrDblclick(clickFunction: () => void, dblclickFunction: () => void, delay: number = 500) {
+        if (isWaitingOnClick){
+            isWaitingOnClick = false;
+            dblclickFunction();
+        } else {
+            isWaitingOnClick = true;
+            setTimeout(() => {
+                if (isWaitingOnClick){
+                    isWaitingOnClick = false;
+                    clickFunction()
+                }
+            }, delay);
+        }
+    }
+
     function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
         let returnText: string = "background-image:url(";
 
-        let darkPath = "../../../../modern-theme-images/dark/"
-        let lightPath = "../../../../modern-theme-images/light/"
-        let pescadoPath = "../../../../modern-theme-images/pescado/"
+        let darkPath = "../../../../images/cards/traditional/dark/"
+        let lightPath = "../../../../images/cards/traditional/light/"
+        let pescadoPath = "../../../../images/cards/traditional/pescado/"
 
         if (cardDesign === "classic"){
             returnText += "../../../../images/rebels-card-back.png);"
@@ -215,15 +231,16 @@
 
         returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
         returnText += cardValue["val"].toString();
+        returnText += cardDesign === "pescado" && cardValue['prot']? "p":""
         returnText += ".png);";
         return returnText;
     }
 
     function renderBack(){
         if (cardDesign === "pescado"){
-            return "background-image:url(../../../../modern-theme-images/pescado/back.png);"
+            return "background-image:url(../../../../images/cards/traditional/pescado/back.png);"
         }
-        return "background-image:url(../../../../images/rebels-card-back.png);"
+        return "background-image:url(../../../../images/cards/traditional/rebels-card-back.png);"
     }
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
@@ -235,7 +252,7 @@
             "game_id": game_id,
             "protect": protCard
         }
-
+        console.log('got here!')
         socket.emit('protect', clientInfo)
     }
 
@@ -522,8 +539,7 @@
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                    on:click={() => trade(c)}
-                                    on:dblclick={() => protect(c)}
+                                    on:click={() => clickOrDblclick(() => trade(c), () => protect(c))}
                                     id="card{ci.toString()}"
                                     class="card child own"
                                     style="{renderCard(c)}">
@@ -544,6 +560,7 @@
                                 {#if game["completed"] == 0}
                                     {#if !c['prot']}
                                         <div class="card child" style="{renderBack()}"></div>
+                                        <h5>{""}</h5>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
                                         <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
@@ -592,7 +609,7 @@
                         {#if u_dex === 0}
                             {#if players[u_dex + 1]['bet'] === null}
                                 <div id="betDiv" class="backBlue brightBlue">
-                                    <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={players[u_dex]['credits']} placeholder="Credits" required>
+                                    <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                     <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button>
                                     <p class="red">{betErr}</p>
                                 </div>
@@ -605,7 +622,7 @@
                                     </div>
                                 {:else}
                                     <div id="betDiv" class="backBlue brightBlue">
-                                        <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={players[u_dex]['credits']} placeholder="Credits" required>
+                                        <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                         <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                         <p class="red">{betErr}</p>
                                     </div>
@@ -622,7 +639,7 @@
                                 </div>
                             {:else}
                                 <div id="betDiv" class="backBlue brightBlue">
-                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={players[u_dex]['credits']} placeholder="Credits" required>
+                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                     <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                     <p class="red">{betErr}</p>
                                 </div>

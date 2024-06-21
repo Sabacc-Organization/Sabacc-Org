@@ -149,7 +149,7 @@ h5.protected{
 
 #table {
     position: relative;
-    background-image: url("/modern-theme-images/SabaccTableFixedAlpha.png");
+    background-image: url("/modern-theme-images/tables/SabaccTableFixedAlpha.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     margin: auto auto;
@@ -219,15 +219,15 @@ h5.protected{
 }
 
 .bigChip{
-  background-image: url("modern-theme-images/Credit\ Gold.png");
+  background-image: url("modern-theme-images/credit-chips/Credit\ Gold.png");
 }
 
 .midChip{
-  background-image: url("modern-theme-images/Credit\ Silver.png");
+  background-image: url("modern-theme-images/credit-chips/Credit\ Silver.png");
 }
 
 .lowChip{
-  background-image: url("modern-theme-images/Credit\ Bronze.png");
+  background-image: url("modern-theme-images/credit-chips/Credit\ Bronze.png");
 }
 
 .cardsContainer{
@@ -452,6 +452,7 @@ h5.protected{
 
     .card{
         width: auto;
+        margin: 0px;
     }
 
     #tableCont{
@@ -460,7 +461,7 @@ h5.protected{
     }
 
     #table {
-        background-image: url("/modern-theme-images/SabaccTable90.png");
+        background-image: url("/modern-theme-images/tables/SabaccTable90.png");
         aspect-ratio: 159 / 256;
     }
 
@@ -532,6 +533,18 @@ h5.protected{
         translate: 50% 50%;
     }
 
+    #betDiv{
+        width: 100%;
+        display: grid;
+        grid-auto-flow: column;
+    }
+
+    #betCredits, #betBtn, #raiseCredits{
+        width: 100%;
+        font-size: 1rem;
+        margin-bottom: 0px;
+    }
+
     .chip, .imperial-credits-logo{
         width: 20px;
     }
@@ -549,6 +562,9 @@ h5.protected{
 
     .player0 > .playerBox{
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
 
     .player0 h5{
@@ -611,6 +627,8 @@ h5.protected{
         rotate: 0deg;
         translate: 0% 0%;
         order: -1;
+        grid-template-columns: repeat(auto-fit, minmax(30%, 1fr));
+        grid-auto-flow: row;
     }
 
     .mobileActSpacer{

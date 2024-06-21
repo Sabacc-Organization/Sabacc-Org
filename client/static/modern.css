@@ -149,7 +149,7 @@ h5.protected{
 
 #table {
     position: relative;
-    background-image: url("/modern-theme-images/tables/SabaccTableFixedAlpha.png");
+    background-image: url("/images/modern-theme-images/tables/SabaccTableFixedAlpha.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     margin: auto auto;
@@ -219,15 +219,15 @@ h5.protected{
 }
 
 .bigChip{
-  background-image: url("modern-theme-images/credit-chips/Credit\ Gold.png");
+  background-image: url("/images/modern-theme-images/credit-chips/Credit\ Gold.png");
 }
 
 .midChip{
-  background-image: url("modern-theme-images/credit-chips/Credit\ Silver.png");
+  background-image: url("/images/modern-theme-images/credit-chips/Credit\ Silver.png");
 }
 
 .lowChip{
-  background-image: url("modern-theme-images/credit-chips/Credit\ Bronze.png");
+  background-image: url("/images/modern-theme-images/credit-chips/Credit\ Bronze.png");
 }
 
 .cardsContainer{
@@ -393,7 +393,7 @@ h5.protected{
 }
 
 #jacob-densford-credit-attribution{
-    background-image: url("modern-theme-images/attribution-image.png");
+    background-image: url("/images/modern-theme-images/attribution-image.png");
     background-size: contain;
     background-repeat: no-repeat;
     width: 100px;
@@ -461,7 +461,7 @@ h5.protected{
     }
 
     #table {
-        background-image: url("/modern-theme-images/tables/SabaccTable90.png");
+        background-image: url("/images/modern-theme-images/tables/SabaccTable90.png");
         aspect-ratio: 159 / 256;
     }
 

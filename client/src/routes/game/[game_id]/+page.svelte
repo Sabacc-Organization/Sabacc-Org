@@ -252,7 +252,6 @@
             "game_id": game_id,
             "protect": protCard
         }
-        console.log('got here!')
         socket.emit('protect', clientInfo)
     }
 

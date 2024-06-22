@@ -11,7 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
-from traditional.alderaanHelpers import *
+# from traditional.alderaanHelpers import *
 import dbConversion
 from flask_socketio import SocketIO, send, emit, join_room
 from traditional.traditionalHelpers import *
@@ -332,7 +332,7 @@ def host():
     formPlayers = request.json.get("players")
 
     # Make list of players
-    players = [Player(id=user_id,username=username)]
+    players = [TraditionalPlayer(id=user_id,username=username)]
 
     # Make sure the number of players is valid
     if len(formPlayers) > 7:
@@ -351,7 +351,7 @@ def host():
                 return jsonify({"message": "You cannot play with yourself"}), 401
             if p[0]["id"] in players:
                 return jsonify({"message": "All players must be different"}), 401
-            players.append(Player(p[0]["id"],pForm))
+            players.append(TraditionalPlayer(p[0]["id"],pForm))
 
     # create game
     game = Game.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
@@ -543,7 +543,7 @@ def card(clientInfo):
     u_dex = [player.id for player in players].index(user_id)
 
     # current player
-    player: Player = players[u_dex]
+    player: TraditionalPlayer = players[u_dex]
 
     # Indicators of if the card phase and/or game end after an action
     endRound = False

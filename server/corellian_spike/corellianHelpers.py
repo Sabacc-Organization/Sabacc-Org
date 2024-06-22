@@ -15,7 +15,7 @@ class Suit:
     TRIANGLE = 'triangle'
     SYLOP = 'sylop'
 
-class Deck:
+class CorellianSpikeDeck:
     def __init__(self):
         self.cards = []
         for suit in [Suit.CIRCLE,Suit.SQUARE,Suit.TRIANGLE]:
@@ -48,7 +48,7 @@ class Deck:
             del self.cards[-numCards:] # delete drawn cards from deck
             return drawnCards
 
-class Hand:
+class CorellianSpikeHand:
     HANDS = {
         1: 'pure sabacc',
         2: 'full sabacc',
@@ -181,8 +181,8 @@ class Hand:
                 lowest = val
         return lowest
 
-class Player:
-    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=Hand(), folded=False, lastAction='', ):
+class TraditionalPlayer:
+    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction='', ):
         self.id = id
         self.username = username
         self.credits = credits
@@ -195,7 +195,7 @@ class Player:
         return str(self.id)
     def toString(self) -> str:
         ranking = self.hand.getRanking()
-        return f'player {self.id}:\n\thand ({Hand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
+        return f'player {self.id}:\n\thand ({CorellianSpikeHand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
     
     def addToHand(self, cards):
         if type(cards) != list:
@@ -239,10 +239,10 @@ class CorellianSpikeGame(Game):
         # create player list
         players = []
         for id in playerIds:
-            players.append(Player(id, credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
+            players.append(TraditionalPlayer(id, credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
         
         # create deck, discard pile, and pots
-        deck = Deck()
+        deck = CorellianSpikeDeck()
         discardPile = [deck.draw()]
         handPot = CorellianSpikeGame.handPotAnte * len(players)
         sabaccPot = CorellianSpikeGame.sabaccPotAnte * len(players)
@@ -276,7 +276,7 @@ class CorellianSpikeGame(Game):
         self.sabacc_pot += self.sabaccPotAnte * len(self.players)
 
         # construct deck and discard pile
-        self.deck = Deck()
+        self.deck = CorellianSpikeDeck()
         self.discardPile = [self.deck.draw()]
 
         # deal hands
@@ -303,8 +303,8 @@ class CorellianSpikeGame(Game):
                 winningPlayers.append(player)
         
         if len(winningPlayers) == 1:
-            return f'player {winningPlayers[0].id} won with a hand of {Hand.HANDS[winningHand]} (#{winningHand})'
-        ret += f"{bothOrAll(len(winningPlayers)) + ' players' if len(winningPlayers) == len(self.players) else f'players {listToStr(winningPlayers)}'} tied with a hand of {Hand.HANDS[winningHand]} (#{winningHand})\n"
+            return f'player {winningPlayers[0].id} won with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})'
+        ret += f"{bothOrAll(len(winningPlayers)) + ' players' if len(winningPlayers) == len(self.players) else f'players {listToStr(winningPlayers)}'} tied with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})\n"
         
         ''' tie breakers '''
         # if winning hand is something other than nulrhek, tiebreaker is lowest positive value card
@@ -420,44 +420,44 @@ class CorellianSpikeGame(Game):
         self.discardPile.extend(cards)
 
     # draw cards from deck for player
-    def _playerDrawFromDeck(self, player:Player, numCards=1):
+    def _playerDrawFromDeck(self, player:TraditionalPlayer, numCards=1):
         drawnCard = self._drawFromDeck(numCards)
         player.addToHand(drawnCard)
         return drawnCard
 
     # draw top discard for player
-    def _playerDrawDiscard(self, player:Player):
+    def _playerDrawDiscard(self, player:TraditionalPlayer):
         drawnCard = self._drawDiscard()
         player.addToHand(drawnCard)
         return drawnCard
     
     # player discards
-    def _playerDiscard(self, player:Player, discardCardIndex:int):
+    def _playerDiscard(self, player:TraditionalPlayer, discardCardIndex:int):
         self._discard(player.discard(discardCardIndex))
     
     ''' player actions '''
     # player buys from the deck for 5 credits
-    def buyFromDeck(self, player:Player):
+    def buyFromDeck(self, player:TraditionalPlayer):
         player.credits -= 5
         return self._playerDrawFromDeck(player)
     
     # player buys top discard for 10 creds
-    def buyFromDiscard(self, player:Player):
+    def buyFromDiscard(self, player:TraditionalPlayer):
         player.credits -= 10
         return self._playerDrawDiscard(player)
     
     # player discards a card, then draws one
-    def tradeWithDeck(self, player:Player, tradeCardIndex:int):
+    def tradeWithDeck(self, player:TraditionalPlayer, tradeCardIndex:int):
         self._playerDiscard(player, tradeCardIndex)
         return self._playerDrawFromDeck(player)
 
     # player draws top discard, then discards a card
-    def tradeWithDiscard(self, player:Player, tradeCardIndex):
+    def tradeWithDiscard(self, player:TraditionalPlayer, tradeCardIndex):
         drawnCard = self._playerDrawDiscard(player)
         self._playerDiscard(player, tradeCardIndex)
         return drawnCard
     
     # player discards for increasing price
-    def playerDiscardAction(self, player:Player, discardCardIndex:int):
+    def playerDiscardAction(self, player:TraditionalPlayer, discardCardIndex:int):
         player.credits -= 20 * self.round
         self._playerDiscard(player, discardCardIndex)

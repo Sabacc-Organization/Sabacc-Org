@@ -47,6 +47,8 @@ class Game:
     def containsPlayer(self, username:str=None, id:int=None) -> bool:
         return self.getPlayer(username=username, id=id) != None
     
+class Suit:
+    DEFAULT = "NONE"
 
 class Card:
     def __init__(self, val:int, suit:str):
@@ -64,6 +66,18 @@ class Card:
     @staticmethod
     def fromDict(card:dict) -> object:
         return Card(val=card['val'], suit=card['suit'])
+    
+class Player:
+    def __init__(self, id:int, username:str, credits:int, bet:int, hand:list, folded:bool, lastaction:str):
+        self.id = id
+        self.username = username
+        self.credits = credits
+        self.bet = bet
+        self.hand = hand
+        self.folded = folded
+        self.lastaction = lastaction
+
+
 
 # For getting a list of dictionaries for rows in a database.
 def getDictsForDB(cursor: psycopg.Cursor):

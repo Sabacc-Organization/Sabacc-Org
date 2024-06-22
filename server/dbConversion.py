@@ -1,7 +1,7 @@
 from cs50 import SQL
 from helpers import *
 from dataHelpers import *
-from traditional.alderaanHelpers import *
+# from traditional.alderaanHelpers import *
 from traditional.traditionalHelpers import *
 from colorama import Fore
 
@@ -116,7 +116,7 @@ def convertDb(db, card_type, player_type):
                 folded = True
             
             # add player to list
-            player = Player(id=id, username=username, credits=int(player_credits[i]), bet=bet, hand=newHand, folded=folded)
+            player = TraditionalPlayer(id=id, username=username, credits=int(player_credits[i]), bet=bet, hand=newHand, folded=folded)
             players.append(player)
         
         # convert deck

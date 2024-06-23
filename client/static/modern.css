@@ -470,7 +470,7 @@ h5.protected{
         right: 30%;
         max-width: 60%;
         max-height: 6%;
-        translate: 50% 50%;
+        translate: 50% -100%;
     }
 
     #gameInfo{
@@ -480,7 +480,7 @@ h5.protected{
         right: 30%;
         width: 50%;
         max-height: 15%;
-        translate: 50% 50%;
+        translate: 50% 15%;
         grid-template-columns: 2fr 2fr 2fr 1fr;
         grid-template-rows: 1fr 3fr;
     }
@@ -581,7 +581,7 @@ h5.protected{
         width: 35%;
         height: 26%;
         margin: 0px;
-        translate: -50% 50%;
+        translate: -50% 20%;
     }
 
     .player0 > .playerBox{
@@ -602,7 +602,7 @@ h5.protected{
         display: block;
         position: fixed;
         width: 100%;
-        height: 30%;
+        height: 37%;
         bottom: 0%;
         left: 0%;
         z-index: 3;

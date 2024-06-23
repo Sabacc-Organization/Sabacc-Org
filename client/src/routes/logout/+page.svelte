@@ -9,6 +9,7 @@
     Cookies.remove("password");
     Cookies.remove("theme");
     Cookies.remove("dark");
+    Cookies.remove("cardDesign");
 
     customRedirect(FRONTEND_URL);
 

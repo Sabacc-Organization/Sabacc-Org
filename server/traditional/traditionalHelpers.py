@@ -122,6 +122,8 @@ class Player:
         else:
             self.bet = self.bet if creditAmount == 0 else self.getBet()
             self.credits -= creditAmount
+            if not self.bet:
+                self.bet = 0
             self.bet += creditAmount
 class Game:
     def __init__(self, players:list, id:int=None, deck:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):

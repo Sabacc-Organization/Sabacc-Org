@@ -12,12 +12,23 @@
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 
-    let gamesData = {"games": []};
+    let gamesData: {[id:string] : any} = {"games": []};
+
+    let vidX = 420;
+
+    let viewportProbe: undefined|HTMLElement = undefined;
 
     onMount( async () => {
-        loggedIn = await checkLogin(username, password, BACKEND_URL);
+        loggedIn = await checkLogin(username!, password!, BACKEND_URL);
         if (loggedIn) {
-            gamesData = await backendPostRequest(username, password, BACKEND_URL + "/");
+            gamesData = await backendPostRequest(username!, password!, BACKEND_URL + "/");
+        }
+
+        viewportProbe = document.getElementById('viewportProbe')!;
+        let viewportSize = [viewportProbe?.clientWidth, viewportProbe?.clientHeight];
+        console.log(viewportSize);
+        if (viewportSize[0] < 560){
+            vidX = viewportSize[0] - 120;
         }
     });
 
@@ -31,20 +42,25 @@
 
     <h2>Sabacc</h2>
     <p>Step into the thrilling universe of Sabacc - the iconic space card game. Test your luck and skill as you navigate shifting card values in a race to achieve the coveted hand with a value of 23. Play for fortunes, strategize your moves, and experience the excitement of Sabacc like never before. Welcome to the ultimate online Sabacc destination, where the cards are your allies and the stakes are high. <b>Log In</b> or <b>Register</b> to play!</p>
-    
+
     <div class="parent">
         <div class="child video vidOne">
-            <iframe width="420" height="235" src="https://www.youtube.com/embed/ZjGsiEtmU-w" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <iframe width="{vidX}" height="235" src="https://www.youtube.com/embed/ZjGsiEtmU-w" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
             <p>Or read <a target="_blank"href="https://hyperspaceprops.com/wp-content/uploads/2021/11/Rebels-Inspired-Sabacc-Deck-Rules.pdf">this</a> for a comprehensive rulebook.</p>
         </div>
 
         <div class="child video">
             <p>Learn more about this web application:</p>
-            <iframe width="420" height="235" src="https://www.youtube.com/embed/tgRam9fhVJQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <iframe width="{vidX}" height="235" src="https://www.youtube.com/embed/tgRam9fhVJQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+
+        <div class="child video vidOne">
+            <iframe width="{vidX}" height="235" src="https://www.youtube.com/embed/T4V_vwR2pnw?autoplay=1&mute=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <p>⠀</p>
         </div>
     </div>
 
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/T4V_vwR2pnw?autoplay=1&mute=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    <div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->
 
 {:else if loggedIn}
 

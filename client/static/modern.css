@@ -466,23 +466,33 @@ h5.protected{
         position: fixed;
         top: unset;
         font-size: 1.5rem;
-        bottom: 27%;
-        right: 30%;
+        bottom: 18.5%;
         max-width: 60%;
         max-height: 6%;
+        translate: 0% 50%;
+    }
+
+    #pAction.playing {
+        right: 30%;
+        bottom: 27%;
         translate: 50% 50%;
     }
 
     #gameInfo{
         position: fixed;
         top: unset;
-        bottom: 16.5%;
-        right: 30%;
+        bottom: 8%;
         width: 50%;
         max-height: 15%;
-        translate: 50% 50%;
+        translate: 0% 50%;
         grid-template-columns: 2fr 2fr 2fr 1fr;
         grid-template-rows: 1fr 3fr;
+    }
+
+    #gameInfo.playing {
+        right: 30%;
+        bottom: 17%;
+        translate: 50% 50%;
     }
 
     #pots{
@@ -553,7 +563,7 @@ h5.protected{
         margin: 20px 0px;
     }
 
-    .player0 h5{
+    .playerStuff.playing h5{
         font-size: 0.8rem;
     }
 
@@ -572,7 +582,7 @@ h5.protected{
         grid-auto-flow: row;
     }
 
-    .player0{
+    .playerStuff.playing{
         position: fixed;
         z-index: 4;
         top: unset;
@@ -584,7 +594,7 @@ h5.protected{
         translate: -50% 50%;
     }
 
-    .player0 > .playerBox{
+    .playerStuff.playing > .playerBox{
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -602,27 +612,34 @@ h5.protected{
         display: block;
         position: fixed;
         width: 100%;
-        height: 30%;
+        height: 21.5%;
         bottom: 0%;
         left: 0%;
         z-index: 3;
     }
+
+    .mobileActBox.playing {
+        height: 30%;
+    }
 }
 
 @supports (-webkit-touch-callout: none){
-    #pAction{
-        translate: 50% -100%;
+    #pAction.playing {
+        bottom: 33%;
     }
-    #gameInfo{
-        translate: 50% 15%;
+    #gameInfo.playing {
+        bottom: 19.5%;
     }
-    .player0{
-        translate: -50% 20%;
+    .playerStuff.playing{
+        bottom: 22%;
     }
     .mobileActSpacer{
         height: 37vh;
     }
     .mobileActBox{
+        height: 22%;
+    }
+    .mobileActBox.playing {
         height: 37%;
     }
 }

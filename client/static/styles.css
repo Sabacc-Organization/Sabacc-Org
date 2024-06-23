@@ -319,3 +319,7 @@ main img
 .mobileActBox{
   display: none;
 }
+
+#standBtn { /* help avoid misclicks and looks cleaner */
+  margin-top: 1rem;
+}

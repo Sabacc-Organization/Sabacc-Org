@@ -482,8 +482,8 @@
 
     <div id="tableCont">
         <div id="table"></div>
-        <h2 id="pAction">{game["p_act"]}</h2>
-        <div id="gameInfo" class="parent">
+        <h2 id="pAction" class:playing={u_dex != -1}>{game["p_act"]}</h2>
+        <div id="gameInfo" class="parent" class:playing={u_dex != -1}>
 
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div on:dblclick={check} class:active={potsActive} id="pots" class="child {potsActive}">
@@ -520,7 +520,7 @@
         </div>
 
         {#each players as p, i}
-            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)} playerStuff">
+            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)} playerStuff" class:playing={p['username'] === username}>
 
                 <!-- Bet boxes -->
                 {#if p['username'] === username}
@@ -655,7 +655,7 @@
             {/if}
 
         </div>
-        <div class="mobileActBox"></div>
+        <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>
     {#if theme == 'modern'}
         <div class="credit-attribution-container">

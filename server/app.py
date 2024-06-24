@@ -97,11 +97,7 @@ try:
     conn.commit()
     print("Created custom PostgreSQL type Player")
 except psycopg.errors.DuplicateObject:
-<<<<<<< HEAD
     print("Custom PostgreSQL type Player already exists")
-=======
-    print('custom types alr exist')
->>>>>>> 18-corellian-spike
     conn.rollback()
 
 

@@ -18,8 +18,173 @@ with open("config.yml", "r") as f:
 conn = psycopg.connect(config['DATABASE'])
 db = conn.cursor()
 
-class Game(ABC):
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, phase='betting', cycle_count=0, completed=False):
+class Suit:
+    DEFAULT = "NONE"
+
+class Card:
+    def __init__(self, val:int, suit:str):
+        self.val = val
+        self.suit = suit
+    def __str__(self) -> str:
+        return f'{addPlusBeforeNumber(self.val)} {self.suit}'
+    def __eq__(self, other:object) -> bool:
+        return self.val == other.val and self.suit == other.suit
+    def toDict(self) -> dict:
+        return {
+            'val': self.val,
+            'suit': self.suit
+        }
+    @staticmethod
+    def fromDict(card:dict) -> object:
+        return Card(val=card['val'], suit=card['suit'])
+    
+    def toDb(self, cardType):
+        return cardType.python_type(self.val, self.suit)
+    @staticmethod
+    def fromDb(card):
+        return Card(card.val, card.suit)
+
+class Deck:
+    def __init__(self, cards:list=[]):
+        self.cards = cards
+    def __str__(self) -> str:
+        return f'[{listToStr(self.cards)}]'
+    
+    def toDb(self, card_type):
+        return [card.toDb(card_type) for card in self.cards]
+    @staticmethod
+    def fromDb(deck) -> object:
+        return Deck([Card.fromDb(card) for card in deck])
+
+    def toDict(self) -> list:
+        return [card.toDict() for card in self.cards]
+    @staticmethod
+    def fromDict(dict) -> object:
+        return Deck([Card.fromDict(card) for card in dict])
+
+    def shuffle(self):
+        for i in range(len(self.cards)):
+            switchIndex = random.randint(0, len(self.cards) - 1)
+            temp = self.cards[switchIndex]
+            self.cards[switchIndex] = self.cards[i]
+            self.cards[i] = temp
+
+    # remove a number of cards from the top (end) of the deck and return them
+    def draw(self, numCards=1):
+        # check there are enuf cards left in deck
+        if len(self.cards) < numCards:
+            print(f"ERROR: trying to draw from deck but not enough cards left")
+            return None
+        
+        if numCards == 1:
+            return self.cards.pop()
+        else:
+            drawnCards = self.cards[-numCards:]
+            del self.cards[-numCards:] # delete drawn cards from deck
+            return drawnCards
+
+class Hand:
+    def __init__(self, cards=[]):
+        self.cards = cards
+        self.sort()
+    
+    def __eq__(self, other:object) -> bool:
+        if len(self.cards) != len(other.cards):
+            return False
+        for i in range(len(self.cards)):
+            if self.cards[i] != other.cards[i]:
+                return False
+        return True
+
+    def __str__(self) -> str:
+        self.sort()
+        return f'[{listToStr(self.cards)}]'
+    
+    @staticmethod
+    def fromDb(hand) -> object:
+        return Hand([Card.fromDb(card) for card in hand])
+    def toDict(self) -> list:
+        return [card.toDict() for card in self.cards]
+    @staticmethod
+    def fromDict(hand) -> object:
+        return Hand([Card.fromDict(card) for card in hand])
+
+    def append(self, card:Card):
+        self.cards.append(card)
+    def pop(self, index:int) -> object:
+        return self.hand.pop(index)
+    
+    def getListOfVals(self) -> list:
+        return [card.val for card in self.cards]
+    
+    def getTotal(self) -> int:
+        return sum(self.getListOfVals())
+    
+    # sort hand by value (selection sort)
+    def sort(self):
+        for i in range(len(self.cards) - 1):
+            minIndex = i
+            for j in range(i+1, len(self.cards)):
+                if self.cards[j].val < self.cards[minIndex].val:
+                    minIndex = j
+            if minIndex != i:
+                # swap min card with current one
+                minCard = self.cards[minIndex]
+                self.cards[minIndex] = self.cards[i]
+                self.cards[i] = minCard
+
+class Player:
+    def __init__(self, id:int, username:str, credits:int, bet:int, hand:object, folded:bool, lastaction:str):
+        self.id = id
+        self.username = username
+        if type(credits) == int:
+            self.credits = credits
+        else:
+            print(f"ERROR: type of credits is {type(credits)}, not int")
+        if type(bet) == int or bet == None:
+            self.bet = bet
+        else:
+            print(f"ERROR: bet is not int or none, it's {type(bet)}")
+        self.hand = hand
+        self.folded = folded
+        self.lastaction = lastaction
+        
+    def addToHand(self, cards):
+        if type(cards) != list:
+            cards = [cards]
+        self.hand.extend(cards)
+
+    def discard(self, discardCardIndex:int):
+        try:
+            return self.hand.pop(discardCardIndex)
+        except IndexError:
+            print("ERROR: invalid index for discard card")
+    
+    def getIndexOfCard(self, targetCard:Card) -> int:
+        for i in range(len(self.hand)):
+            if self.hand[i] == targetCard:
+                return i
+        return -1
+    
+    def getBet(self) -> int:
+        return self.bet if self.bet != None else 0
+        
+    def fold(self):
+        self.credits += self.getBet()
+        self.bet = None
+        self.folded = True
+    
+    def makeBet(self, creditAmount: int, absolute: bool = True):
+        if absolute:
+            self.credits -= creditAmount - self.getBet()
+            self.bet = creditAmount
+        else:
+            self.bet = self.bet if creditAmount == 0 else self.getBet()
+            self.credits -= creditAmount
+            self.bet += creditAmount
+
+class Game:
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False):
         self.players = players
         self.id = id
         self.player_turn = player_turn
@@ -53,38 +218,6 @@ class Game(ABC):
     @abstractmethod
     def action(self, action, actionParams):
         pass
-    
-class Suit:
-    DEFAULT = "NONE"
-
-class Card:
-    def __init__(self, val:int, suit:str):
-        self.value = val
-        self.suit = suit
-    def __str__(self) -> str:
-        return f'{addPlusBeforeNumber(self.value)} {self.suit}'
-    def __eq__(self, other:object) -> bool:
-        return self.value == other.value and self.suit == other.suit
-    def toDict(self) -> dict:
-        return {
-            'val': self.value,
-            'suit': self.suit
-        }
-    @staticmethod
-    def fromDict(card:dict) -> object:
-        return Card(val=card['val'], suit=card['suit'])
-    
-class Player:
-    def __init__(self, id:int, username:str, credits:int, bet:int, hand:list, folded:bool, lastaction:str):
-        self.id = id
-        self.username = username
-        self.credits = credits
-        self.bet = bet
-        self.hand = hand
-        self.folded = folded
-        self.lastaction = lastaction
-
-
 
 # For getting a list of dictionaries for rows in a database.
 def getDictsForDB(cursor: psycopg.Cursor):

@@ -357,7 +357,7 @@ def host():
     game = Game.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
 
     # Create game in database
-    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=player_type,card_type=card_type), game.hand_pot, game.sabacc_pot, game.deckToDb(card_type), game.player_turn, game.p_act])
+    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=player_type,card_type=card_type), game.hand_pot, game.sabacc_pot, game.deck.toDb(card_type), game.player_turn, game.p_act])
     conn.commit()
 
     # Get game ID
@@ -558,7 +558,7 @@ def card(clientInfo):
         return
     
     if action == "draw":
-        player.hand.append(game.drawFromDeck())
+        player.hand.cards.append(game.drawFromDeck())
 
         # Update next player
         nextPlayer = u_dex + 1
@@ -569,15 +569,15 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deckToDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} draws", game_id])
+        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deck.toDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} draws", game_id])
 
     elif action == "trade":
 
         # The index of the card that is being traded
-        tradeDex = player.hand.index(tradeCard)
+        tradeDex = player.hand.cards.index(tradeCard)
 
         # Draw a card and replace the card being traded with it
-        player.hand[tradeDex] = game.drawFromDeck()
+        player.hand.cards[tradeDex] = game.drawFromDeck()
 
         # Update next player
         nextPlayer = u_dex + 1
@@ -588,7 +588,7 @@ def card(clientInfo):
             nextPlayer = 0
 
         # Update game
-        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deckToDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} trades", game_id])
+        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deck.toDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} trades", game_id])
 
     elif action == "stand":
 
@@ -675,7 +675,7 @@ def card(clientInfo):
             winStr = "Everyone bombs out and loses!"
 
         # Update game
-        db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deckToDb(card_type), game.players[0].id, winStr, True, game_id])
+        db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deck.toDb(card_type), game.players[0].id, winStr, True, game_id])
 
     # Return new game data
     conn.commit()
@@ -719,7 +719,7 @@ def shift(clientInfo):
     shiftStr = "Sabacc shift!" if shift else "No shift!"
 
     # Update game
-    db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", game.deckToDb(card_type), game.playersToDb(player_type, card_type), game.players[0].id, shift, shiftStr, game_id])
+    db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", game.deck.toDb(card_type), game.playersToDb(player_type, card_type), game.players[0].id, shift, shiftStr, game_id])
     conn.commit()
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
     
@@ -753,7 +753,7 @@ def cont(clientInfo):
     game.nextRound()
 
     # Create game in database
-    db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), game.hand_pot, game.sabacc_pot, "betting", game.deckToDb(card_type), game.players[0].id, 0, "", False, game_id])
+    db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), game.hand_pot, game.sabacc_pot, "betting", game.deck.toDb(card_type), game.players[0].id, 0, "", False, game_id])
 
     # Return game
     conn.commit()

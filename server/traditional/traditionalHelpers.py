@@ -58,44 +58,72 @@ class TraditionalCard(Card):
                 card = TraditionalCard(val=val,suit=random.choice(allowedSuits), protected=protected)
         return card
 
+class TraditionalDeck(Deck):
+    def __init__(self, cardsToExclude:list=[]):
+        super().__init__()
+        self.cards = 2 * [
+            TraditionalCard(-11,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(0,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-8,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-14,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-15,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-2,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-13,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-17,TraditionalSuit.NEGATIVE_NEUTRAL)
+        ]
+        for suit in [TraditionalSuit.COINS,TraditionalSuit.FLASKS,TraditionalSuit.SABERS,TraditionalSuit.STAVES]:
+            for val in range(1,16):
+                self.cards.append(TraditionalCard(val=val,suit=suit))
+        for card in cardsToExclude:
+            self.cards.remove(card)
+        self.shuffle()
+    
+    @staticmethod
+    def fromDb(deck) -> object:
+        return TraditionalDeck([TraditionalCard.fromDb(card) for card in deck])
+    
+    @staticmethod
+    def fromDict(dict) -> object:
+        return TraditionalDeck([TraditionalCard.fromDict(card) for card in dict])
+
+class TraditionalHand(Hand):
+    def __init__(self, cards=[]):
+        super().__init__(cards)
+    
+    @staticmethod
+    def fromDb(hand) -> object:
+        return TraditionalHand([TraditionalCard.fromDb(card) for card in hand])
+    @staticmethod
+    def fromDict(hand) -> object:
+        return TraditionalHand([TraditionalCard.fromDict(card) for card in hand])
+
 class TraditionalPlayer(Player):
-    def __init__(self, id:int, username='', credits=0, bet:int = None, hand:list=[], folded=False, lastAction=""):
-        self.id = id
-        self.username = username
-        if type(credits) == int:
-            self.credits = credits
-        else:
-            print(f"ERROR: type of credits is {type(credits)}, not int")
-        if type(bet) == int or bet == None:
-            self.bet = bet
-        else:
-            print(f"ERROR: bet is not int or none, it's {type(bet)}")
-        self.hand = hand
-        self.folded = folded
-        self.lastAction = lastAction
+    def __init__(self, id:int, username='', credits=0, bet:int = None, hand:Hand=Hand(), folded=False, lastAction=""):
+        super().__init__(id=id, username=username, credits=credits, bet=bet, hand=hand, folded=folded, lastaction=lastAction)
+    
     def toDb(self, playerType, cardType):
-        for i in range(len(self.hand)):
-            self.hand[i] = self.hand[i].toDb(cardType)
-        return playerType.python_type(self.id, self.username, self.credits, self.bet, self.hand, self.folded, self.lastAction)
+        for i in range(len(self.hand.cards)):
+            self.hand.cards[i] = self.hand.cards[i].toDb(cardType)
+        return playerType.python_type(self.id, self.username, self.credits, self.bet, self.hand.cards, self.folded, self.lastAction)
     def toDict(self):
         return {
             'id': self.id,
             'username': self.username,
             'credits': self.credits,
             'bet': self.bet,
-            'hand': [card.toDict() for card in self.hand],
+            'hand': self.hand.toDict(),
             'folded': self.folded,
             'lastAction': self.lastAction
         }
     @staticmethod
     def fromDb(player:object):
-        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, [TraditionalCard.fromDb(card) for card in player.hand], player.folded, player.lastaction)
+        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastaction)
     @staticmethod
     def fromDict(dict:dict):
-        return TraditionalPlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=[TraditionalCard.fromDict(card) for card in dict['hand']],folded=dict['folded'],lastAction=dict['lastAction'])
+        return TraditionalPlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=TraditionalHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])
     
     def calcHandVal(self):
-        cardVals = [card.val for card in self.hand]
+        cardVals = self.hand.getListOfVals()
         cardVals.sort()
 
         '''special hands'''
@@ -106,29 +134,12 @@ class TraditionalPlayer(Player):
             return SpecialHands.FAIRY_EMPRESS
         
         return sum(cardVals)
-    
-    def getBet(self) -> int:
-        return self.bet if self.bet != None else 0
-        
-    def fold(self):
-        self.credits += self.getBet()
-        self.bet = None
-        self.folded = True
-    
-    def makeBet(self, creditAmount: int, absolute: bool = True):
-        if absolute:
-            self.credits -= creditAmount - self.getBet()
-            self.bet = creditAmount
-        else:
-            self.bet = self.bet if creditAmount == 0 else self.getBet()
-            self.credits -= creditAmount
-            self.bet += creditAmount
 
 class TraditionalGame(Game):
     handPotAnte = 5
     sabaccPotAnte = 10
 
-    def __init__(self, players:list, id:int=None, deck:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
+    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
@@ -143,7 +154,7 @@ class TraditionalGame(Game):
             players.append(TraditionalPlayer(id, credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
 
         # construct deck
-        deck = TraditionalGame.newDeck()
+        deck = TraditionalDeck()
 
         game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=TraditionalGame.handPotAnte*len(players), sabacc_pot=TraditionalGame.sabaccPotAnte*len(players))
         game.shuffleDeck()
@@ -167,39 +178,19 @@ class TraditionalGame(Game):
         self.sabacc_pot += TraditionalGame.sabaccPotAnte * len(self.players)
 
         # construct deck and deal hands
-        self.deck = TraditionalGame.newDeck()
+        self.deck = TraditionalDeck()
         self.shuffleDeck()
         self.dealHands()
 
-    @staticmethod
-    def newDeck(cardsToExclude:list=[]):
-        deck = 2 * [
-            TraditionalCard(-11,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(0,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(-8,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(-14,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(-15,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(-2,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(-13,TraditionalSuit.NEGATIVE_NEUTRAL),
-            TraditionalCard(-17,TraditionalSuit.NEGATIVE_NEUTRAL)
-        ]
-        for suit in [TraditionalSuit.COINS,TraditionalSuit.FLASKS,TraditionalSuit.SABERS,TraditionalSuit.STAVES]:
-            for val in range(1,16):
-                deck.append(TraditionalCard(val=val,suit=suit))
-        for card in cardsToExclude:
-            deck.remove(card)
-        return deck
     def dealHands(self):
         for player in self.players:
-            player.hand = [self.drawFromDeck(),self.drawFromDeck()]
+            player.hand.cards = [self.drawFromDeck(),self.drawFromDeck()]
 
     def toDb(self, card_type, player_type, includeId=False):
         if includeId:
-            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
+            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
         elif includeId == False:
-            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
-    def deckToDb(self, card_type):
-        return [card.toDb(card_type) for card in self.deck]
+            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
     def playersToDb(self, player_type, card_type):
         return [player.toDb(player_type, card_type) for player in self.players]
     def toDict(self):
@@ -209,7 +200,7 @@ class TraditionalGame(Game):
             'hand_pot': self.hand_pot,
             'sabacc_pot': self.sabacc_pot,
             'phase': self.phase,
-            'deck': [card.toDict() for card in self.deck],
+            'deck': self.deck.toDict(),
             'player_turn': self.player_turn,
             'p_act': self.p_act,
             'cycle_count': self.cycle_count,
@@ -218,33 +209,27 @@ class TraditionalGame(Game):
         }
     @staticmethod
     def fromDb(game:object):
-        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=[TraditionalCard.fromDb(card) for card in game[5]], player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
+        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
     @staticmethod
     def fromDict(dict:dict):
-        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=[TraditionalCard.fromDict(card) for card in dict['deck']],player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
+        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
 
-    def shuffleDeck(self):
-        for i in range(len(self.deck)):
-            randomIndex = random.randint(0, len(self.deck) - 1)
-            temp = self.deck[randomIndex]
-            self.deck[randomIndex] = self.deck[i]
-            self.deck[i] = temp
     def drawFromDeck(self):
         # if deck is empty, reshuffle
-        if len(self.deck) == 0:
+        if len(self.deck.cards) == 0:
             # exclude cards in (active) players' hands
             cardsToExclude = []
             for player in self.getActivePlayers():
-                cardsToExclude.extend(player.hand)
-            self.deck = TraditionalGame.newDeck(cardsToExclude=cardsToExclude)
-            self.shuffleDeck()
-        return self.deck.pop()
+                cardsToExclude.extend(player.hand.cards)
+            self.deck = TraditionalDeck(cardsToExclude=cardsToExclude)
+            self.deck.shuffle()
+        return self.deck.draw()
     
     # replace every unprotected card in every player's hand
     def shift(self):
         # loop thru players
         for player in self.players:
-            hand = player.hand
+            hand = player.hand.cards
             # loop thru cards in hand
             for i in range(len(hand)):
                 if not hand[i].protected: # if card is not protected
@@ -255,7 +240,7 @@ class TraditionalGame(Game):
         if suddenDemise == True:
             # Give each participant in the sudden demise a card
             for player in sdPlayers:
-                player.hand.append(self.drawFromDeck())
+                player.hand.cards.append(self.drawFromDeck())
         
         # calculate winners and losers
         winningPlayers, bestHand, bombedOutPlayers = TraditionalGame.calcWinners(sdPlayers) if suddenDemise else TraditionalGame.calcWinners(self.players)

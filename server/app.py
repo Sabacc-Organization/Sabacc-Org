@@ -97,7 +97,11 @@ try:
     conn.commit()
     print("Created custom PostgreSQL type Player")
 except psycopg.errors.DuplicateObject:
+<<<<<<< HEAD
     print("Custom PostgreSQL type Player already exists")
+=======
+    print('custom types alr exist')
+>>>>>>> 18-corellian-spike
     conn.rollback()
 
 
@@ -127,6 +131,11 @@ conn.commit()
 """ copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
 # dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
 # conn.commit()
+
+
+
+
+conn.commit()
 
 
 """ REST APIs """
@@ -193,7 +202,7 @@ def index():
     user_id = getDictsForDB(db)[0]["id"]
 
     # Query the database for all the games
-    games = [Game.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
+    games = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
     newGames = []
 
     # IDs of users in games
@@ -290,7 +299,7 @@ def returnGameInfo(clientInfo):
     # Get game
     game_id = clientInfo["game_id"]
     db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)])
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -354,7 +363,7 @@ def host():
             players.append(TraditionalPlayer(p[0]["id"],pForm))
 
     # create game
-    game = Game.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
+    game = TraditionalGame.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
 
     # Create game in database
     db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=player_type,card_type=card_type), game.hand_pot, game.sabacc_pot, game.deck.toDb(card_type), game.player_turn, game.p_act])
@@ -382,7 +391,7 @@ def protect(clientInfo):
 
     # Get game
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
     # Get card being protected
     print(clientInfo)
@@ -423,7 +432,7 @@ def bet(clientInfo):
     user_id = getDictsForDB(db)[0]["id"]
 
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
     # Get betting action
     action = clientInfo["action"]
@@ -526,7 +535,7 @@ def card(clientInfo):
 
     # Get game
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
     # Action information
     action = clientInfo["action"]
@@ -618,7 +627,7 @@ def card(clientInfo):
 
 
     # Update game data variables
-    game = Game.fromDb(db.execute(f"SELECT * FROM games WHERE game_id = {game_id}").fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute(f"SELECT * FROM games WHERE game_id = {game_id}").fetchall()[0])
     players = game.getActivePlayers()
 
     # If the action just made was the last one of the card phase
@@ -638,7 +647,7 @@ def card(clientInfo):
 
     # Someone called Alderaan and everyone has done their turn
     if endGame == True:
-        game = Game.fromDb(db.execute(f"SELECT * FROM games WHERE game_id = {game_id}").fetchall()[0])
+        game = TraditionalGame.fromDb(db.execute(f"SELECT * FROM games WHERE game_id = {game_id}").fetchall()[0])
 
         # Get end of game data
         winner, bestHand, bombedOutPlayers = game.alderaan()
@@ -698,7 +707,7 @@ def shift(clientInfo):
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
     players = game.getActivePlayers()
 
     # verify that the current phase is the shift phase
@@ -741,7 +750,7 @@ def cont(clientInfo):
 
     # Set some variables for the whole function
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
     if game.completed != True:
         return

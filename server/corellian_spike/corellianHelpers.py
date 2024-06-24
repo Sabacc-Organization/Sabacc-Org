@@ -157,10 +157,10 @@ class CorellianSpikeGame(Game):
         
     # for testing purposes
     def __str__(self) -> str:
-        ret = '\n'
+        ret = f'\ndeck ({len(self.deck.cards)}): {self.deck}\ndiscard pile ({len(self.discardPile)}): [{listToStr(self.discardPile)}]\nhand pot: {self.handPot}\tsabacc pot: {self.sabaccPot}\n\n'
         for player in self.players:
             ret += player.toString()
-        ret += '\n' + self.determineWinner()
+        #ret += '\n' + self.determineWinner()
         return ret
     
     # create a new game
@@ -221,7 +221,7 @@ class CorellianSpikeGame(Game):
             # put player's cards on bottom of deck
             self.deck.cards = player.hand.cards + self.deck.cards
             # deal player as many cards as they had before
-            player.hand.cards = self._drawFromDeck(len(player.hand.cards))
+            player.hand.cards = self.safeDrawFromDeck(len(player.hand.cards))
     
     def determineWinner(self) -> str:
         ret = ''
@@ -326,12 +326,12 @@ class CorellianSpikeGame(Game):
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
-        self.deck.cards = self.discardPile
+        self.deck.cards = self.discardPile + self.deck.cards # keep remaining cards on top (end)
         self.discardPile = []
         self.deck.shuffle()
 
     # draw a number of cards from the deck (reshuffling if necessary)
-    def _drawFromDeck(self, numCards=1):
+    def safeDrawFromDeck(self, numCards=1):
         if(len(self.deck.cards) < numCards):
             self._reshuffle()
         return self.deck.draw(numCards)

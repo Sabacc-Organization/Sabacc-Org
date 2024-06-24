@@ -80,29 +80,8 @@
     }
 
     async function host() {
-
-        if (players.length > 7) {
-            errorMsg = "You can only have a maximum of eight players";
-            return;
-        }
-        else if (players.length < 1) {
-            errorMsg = "You cannot play alone";
-            return;
-        }
-
-        if (players.indexOf(username) != -1) {
-            errorMsg = "You cannot play with yourself";
-            return;
-        }
-
-        for (let i = 0; i < players.length; i++) {
-            if (players.lastIndexOf(players[i]) != i) {
-                errorMsg = "All players must be different";
-                return;
-            }
-        }
-
         try {
+
 
             let requestData = {
                 "username": username,
@@ -110,7 +89,7 @@
                 "players": players
             }
 
-            const response = await fetch(BACKEND_URL + "/host", {
+            const response = await fetch(BACKEND_URL + "/host/corellian-spike", { // TODO it is ok if the link changes
                 method: 'POST', // Set the method to POST
                 headers: {
                     'Content-Type': 'application/json' // Set the headers appropriately
@@ -134,7 +113,7 @@
   <title>Sabacc: Host</title>
 </svelte:head>
 
-<h2>Host a game of Sabacc</h2>
+<h2>Host a game of <b>Corellian Spike</b> Sabacc</h2>
 <br>
 <h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>
 

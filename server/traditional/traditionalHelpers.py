@@ -310,5 +310,5 @@ class TraditionalGame(Game):
         return winningPlayers, bestHand, bombedOutPlayers
 
     # overrides parent method
-    def action(self, action, actionParams):
+    def action(self, params:dict, db):
         pass

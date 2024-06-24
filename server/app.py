@@ -15,6 +15,7 @@ from dataHelpers import *
 import dbConversion
 from flask_socketio import SocketIO, send, emit, join_room
 from traditional.traditionalHelpers import *
+from corellian_spike.corellianHelpers import *
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
@@ -372,6 +373,43 @@ def host():
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
 
 """ Gameplay REST APIs """
+
+@socketio.on("gameAction")
+def gameAction(clientInfo):
+    """ Perform an action in a game """
+
+    # Authenticate User
+    username = clientInfo["username"]
+    password = clientInfo["password"]
+    check = checkLogin(username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+    
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username]).fetchone()
+
+    if not user_id:
+        return jsonify({"message": "User does not exist"}), 401
+
+    # Get game info
+    game_variant = clientInfo["game_variant"]
+    game_id = clientInfo["game_id"]
+    action = clientInfo["action"]
+
+    game = db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, game_id]).fetchone()
+
+    if not game:
+        return jsonify({"message": "Game does not exist"}), 401
+    
+    if game_variant == "traditional":
+        game = TraditionalGame.fromDb(game)
+    elif game_variant == "corellian_spike":
+        game = CorellianSpikeGame.fromDb(game) 
+
+    game.action(clientInfo, db)
+
+    conn.commit()
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom:{game_variant}/{game_id}')
+
 
 # when the server recieves a protect command from a client, it updates the game accordingly and then it sends the new game to all connected clients in that game.
 @socketio.on('protect')

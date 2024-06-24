@@ -323,3 +323,7 @@ class TraditionalGame(Game):
                 if player.calcHandVal() == bestHand:
                     winningPlayers.append(player)
         return winningPlayers, bestHand, bombedOutPlayers
+
+    # overrides parent method
+    def action(self, action, actionParams):
+        pass

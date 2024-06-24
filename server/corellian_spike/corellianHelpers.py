@@ -461,3 +461,7 @@ class CorellianSpikeGame(Game):
     def playerDiscardAction(self, player:TraditionalPlayer, discardCardIndex:int):
         player.credits -= 20 * self.round
         self._playerDiscard(player, discardCardIndex)
+    
+    # overrides parent method
+    def action(self, action, actionParams):
+        pass

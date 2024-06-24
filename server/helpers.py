@@ -7,6 +7,7 @@ from dataHelpers import *
 from cs50 import SQL
 from werkzeug.security import check_password_hash
 import yaml
+from abc import ABC, abstractmethod # allows abstract classes/methods
 
 # Get config.yml data
 config = {}
@@ -17,7 +18,7 @@ with open("config.yml", "r") as f:
 conn = psycopg.connect(config['DATABASE'])
 db = conn.cursor()
 
-class Game:
+class Game(ABC):
     def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:object=None, phase='betting', cycle_count=0, completed=False):
         self.players = players
         self.id = id
@@ -46,6 +47,12 @@ class Game:
         return None if dex == -1 else self.players[dex]
     def containsPlayer(self, username:str=None, id:int=None) -> bool:
         return self.getPlayer(username=username, id=id) != None
+    
+    # abstract method for card actions (draw, trade, etc.)
+    # each sub game class must override
+    @abstractmethod
+    def action(self, action, actionParams):
+        pass
     
 class Suit:
     DEFAULT = "NONE"

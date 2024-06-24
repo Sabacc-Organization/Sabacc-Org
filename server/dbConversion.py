@@ -1,10 +1,46 @@
-from app import *
+from cs50 import SQL
+from helpers import *
+from dataHelpers import *
+# from traditional.alderaanHelpers import *
 from traditional.traditionalHelpers import *
+from colorama import Fore
+
+
+# function to clean up deck data from completed games
+def cleanDeckData(sqlite3_db):
+    games = sqlite3_db.execute("SELECT * FROM games WHERE completed = 1 AND phase = 'alderaan'")
+
+    for game in games:
+
+        deck = game["deck"]
+
+        commaString = ""
+        for l in deck:
+            if l != "," and commaString != "":
+                break
+            
+            elif l == ",":
+                commaString += l
+
+        if commaString != ",":
+
+            deck = deck.replace(commaString, ";")
+            deck = deck.replace(",", "")
+            deck = deck.replace(";", ",")
+
+            sqlite3_db.execute("UPDATE games SET deck = ? WHERE game_id = ?", deck, game["game_id"])
 
 # copy over data from sqlite3
 def convertDb(db, card_type, player_type):
+
+    """ Verify PostgreSQL db is empty - VERY IMPORTANT """
+    if len(db.execute("SELECT * FROM users").fetchall()) > 0 or len(db.execute("SELECT * FROM games").fetchall()) > 0:
+        print(f"{Fore.RED}PostgreSQL database is not empty. THIS SCRIPT IS NOT MEANT FOR THIS! PLEASE REVIEW! RISK OF DATA LOSS!{Fore.WHITE}")
+        exit(1)
+
     # connect to sqltie3 db
     sqlite3_db = SQL("sqlite:///sabacc.db")
+    cleanDeckData(sqlite3_db)
 
     # add test users and games
     # sqlite3_db.execute('INSERT INTO users (username, hash) VALUES (?, ?)', 'durin', 'the deathless')
@@ -14,23 +50,35 @@ def convertDb(db, card_type, player_type):
     # get users from sqlite3 db
     users = sqlite3_db.execute("SELECT * FROM users")
     # loop thru users & insert each into postgresql db
-    numUsersAdded = 0
-    for user in users:
-        id = user['id']
-        # check if user alr exists first
-        if len(db.execute("SELECT * FROM users WHERE id = %s", [id]).fetchall()) == 0:
-            db.execute("INSERT INTO users (username, hash) VALUES (%s, %s)", [user['username'], user['hash']])
-            numUsersAdded += 1
 
+    usersIndexLimit = users[len(users) - 1]["id"]
+
+    numUsersAdded = 0
+    for i in range(1, usersIndexLimit + 1):
+        if users[0]["id"] == i:
+            db.execute("INSERT INTO users (username, hash) VALUES (%s, %s)", [users[0]["username"], users[0]["hash"]])
+            users.pop(0)
+            numUsersAdded += 1
+        elif users[0]["id"] != i:
+            db.execute("INSERT INTO users (username, hash) VALUES (%s, %s)", [str(i), "empty"])
+
+    db.execute("DELETE FROM users WHERE HASH = %s", ["empty"])
+
+
+    # Copying over games could have a mechanism for empty rows like the users portion, but it's not necessary
     # copy over games
     games = sqlite3_db.execute("SELECT * FROM games")
     numGamesCopied = 0
     # loop thru games
     for game in games:
         player_ids = [int(id) for id in game['player_ids'].split(',')]
-        folded_ids = [int(id) for id in game['folded_players'].split(',')]
+        folded_ids = []
+        if game["folded_players"]: # not None
+            folded_ids = [int(id) for id in game['folded_players'].split(',')]
         player_ids.extend(folded_ids)
-        player_credits = game['player_credits'].split(',') + game['folded_credits'].split(',')
+        player_credits = game['player_credits'].split(',')
+        if game["folded_credits"]: # not None
+            player_credits += game['folded_credits'].split(',')
         player_bets = game['player_bets'].split(',')
         player_hands = game['player_hands'].split(';')
         player_prots = game['player_protecteds'].split(';')
@@ -53,31 +101,40 @@ def convertDb(db, card_type, player_type):
                 prots = [prot == '1' for prot in player_prots[i].split(',')]
                 newHand = []
                 for j in range(len(oldHand)):
-                    card = Card.randCardNotInList(val=int(oldHand[j]), protected=prots[j], unallowedCards=usedCards)
-                    newHand.append(card)
-                    usedCards.append(card)
+                    try:
+                        card = TraditionalCard.randCardNotInList(val=int(oldHand[j]), protected=prots[j], unallowedCards=usedCards)
+                        newHand.append(card)
+                        usedCards.append(card)
+                    except ValueError:
+                        pass
                 
-                bet = int(player_bets[i])
+                try:
+                    bet = int(player_bets[i])
+                except ValueError:
+                    pass
             else:
                 folded = True
             
             # add player to list
-            player = Player(id=id, username=username, credits=int(player_credits[i]), bet=bet, hand=newHand, folded=folded)
+            player = TraditionalPlayer(id=id, username=username, credits=int(player_credits[i]), bet=bet, hand=newHand, folded=folded)
             players.append(player)
         
         # convert deck
         oldDeck = game['deck'].split(',')
         newDeck = []
         for val in oldDeck:
-            card = Card.randCardNotInList(val=int(val), unallowedCards=usedCards)
-            newDeck.append(card)
-            usedCards.append(card)
+            try:
+                card = TraditionalCard.randCardNotInList(val=int(val), unallowedCards=usedCards)
+                newDeck.append(card)
+                usedCards.append(card)
+            except ValueError:
+                pass
 
         # add game to db
         newGame = TraditionalGame(players=players, id=game['game_id'], deck=newDeck, player_turn=game['player_turn'], p_act=game['p_act'], hand_pot=game['hand_pot'], sabacc_pot=game['sabacc_pot'], phase=game['phase'], cycle_count=game['cycle_count'], shift=(game['shift'] == 1), completed=(game['completed'] == 1))
         if(len(db.execute("SELECT * FROM games WHERE game_id = %s", [newGame.id]).fetchall()) == 0):
-            db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", newGame.toDb(card_type, player_type))
+            db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", newGame.toDb(card_type, player_type))
             numGamesCopied += 1
 
     # if numUsersAdded != 0 or numGamesCopied != 0:
-    print(f"{numUsersAdded} of {len(users)} users and {numGamesCopied} of {len(games)} games copied over from sqlite3 db to postgresql db")
+    print(f"{numUsersAdded} users and {numGamesCopied} of {len(games)} games copied over from sqlite3 db to PostgreSQL db")

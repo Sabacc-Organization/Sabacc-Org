@@ -98,12 +98,18 @@ class TraditionalHand(Hand):
         return TraditionalHand([TraditionalCard.fromDict(card) for card in hand])
 
 class TraditionalPlayer(Player):
-    def __init__(self, id:int, username='', credits=0, bet:int = None, hand:Hand=Hand(), folded=False, lastAction=""):
-        super().__init__(id=id, username=username, credits=credits, bet=bet, hand=hand, folded=folded, lastaction=lastAction)
+    def __init__(self, id:int, username:str, credits=0, bet:int = None, hand:Hand=Hand(), folded=False, lastAction=""):
+        self.id = id
+        self.username = username
+        self.credits = credits
+        self.bet = bet
+        self.hand = hand
+        self.folded = folded
+        self.lastAction = lastAction
     
     def protect(self, card:TraditionalCard):
         self.hand.protect(card)
-        self.lastaction = f"protected a {card.val}"
+        self.lastAction = f"protected a {card.val}"
 
     def toDb(self, playerType, cardType):
         for i in range(len(self.hand.cards)):
@@ -121,7 +127,7 @@ class TraditionalPlayer(Player):
         }
     @staticmethod
     def fromDb(player:object):
-        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastaction)
+        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastAction)
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalPlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=TraditionalHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])
@@ -160,13 +166,13 @@ class TraditionalGame(Game):
             "Too many players. Max of 8 players."
 
         if len(playerIds) <= 1:
-            "You cannot play with yourself"
+            "You cannot play by yourself"
 
 
         # create player list
         players = []
         for id in playerIds:
-            players.append(TraditionalPlayer(id, playerUsernames[playerIds.index(id)], credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
+            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
 
         # construct deck
         deck = TraditionalDeck()
@@ -175,7 +181,8 @@ class TraditionalGame(Game):
         game.shuffleDeck()
         game.dealHands()
 
-        db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=TraditionalPlayer,card_type=TraditionalCard), game.hand_pot, game.sabacc_pot, game.deckToDb(TraditionalCard), game.player_turn, game.p_act])
+        if db:
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=TraditionalPlayer,card_type=TraditionalCard), game.hand_pot, game.sabacc_pot, game.deckToDb(TraditionalCard), game.player_turn, game.p_act])
 
         return game
     
@@ -241,12 +248,6 @@ class TraditionalGame(Game):
             self.deck = TraditionalDeck(cardsToExclude=cardsToExclude)
             self.deck.shuffle()
         return self.deck.draw()
-    
-    # roll shift
-    def rollShift(self):
-        roll1 = random.randint(1, 6)
-        roll2 = random.randint(1, 6)
-        self.shift = roll1 == roll2
 
     # replace every unprotected card in every player's hand
     def shift(self):
@@ -346,7 +347,7 @@ class TraditionalGame(Game):
                 return response
             db.execute("UPDATE traditional_games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), f"{player.username} protected a {card.val}", self.id])
 
-        elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id:
+        elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
             players = self.getActivePlayers()
 
             if params['action'] == "fold":
@@ -356,16 +357,16 @@ class TraditionalGame(Game):
 
                 
 
-            elif params["action"] == "bet" and players.index(player):
+            elif params["action"] == "bet":
                 player.makeBet(params["amount"])
 
             elif params["action"] == 'call':
                 player.makeBet(params["amount"], False)
-                player.lastaction = f'calls'
+                player.lastAction = f'calls'
 
             elif params["action"] == 'raise':
                 player.makeBet(params["amount"], False)
-                player.lastaction = f'raises to {params["amount"]}'
+                player.lastAction = f'raises to {params["amount"]}'
 
             betAmount = [i.getBet() for i in self.players]
             betAmount.append(0)
@@ -394,7 +395,7 @@ class TraditionalGame(Game):
                 self.hand_pot,
                 'betting' if nextPlayer != None else 'card',
                 nextPlayer if nextPlayer != None else players[0].id,
-                player.username + " " + player.lastaction,
+                player.username + " " + player.lastAction,
                 len(players) <= 1,
                 self.id
             ]
@@ -403,11 +404,11 @@ class TraditionalGame(Game):
 
 
 
-        elif (params["action"] == "draw" or params["action"] == "trade" or params["action"] == "stand" or params["action"] == "alderaan") and (self.phase == "card" or self.phase == "alderaan") and self.player_turn == player.id:
+        elif (params["action"] == "draw" or params["action"] == "trade" or params["action"] == "stand" or params["action"] == "alderaan") and (self.phase == "card" or self.phase == "alderaan") and self.player_turn == player.id and self.completed == False:
             
             if params["action"] == "draw":
                 player.hand.cards.append(self.drawFromDeck())
-                player.lastaction = "draws"
+                player.lastAction = "draws"
 
             elif params["action"] == "trade":
                 tradeCard = TraditionalCard.fromDict(params["trade"])
@@ -418,14 +419,14 @@ class TraditionalGame(Game):
                 # Draw a card and replace the card being traded with it
                 player.hand.cards[tradeDex] = self.drawFromDeck()
 
-                player.lastaction = "trades"
+                player.lastAction = "trades"
 
             elif params["action"] == "stand":
-                player.lastaction = "stands"
+                player.lastAction = "stands"
 
             elif params["action"] == "alderaan" and self.cycle_count != 0:
                 self.phase = "alderaan"
-                player.lastaction = "calls Alderaan"
+                player.lastAction = "calls Alderaan"
 
 
 
@@ -482,14 +483,14 @@ class TraditionalGame(Game):
                 self.sabacc_pot,
                 self.phase,
                 self.getActivePlayers()[nextPlayer].id,
-                player.username + " " + player.lastaction if not winStr else winStr,
+                player.username + " " + player.lastAction if not winStr else winStr,
                 self.completed,
                 self.id
             ]
             db.execute("UPDATE traditional_games SET deck = %s, players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
 
-        elif params["action"] == "shift" and self.player_turn == player.id:
-            self.rollShift()
+        elif params["action"] == "shift" and self.player_turn == player.id and self.completed == False:
+            self._shift = self.rollShift()
 
             if self._shift:
                 self.shift()

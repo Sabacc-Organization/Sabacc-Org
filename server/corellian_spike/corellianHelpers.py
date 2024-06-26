@@ -133,7 +133,7 @@ class CorellianSpikeHand(Hand):
         return lowest
 
 class CorellianSpikePlayer(Player):
-    def __init__(self, id:int, username='', credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction='', ):
+    def __init__(self, id:int, username:str, credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction='', ):
         self.id = id
         self.username = username
         self.credits = credits
@@ -148,15 +148,28 @@ class CorellianSpikePlayer(Player):
         ranking = self.hand.getRanking()
         return f'player {self.id}:\n\thand ({CorellianSpikeHand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
 
+    def toDb(self, playerType, cardType):
+        for i in range(len(self.hand.cards)):
+            self.hand.cards[i] = self.hand.cards[i].toDb(cardType)
+        return playerType.python_type(self.id, self.username, self.credits, self.bet, self.hand.cards, self.folded, self.lastAction)
+
     @staticmethod
     def fromDb(player:object):
         return CorellianSpikePlayer(player.id, player.username, player.credits, player.bet, CorellianSpikeHand.fromDb(player.hand), player.folded, player.lastaction)
 
 class CorellianSpikeGame(Game):
     handPotAnte = 5
-    sabaccPotAnte = 5
+    sabaccPotAnte = 10
 
-    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', round=1, shift=False, completed=False):
+    drawFromDeckCost = 0
+    drawFromDiscardCost = 0
+    deckTradeCost = 0
+    discardTradeCost = 0
+    discardCost = 0
+    discardCostIncremental = False
+    standCost = 0
+
+    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='card', round=1, shift=False, completed=False):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=round, completed=completed)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
@@ -173,11 +186,21 @@ class CorellianSpikeGame(Game):
     
     # create a new game
     @staticmethod
-    def newGame(playerIds:list, startingCredits=1000) -> object:
+    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db):
+
+        if len(playerIds) != len(playerUsernames):
+            return "Uneqal amount of ids and usernames"
+        
+        if len(playerIds) > 8:
+            "Too many players. Max of 8 players."
+
+        if len(playerIds) <= 1:
+            "You cannot play by yourself"
+
         # create player list
         players = []
         for id in playerIds:
-            players.append(CorellianSpikePlayer(id, credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
+            players.append(CorellianSpikePlayer(id, username=playerUsernames[playerIds.index(id)], credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
         
         # create deck, discard pile, and pots
         deck = CorellianSpikeDeck()
@@ -192,6 +215,9 @@ class CorellianSpikeGame(Game):
         game.dealHands()
 
         # the 1st player is the 1st dealer
+
+        if db:
+            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=CorellianSpikePlayer,card_type=Card), game.hand_pot, game.sabacc_pot, game.deckToDb(Card), game.player_turn, game.p_act])
 
         # return Game object
         return game
@@ -223,13 +249,6 @@ class CorellianSpikeGame(Game):
     def dealHands(self):
         for player in self.players:
             player.hand.cards = self.deck.draw(2)
-
-    def shift(self):
-        for player in self.players:
-            # put player's cards on bottom of deck
-            self.deck.cards = player.hand.cards + self.deck.cards
-            # deal player as many cards as they had before
-            player.hand.cards = self.safeDrawFromDeck(len(player.hand.cards))
     
     def determineWinner(self) -> str:
         ret = ''
@@ -241,7 +260,7 @@ class CorellianSpikeGame(Game):
                 winningPlayers.append(player)
         
         if len(winningPlayers) == 1:
-            return f'player {winningPlayers[0].id} won with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})'
+            return {"winStr": f'player {winningPlayers[0].id} won with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})', "winner": winningPlayers[0], "0": winningHand < 18}
         ret += f"{bothOrAll(len(winningPlayers)) + ' players' if len(winningPlayers) == len(self.players) else f'players {listToStr(winningPlayers)}'} tied with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})\n"
         
         ''' tie breakers '''
@@ -254,7 +273,7 @@ class CorellianSpikeGame(Game):
                 if handTotals[i] != closestTo0:
                     del winningPlayers[i]
             if len(winningPlayers) == 1:
-                return ret + f'player {winningPlayers[0].id} won with a total of {addPlusBeforeNumber(winningPlayers[0].hand.getTotal())}'
+                return {"winStr":ret + f'player {winningPlayers[0].id} won with a total of {addPlusBeforeNumber(winningPlayers[0].hand.getTotal())}', "winner": winningPlayers[0], "0": closestTo0 == 0}
             ret += f'players {listToStr(winningPlayers)} tied with a total of {addPlusBeforeNumber(closestTo0)}\n'
         
             # 18b. Positive Score
@@ -265,7 +284,7 @@ class CorellianSpikeGame(Game):
                     if handTotals[i] < 0:
                         del winningPlayers[i]
                 if len(winningPlayers) == 1:
-                    return ret + f'player {winningPlayers[0].id} won with a positive score'
+                    return {"winStr": ret + f'player {winningPlayers[0].id} won with a positive score', "winner": winningPlayers[0], "0": False}
             ret += f"players {listToStr(winningPlayers)} {'both' if len(winningPlayers) == 2 else 'all'} had a {'positive' if atLeast1Pos else 'negative'} score\n"
 
             # 19-Most Cards
@@ -275,7 +294,7 @@ class CorellianSpikeGame(Game):
                 if numCards[i] < mostCards:
                     del winningPlayers[i]
             if len(winningPlayers) == 1:
-                return ret + f'player {winningPlayers[0].id} won with {len(winningPlayers[0].hand.cards)} cards'
+                return {"winStr": ret + f'player {winningPlayers[0].id} won with {len(winningPlayers[0].hand.cards)} cards', "winner": winningPlayers[0], "0": False}
             ret += f'players {listToStr(winningPlayers)} tied with {mostCards} cards\n'
             
             # 20- lowest sum of all positive cards
@@ -292,7 +311,7 @@ class CorellianSpikeGame(Game):
                     del winningPlayers[i]
             
             if len(winningPlayers) == 1:
-                return ret + f'player {winningPlayers[0].id} won with the lowest positive card total of {minPosTotal}'
+                return {"winStr": ret + f'player {winningPlayers[0].id} won with the lowest positive card total of {minPosTotal}', "winner": winningPlayers[0], "0": False}
             ret += f'players {listToStr(winningPlayers)} tied with a positive card total of {minPosTotal}\n'
 
         # 21- lowest positive card
@@ -306,15 +325,15 @@ class CorellianSpikeGame(Game):
             if player.hand.lowestPosValue() == lowest:
                 newWinningPlayers.append(player)
         if len(newWinningPlayers) == 1:
-            return ret + f"player {newWinningPlayers[0].id} won with a lowest positive value of +{lowest}"
+            return {"winStr": ret + f"player {newWinningPlayers[0].id} won with a lowest positive value of +{lowest}", "winner": winningPlayers[0], "0": True}
         winningPlayers = newWinningPlayers
         ret += f"players {listToStr(winningPlayers)} tied with a lowest positive value of +{lowest}\n"
 
         # 5- blind draw (closest to 0)
         ret += 'blind draw: '
         blindDraws = []
+        closestTo0 = 0
         while len(winningPlayers) > 1:
-            closestTo0 = 0
             for i in range(len(winningPlayers)):
                 drawnCard = self.deck.draw()
                 val = abs(drawnCard.val)
@@ -330,7 +349,10 @@ class CorellianSpikeGame(Game):
             else:
                 ret += f'player {winningPlayers[0].id} won with a {closestTo0}'
 
-        return ret
+        return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
+    
+    def discardPileToDb(self):
+        return [card.toDb(Card) for card in self.discardPile]
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
@@ -359,7 +381,7 @@ class CorellianSpikeGame(Game):
 
     # draw cards from deck for player
     def _playerDrawFromDeck(self, player:CorellianSpikePlayer, numCards=1):
-        drawnCard = self._drawFromDeck(numCards)
+        drawnCard = self.safeDrawFromDeck(numCards)
         player.addToHand(drawnCard)
         return drawnCard
 
@@ -376,34 +398,218 @@ class CorellianSpikeGame(Game):
     ''' player actions '''
     # player buys from the deck for 5 credits
     def buyFromDeck(self, player:CorellianSpikePlayer):
-        player.credits -= 5
+        player.credits -= self.drawFromDeckCost
+        player.lastAction = "buys from deck"
         return self._playerDrawFromDeck(player)
     
     # player buys top discard for 10 creds
     def buyFromDiscard(self, player:CorellianSpikePlayer):
-        player.credits -= 10
+        player.credits -= self.drawFromDiscardCost
+        player.lastAction = "buys from discard"
         return self._playerDrawDiscard(player)
     
     # player discards a card, then draws one
     def tradeWithDeck(self, player:CorellianSpikePlayer, tradeCardIndex:int):
+        player.credits -= self.deckTradeCost
+        player.lastAction = "trades with deck"
         self._playerDiscard(player, tradeCardIndex)
         return self._playerDrawFromDeck(player)
 
     # player draws top discard, then discards a card
     def tradeWithDiscard(self, player:CorellianSpikePlayer, tradeCardIndex):
-        drawnCard = self._playerDrawDiscard(player)
+        player.credits -= self.discardTradeCost
+        player.lastAction = "trades with discard"
         self._playerDiscard(player, tradeCardIndex)
+        drawnCard = self._playerDrawDiscard(player)
         return drawnCard
     
     # player discards for increasing price
     def playerDiscardAction(self, player:CorellianSpikePlayer, discardCardIndex:int):
-        player.credits -= 20 * self.round
+        player.credits -= self.discardCost * self.cycle_count if self.discardCostIncremental else self.discardCost
+        player.lastAction = "discards"
         self._playerDiscard(player, discardCardIndex)
+
+    # replace every card in every player's hand
+    def shift(self):
+        # loop thru players
+        for player in self.players:
+            hand = player.hand.cards
+            # loop thru cards in hand
+            handLen = len(hand)
+            for i in range(handLen):
+                player.discard(0)
+                self._playerDrawFromDeck(player, 1)
+            
+            self._playerDrawFromDeck(player, handLen)
+
+    def playersToDb(self, player_type, card_type):
+        return [player.toDb(player_type, card_type) for player in self.players]
     
     @staticmethod
     def fromDb(game:object):
         return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
 
     # overrides parent method
-    def action(self, action, actionParams):
-        pass
+    def action(self, params:dict, db):
+        originalSelf = self
+
+        player = self.getPlayer(username=params["username"])
+
+        if (params["action"] == "draw" or params["action"] == "trade" or params["action"] == "stand" or params["action"] == "alderaan") and (self.phase == "card" or self.phase == "alderaan") and self.player_turn == player.id and self.completed == False:
+            
+            if params["action"] == "deckDraw":
+                self.buyFromDeck(player)
+
+            elif params["action"] == "discardDraw":
+                self.buyFromDiscard(player)
+
+            elif params["action"] == "deckTrade":
+                self.tradeWithDeck(player, params["tradeIndex"])
+
+            elif params["action"] == "discardTrade":
+                self.tradeWithDiscard(player, params["tradeIndex"])
+
+            elif params["action"] == "stand":
+                player.credits -= CorellianSpikeGame.standCost
+                player.lastAction = "stands"
+
+            elif params["action"] == "discard":
+                self.playerDiscardAction(player, params["discardIndex"])
+
+            uDex = self.getPlayerDex(id=player.id)
+            nextPlayer = uDex + 1
+
+            if nextPlayer >= len(self.getActivePlayers()):
+                nextPlayer = 0
+                self.phase = "betting"
+
+            dbList = [
+                self.deckToDb(Card),
+                self.discardPileToDb(Card),
+                self.playersToDb(CorellianSpikePlayer, Card),
+                self.phase,
+                self.getActivePlayers()[nextPlayer].id,
+                player.username + " " + player.lastAction,
+                self.id
+            ]
+            db.execute("UPDATE corellian_spike_games SET deck = %s, discard_pile = %s, players = %s, phase = %s, player_turn = %s, p_act = %s WHERE game_id = %s", dbList)
+
+        elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
+            players = self.getActivePlayers()
+
+            if params['action'] == "fold":
+                player.fold()
+
+                players = self.getActivePlayers()
+
+
+            elif params["action"] == "bet" and players.index(player):
+                player.makeBet(params["amount"])
+
+            elif params["action"] == 'call':
+                player.makeBet(params["amount"], False)
+                player.lastAction = f'calls'
+
+            elif params["action"] == 'raise':
+                player.makeBet(params["amount"], False)
+                player.lastAction = f'raises to {params["amount"]}'
+
+            betAmount = [i.getBet() for i in self.players]
+            betAmount.append(0)
+            betAmount = max(betAmount)
+            nextPlayer = None
+            for i in players:
+                iBet = i.bet if i.bet != None else -1
+                if iBet < betAmount:
+                    nextPlayer = i.id
+                    break
+
+            if len(players) <= 1:
+                winningPlayer = players[0]
+                winningPlayer.credits += self.hand_pot + winningPlayer.bet
+                self.hand_pot = 0
+                winningPlayer.bet = None
+
+            if nextPlayer == None:
+                # add all bets to hand pot
+                for player in players:
+                    self.hand_pot += player.getBet()
+                    player.bet = None
+
+            dbList = [
+                self.playersToDb(CorellianSpikePlayer, Card),
+                self.hand_pot,
+                'betting' if nextPlayer != None else 'shift',
+                nextPlayer if nextPlayer != None else players[0].id,
+                player.username + " " + player.lastAction,
+                len(players) <= 1,
+                self.id
+            ]
+            db.execute("UPDATE corellian_spike_games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+
+        elif params["action"] == "shift" and self.player_turn == player.id and self.completed == False:
+            self._shift = self.rollShift()
+
+            if self._shift:
+                self.shift()
+
+            # Set the Shift message
+            shiftStr = "Sabacc shift!" if self._shift else "No shift!"
+
+            if self.cycle_count >= 3:
+                self.completed = True
+                winData = self.determineWinner()
+
+                winningPlayer.getPlayer(playerId=winData["winner"].id)
+                winningPlayer.credits += self.hand_pot
+                self.hand_pot = 0
+                if winData["0"]:
+                    winningPlayer.credits += self.sabacc_pot
+                    self.sabacc_pot = 0
+
+                shiftStr = f"{shiftStr} {winData["winStr"]}"
+
+            else:
+                self.cycle_count += 1
+
+            dbList = [
+                "card", 
+                self.deckToDb(Card), 
+                self.discardPileToDb(Card),
+                self.playersToDb(CorellianSpikePlayer, Card), 
+                self.hand_pot,
+                self.sabacc_pot,
+                self.getActivePlayers()[0].id,
+                self._shift, 
+                shiftStr, 
+                self.cycle_count,
+                self.completed,
+                self.id
+            ]
+
+            db.execute("UPDATE corellian_spike_games SET phase = %s, deck = %s, discard_pile = %s, players = %s, hand_pot = %s, sabacc_pot = %s, player_turn = %s, shift = %s, p_act = %s, cycle_count = %s, completed = %s WHERE game_id = %s", dbList)
+
+        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
+            self.nextRound()
+
+            dbList = [
+                self.playersToDb(CorellianSpikePlayer, Card), 
+                self.hand_pot, 
+                self.sabacc_pot, 
+                "card", 
+                self.deckToDb(Card), 
+                self.discardPileToDb(Card),
+                self.players[0].id, 
+                0, 
+                "", 
+                False, 
+                self.id
+            ]
+
+            db.execute("UPDATE corellian_spike_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, discard_pile = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+
+
+        if self == originalSelf:
+            "invalid user input"
+
+        return self

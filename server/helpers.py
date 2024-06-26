@@ -134,7 +134,7 @@ class Hand:
                 self.cards[i] = minCard
 
 class Player:
-    def __init__(self, id:int, username:str, credits:int, bet:int, hand:object, folded:bool, lastaction:str):
+    def __init__(self, id:int, username:str, credits:int, bet:int, hand:object, folded:bool, lastAction:str):
         self.id = id
         self.username = username
         if type(credits) == int:
@@ -147,7 +147,7 @@ class Player:
             print(f"ERROR: bet is not int or none, it's {type(bet)}")
         self.hand = hand
         self.folded = folded
-        self.lastaction = lastaction
+        self.lastAction = lastAction
         
     def addToHand(self, cards):
         if type(cards) != list:
@@ -173,7 +173,7 @@ class Player:
         self.credits += self.getBet()
         self.bet = None
         self.folded = True
-        self.lastaction = "folded"
+        self.lastAction = "folded"
     
     def makeBet(self, creditAmount: int, absolute: bool = True):
         if absolute:
@@ -185,9 +185,9 @@ class Player:
             self.bet += creditAmount
 
         if creditAmount != 0:
-            self.lastaction = f'bets {creditAmount}'
+            self.lastAction = f'bets {creditAmount}'
         else:
-            self.lastaction = f'checks'
+            self.lastAction = f'checks'
 
 class Game:
     def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False):
@@ -199,11 +199,19 @@ class Game:
         self.phase = phase
         self.cycle_count = cycle_count
         self.completed = completed
+        self.shift = False
 
     @staticmethod
     @abstractmethod
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
+
+    # roll shift
+    def rollShift(self):
+        roll1 = random.randint(1, 6)
+        roll2 = random.randint(1, 6)
+        self.shift = roll1 == roll2
+        return self.shift
         
     def getActivePlayers(self):
         activePlayers = []
@@ -223,6 +231,9 @@ class Game:
         return None if dex == -1 else self.players[dex]
     def containsPlayer(self, username:str=None, id:int=None) -> bool:
         return self.getPlayer(username=username, id=id) != None
+    
+    def deckToDb(self, card_type):
+        self.deck.toDb(card_type=card_type)
     
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override

@@ -363,7 +363,9 @@ def host():
 
     if game_variant == "traditional":
         # create game
-        game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5, db=db)
+        game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
+    elif game_variant == "corellian_spike":
+        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsername=playerUsernames, startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10, db=db)
 
     if not game:
         return jsonify({"message": "Invalid game variant"}), 401
@@ -401,7 +403,6 @@ def gameAction(clientInfo):
     # Get game info
     game_variant = clientInfo["game_variant"]
     game_id = clientInfo["game_id"]
-    action = clientInfo["action"]
 
     game = db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, game_id]).fetchone()
 

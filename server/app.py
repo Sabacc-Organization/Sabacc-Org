@@ -337,14 +337,11 @@ def host():
     # Get list of players in the game
     formPlayers = request.json.get("players")
 
-    # Make list of players
-    players = [TraditionalPlayer(id=user_id,username=username)]
+    game_variant = request.json.get("game_variant")
 
-    # Make sure the number of players is valid
-    if len(formPlayers) > 7:
-        return jsonify({"message": "You can only have a maximum of eight players"}), 401
-    elif len(formPlayers) < 1:
-        return jsonify({"message": "You cannot play alone"}), 401
+    # Make list of players
+    playerIds = [user_id]
+    playerUsernames = [username]
 
     # Ensure each submitted player is valid
     for pForm in formPlayers:
@@ -355,22 +352,33 @@ def host():
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
             if str(p[0]["id"]) == str(user_id):
                 return jsonify({"message": "You cannot play with yourself"}), 401
-            if p[0]["id"] in players:
+            if p[0]["id"] in playerIds:
                 return jsonify({"message": "All players must be different"}), 401
-            players.append(TraditionalPlayer(p[0]["id"],pForm))
 
-    # create game
-    game = TraditionalGame.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
+            playerIds.append(p[0]["id"])
+            playerUsernames.append(p[0]["username"])
+
+
+    game = None
+
+    if game_variant == "traditional":
+        # create game
+        game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5, db=db)
+
+    if not game:
+        return jsonify({"message": "Invalid game variant"}), 401
+    
+    if type(game) == str:
+        return jsonify({"message": game}), 401
 
     # Create game in database
-    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=player_type,card_type=card_type), game.hand_pot, game.sabacc_pot, game.deck.toDb(card_type), game.player_turn, game.p_act])
     conn.commit()
 
     # Get game ID
-    game_id = db.execute("SELECT game_id FROM games ORDER BY game_id DESC").fetchone()[0]
+    game_id = db.execute("SELECT game_id FROM %s_games ORDER BY game_id DESC", [game_variant]).fetchone()[0]
 
     # Redirect user to game
-    return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
+    return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_variant}/{game_id}"}), 200
 
 """ Gameplay REST APIs """
 

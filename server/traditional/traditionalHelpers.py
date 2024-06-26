@@ -147,11 +147,22 @@ class TraditionalGame(Game):
 
     # create a new game
     @staticmethod
-    def newGame(playerIds:list, startingCredits=1000):
+    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
+
+        if len(playerIds) != len(playerUsernames):
+            return "Uneqal amount of ids and usernames"
+        
+        if len(playerIds) > 8:
+            "Too many players. Max of 8 players."
+
+        if len(playerIds) <= 1:
+            "You cannot play with yourself"
+
+
         # create player list
         players = []
         for id in playerIds:
-            players.append(TraditionalPlayer(id, credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
+            players.append(TraditionalPlayer(id, playerUsernames[playerIds.index(id)], credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
 
         # construct deck
         deck = TraditionalDeck()
@@ -159,6 +170,8 @@ class TraditionalGame(Game):
         game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=TraditionalGame.handPotAnte*len(players), sabacc_pot=TraditionalGame.sabaccPotAnte*len(players))
         game.shuffleDeck()
         game.dealHands()
+
+        db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=TraditionalPlayer,card_type=TraditionalCard), game.hand_pot, game.sabacc_pot, game.deckToDb(TraditionalCard), game.player_turn, game.p_act])
 
         return game
     

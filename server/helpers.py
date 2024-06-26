@@ -199,6 +199,11 @@ class Game:
         self.phase = phase
         self.cycle_count = cycle_count
         self.completed = completed
+
+    @staticmethod
+    @abstractmethod
+    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
+        pass
         
     def getActivePlayers(self):
         activePlayers = []

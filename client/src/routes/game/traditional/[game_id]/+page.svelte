@@ -250,9 +250,11 @@
             "username": username,
             "password": password,
             "game_id": game_id,
+            "game_variant": "traditional",
+            "action": "protect",
             "protect": protCard
         }
-        socket.emit('protect', clientInfo)
+        socket.emit('gameAction', clientInfo)
     }
 
     // Betting Phase
@@ -277,10 +279,11 @@
                     "username": username,
                     "password": password,
                     "game_id": game_id,
+                    "game_variant": "traditional",
                     "action": action,
                     "amount": tempCreds
                 }
-                socket.emit('bet', clientInfo);
+                socket.emit('gameAction', clientInfo);
             }
             raising = false;
             betCreds = 0;
@@ -400,11 +403,12 @@
                 "username": username,
                 "password": password,
                 "game_id": game_id,
+                "game_variant": "traditional",
                 "action": action,
                 "trade": tradeCard
             }
 
-            socket.emit('card', clientInfo);
+            socket.emit('gameAction', clientInfo);
             tradeOpen = false;
         }
     }
@@ -451,10 +455,12 @@
             let clientInfo = {
                 "username": username,
                 "password": password,
-                "game_id": game_id
+                "game_id": game_id,
+                "game_variant": "traditional",
+                "action": "shift"
             }
 
-            socket.emit('shift', clientInfo);
+            socket.emit('gameAction', clientInfo);
         }
     }
 
@@ -464,10 +470,12 @@
         let clientInfo = {
             "username": username,
             "password": password,
-            "game_id": game_id
+            "game_id": game_id,
+            "game_variant": "traditional",
+            "action": "cont"
         }
 
-        socket.emit('cont', clientInfo);
+        socket.emit('gameAction', clientInfo);
     }
 
 </script>

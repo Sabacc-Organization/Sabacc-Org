@@ -186,7 +186,7 @@ class CorellianSpikeGame(Game):
     
     # create a new game
     @staticmethod
-    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db):
+    def newGame(playerIds:list, playerUsernames:list, db, startingCredits=1000):
 
         if len(playerIds) != len(playerUsernames):
             return "Uneqal amount of ids and usernames"

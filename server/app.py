@@ -277,12 +277,13 @@ def register():
 
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
-    
+
 # this is caled manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
 def getGame(clientInfo):
     game_id = clientInfo['game_id']
-    join_room(f'gameRoom{game_id}')
+    game_variant = clientInfo['game_variant']
+    join_room(f'gameRoom:{game_variant}/{game_id}')
 
     emit('clientUpdate', returnGameInfo(clientInfo))
 
@@ -292,11 +293,15 @@ def returnGameInfo(clientInfo):
 
     # Get username (if any, guests will not have usernames)
     username = clientInfo["username"]
-    
+
     # Get game
     game_id = clientInfo["game_id"]
-    db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)])
-    game = TraditionalGame.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    game_variant = clientInfo["game_variant"]
+
+    if game_variant == 'traditional':
+        game = TraditionalGame.fromDb(db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, int(game_id)]).fetchall()[0])
+    elif game_variant == 'corellian_spike':
+        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -315,8 +320,6 @@ def returnGameInfo(clientInfo):
     temp = game.toDict()
     temp.pop('deck')
     return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
-
-
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
@@ -394,7 +397,7 @@ def gameAction(clientInfo):
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
-    
+
     user_id = db.execute("SELECT id FROM users WHERE username = %s", [username]).fetchone()
 
     if not user_id:
@@ -408,11 +411,11 @@ def gameAction(clientInfo):
 
     if not game:
         return jsonify({"message": "Game does not exist"}), 401
-    
+
     if game_variant == "traditional":
         game = TraditionalGame.fromDb(game)
     elif game_variant == "corellian_spike":
-        game = CorellianSpikeGame.fromDb(game) 
+        game = CorellianSpikeGame.fromDb(game)
 
     if not game.getPlayer(username=username):
         return jsonify({"message": "You are not in this game"}), 401

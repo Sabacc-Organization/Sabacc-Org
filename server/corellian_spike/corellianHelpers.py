@@ -27,6 +27,10 @@ class CorellianSpikeDeck(Deck):
         self.cards.extend([sylop, sylop])
         self.shuffle()
 
+    @staticmethod
+    def fromDb(deck) -> object:
+        return CorellianSpikeDeck([CorellianSpikeDeck.fromDb(card) for card in deck])
+
 class CorellianSpikeHand(Hand):
     HANDS = {
         1: 'pure sabacc',
@@ -143,6 +147,10 @@ class CorellianSpikePlayer(Player):
     def toString(self) -> str:
         ranking = self.hand.getRanking()
         return f'player {self.id}:\n\thand ({CorellianSpikeHand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
+
+    @staticmethod
+    def fromDb(player:object):
+        return CorellianSpikePlayer(player.id, player.username, player.credits, player.bet, CorellianSpikeHand.fromDb(player.hand), player.folded, player.lastaction)
 
 class CorellianSpikeGame(Game):
     handPotAnte = 5
@@ -392,6 +400,10 @@ class CorellianSpikeGame(Game):
         player.credits -= 20 * self.round
         self._playerDiscard(player, discardCardIndex)
     
+    @staticmethod
+    def fromDb(game:object):
+        return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
+
     # overrides parent method
     def action(self, action, actionParams):
         pass

@@ -173,6 +173,7 @@ class Player:
         self.credits += self.getBet()
         self.bet = None
         self.folded = True
+        self.lastaction = "folded"
     
     def makeBet(self, creditAmount: int, absolute: bool = True):
         if absolute:
@@ -182,6 +183,11 @@ class Player:
             self.bet = self.bet if creditAmount == 0 else self.getBet()
             self.credits -= creditAmount
             self.bet += creditAmount
+
+        if creditAmount != 0:
+            self.lastaction = f'bets {creditAmount}'
+        else:
+            self.lastaction = f'checks'
 
 class Game:
     def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False):
@@ -193,6 +199,11 @@ class Game:
         self.phase = phase
         self.cycle_count = cycle_count
         self.completed = completed
+
+    @staticmethod
+    @abstractmethod
+    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
+        pass
         
     def getActivePlayers(self):
         activePlayers = []

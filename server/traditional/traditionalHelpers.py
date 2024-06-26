@@ -83,8 +83,12 @@ class TraditionalHand(Hand):
         super().__init__(cards)
 
     def protect(self, card:TraditionalCard):
-        self.cards[self.cards.index(card)].protected = True
-        return
+        try:
+            self.cards[self.cards.index(card)].protected = True
+        except IndexError:
+            print("ERROR: invalid index for protected card")
+            return "non matching user input"
+        return card
     
     @staticmethod
     def fromDb(hand) -> object:
@@ -331,11 +335,15 @@ class TraditionalGame(Game):
     # overrides parent method
     def action(self, params:dict, db):
 
+        originalSelf = self
+
         player = self.getPlayer(username=params["username"])
 
         if params['action'] == "protect":
             card = TraditionalCard.fromDict(params["protect"])
-            player.hand.protect(card)
+            response = player.hand.protect(card)
+            if type(response) == str:
+                return response
             db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), f"{player.username} protected a {card.val}", self.id])
 
         elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id:
@@ -495,5 +503,8 @@ class TraditionalGame(Game):
             self.nextRound()
 
             db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), self.hand_pot, self.sabacc_pot, "betting", self.deck.toDb(TraditionalCard), self.players[0].id, 0, "", False, self.id])
+
+        if self == originalSelf:
+            "invalid user input"
 
         return self

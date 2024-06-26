@@ -610,6 +610,6 @@ class CorellianSpikeGame(Game):
 
 
         if self == originalSelf:
-            "invalid user input"
+            return "invalid user input"
 
         return self

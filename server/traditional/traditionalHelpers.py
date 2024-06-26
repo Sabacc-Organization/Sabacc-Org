@@ -506,6 +506,6 @@ class TraditionalGame(Game):
             db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), self.hand_pot, self.sabacc_pot, "betting", self.deck.toDb(TraditionalCard), self.players[0].id, 0, "", False, self.id])
 
         if self == originalSelf:
-            "invalid user input"
+            return "invalid user input"
 
         return self

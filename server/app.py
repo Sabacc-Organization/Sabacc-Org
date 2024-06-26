@@ -429,8 +429,6 @@ def gameAction(clientInfo):
     emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom:{game_variant}/{game_id}')
 
 
-
-
 """ Old Socket Stuff - May be brought back in the future"""
 
 @socketio.on("message", namespace="/chat")

@@ -36,6 +36,7 @@
                 Cookies.set("password", password, {"expires": 30});
                 Cookies.set("dark", "false", {"expires": 30});
                 Cookies.set("theme", "rebels", {"expires": 30});
+                Cookies.set("cardDesign", "auto", {"expires": 30});
                 customRedirect(FRONTEND_URL);
             }
             errorMsg = res["message"];

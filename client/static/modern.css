@@ -3,6 +3,14 @@
     margin-top: 10px;
 }
 
+.turnGlow{
+    color: black;
+}
+
+.noTurnGlow{
+    color: white;
+}
+
 #pots{
     padding: 1%;
     margin: 1%;
@@ -12,7 +20,8 @@
     background-size: cover;
     background-blend-mode: multiply;
     color: #ffffff;
-    grid-row: 1/3;
+    grid-area: 1/1/3/2;
+    font-size: 1rem;
 }
 
 #pots.active:hover{
@@ -21,8 +30,24 @@
     0 0 50px #fff
 }
 
+#pots h5{
+    font-size: 1.25em;
+}
+
 #deck{
     box-shadow: 3px 3px 0px 3px #323232;
+    width: calc(100% - 6px);
+    height: auto;
+    aspect-ratio: 50 / 67;
+    grid-area: 1/3/2/4;
+}
+
+#discard{
+    display: block;
+    width: calc(100% - 6px);
+    height: auto;
+    aspect-ratio: 50 / 67;
+    grid-area: 1/4/2/5;
 }
 
 .smol
@@ -56,7 +81,7 @@
     background-size: cover;
     margin: 3px;
     width: 50px;
-    height: 67px;
+    aspect-ratio: 50 / 67;
     border-radius: 5px;
     color: #ffffff;
     text-align: center;
@@ -76,24 +101,21 @@ h5.protected{
     background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
-    width: 60px;
-    height: 60px;
-    border-radius: 30px;
+    width: 75%;
+    height: auto;
+    aspect-ratio: 1 / 1;
     grid-area: 1/2/3/3;
-}
-
-#pAgainBtn{
-    grid-column: 2/3;
 }
 
 .dieContainer{
     display: block;
-    grid-column: 3/5;
+    width: 100%;
+    grid-area: 2/3/3/5;
 }
 
 .die{
-    width: 25px;
-    height: 25px;
+    width: min(25px, calc(50% - 9px));
+    aspect-ratio: 1 / 1;
     border-radius: 3px;
     padding: 0;
     margin: 3px;
@@ -118,8 +140,7 @@ h5.protected{
 #tableCont{
     position: relative;
     z-index: 1;
-    height: 750px;
-    width: 1300px;
+    width: 72%;
     margin: 10% auto;
     display: flex;
     justify-content: center;
@@ -128,41 +149,50 @@ h5.protected{
 
 #table {
     position: relative;
-    background-image: url("/modern-theme-images/SabaccTable-NoBackground.png");
+    background-image: url("/images/modern-theme-images/tables/SabaccTableFixedAlpha.png");
     background-repeat: no-repeat, no-repeat;
     background-size: cover;
     margin: auto auto;
     z-index: 1;
     width: 100%;
-    aspect-ratio: 128 / 87;
+    aspect-ratio: 256 / 159;
 }
 
 #pAction{
     position: absolute;
-    z-index: 2;
-
-    top: 40%;
-
+    z-index: 4;
+    top: 30%;
     margin: 0 auto;
 }
 
 #gameInfo{
     position: absolute;
-    top: 51%;
-    z-index: 2;
+    top: 50%;
+    translate: 0px -50%;
+    z-index: 4;
+    width: 30%;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 2fr 160px 1fr 1fr;
-    grid-template-rows: 3fr 1fr 2fr;
+    grid-template-columns: 2fr 2fr 1fr 1fr;
+    grid-template-rows: 3fr 1fr;
     justify-items: center;
     align-items: center;
 }
 
 #actBox{
     position: absolute;
-    z-index: 2;
-    top: 70%;
+    z-index: 4;
+    top: 65%;
     margin: 0 auto;
+    width: 15%;
+}
+
+#betCredits{
+    width: 80%;
+}
+
+#betBtn{
+    width: 50%;
 }
 
 #betDiv{
@@ -189,20 +219,21 @@ h5.protected{
 }
 
 .bigChip{
-  background-image: url("modern-theme-images/Credit\ Gold.png");
+  background-image: url("/images/modern-theme-images/credit-chips/Credit\ Gold.png");
 }
 
 .midChip{
-  background-image: url("modern-theme-images/Credit\ Silver.png");
+  background-image: url("/images/modern-theme-images/credit-chips/Credit\ Silver.png");
 }
 
 .lowChip{
-  background-image: url("modern-theme-images/Credit\ Bronze.png");
+  background-image: url("/images/modern-theme-images/credit-chips/Credit\ Bronze.png");
 }
 
 .cardsContainer{
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-auto-flow: column;
+    column-count: 5;
 }
 
 .card{
@@ -214,27 +245,22 @@ h5.protected{
     font-size: 30px;
 }
 
-#discard{
-    display: block;
-}
-
 .playerBox{
     padding: 0px 10px;
-    min-width: 100px;
+    font-size: 1rem;
+}
+
+.playerBox h5{
+    font-size: 1.25em;
 }
 
 .player0{
-    position: absolute;
-    z-index: 2;
-    top: 105%;
-    left: 38%;
+    top: 100%;
+    left: 36%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player0 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: -36px;
     left: 50%;
@@ -242,17 +268,12 @@ h5.protected{
 }
 
 .player1{
-    position: absolute;
-    z-index: 2;
-    top: 80%;
-    left: 9%;
+    top: 74%;
+    left: 2%;
     translate: -100% 0%;
-    width: max-content;
 }
 
 .player1 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 58deg;
     top: -6px;
     left: calc(100% + 60px);
@@ -260,35 +281,25 @@ h5.protected{
 }
 
 .player2{
-    position: absolute;
-    z-index: 2;
-    top: 20%;
-    left: 9%;
+    bottom: 74%;
+    left: 2%;
     translate: -100% 0%;
-    width: max-content;
 }
 
 .player2 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 302deg;
     top: 130px;
-    left: calc(100% + 64px);
+    left: calc(100% + 53px);
     translate: -50% -50%;
 }
 
 .player3{
-    position: absolute;
-    z-index: 2;
-    top: -5%;
-    left: 38%;
+    bottom: 103%;
+    left: 36%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player3 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: 170px;
     left: 50%;
@@ -296,17 +307,12 @@ h5.protected{
 }
 
 .player4{
-    position: absolute;
-    z-index: 2;
-    top: -5%;
-    left: 62%;
+    bottom: 103%;
+    left: 64%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player4 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: 170px;
     left: 50%;
@@ -314,17 +320,12 @@ h5.protected{
 }
 
 .player5{
-    position: absolute;
-    z-index: 2;
-    top: 20%;
-    right: 10%;
+    bottom: 74%;
+    right: 2%;
     translate: 100% 0%;
-    width: max-content;
 }
 
 .player5 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 58deg;
     top: 130px;
     right: calc(100% + 53px);
@@ -332,17 +333,12 @@ h5.protected{
 }
 
 .player6{
-    position: absolute;
-    z-index: 2;
-    top: 80%;
-    right: 10%;
+    top: 74%;
+    right: 3%;
     translate: 100% 0%;
-    width: max-content;
 }
 
 .player6 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 302deg;
     top: -6px;
     right: calc(100% + 45px);
@@ -350,27 +346,44 @@ h5.protected{
 }
 
 .player7{
-    position: absolute;
-    z-index: 2;
-    top: 105%;
-    left: 62%;
+    top: 100%;
+    left: 64%;
     translate: -50% 0%;
-    width: max-content;
 }
 
 .player7 > .cardsContainer{
-    position: absolute;
-    z-index: 2;
     rotate: 0deg;
     top: -36px;
     left: 50%;
     translate: -50% -50%;
 }
 
+.playerStuff{
+    position: absolute;
+    z-index: 2;
+    width: max-content;
+    display: flex;
+    flex-direction: column;
+}
+
+.playerStuff h5{
+    margin-bottom: 0px;
+}
+
+.playerStuff > .cardsContainer{
+    position: absolute;
+    z-index: 2;
+}
+
+.credit-attribution-container{
+    width: 100%;
+    display: flex;
+    justify-content: right;
+}
+
 .credit-attribution{
-    margin-top: 300px;
-    margin-left: 70%;
     display: grid;
+    width: 520px;
     grid-template-columns: 1fr 4fr;
     justify-items: right;
 }
@@ -380,8 +393,253 @@ h5.protected{
 }
 
 #jacob-densford-credit-attribution{
-    background-image: url("modern-theme-images/attribution-image.png");
+    background-image: url("/images/modern-theme-images/attribution-image.png");
     background-size: contain;
     background-repeat: no-repeat;
     width: 100px;
+}
+
+.mobileActBox, .mobileActSpacer{
+    display: none;
+}
+
+@media screen and (max-width: 1300px){
+    h1.header{
+        font-size: 1.25rem;
+    }
+
+    h2.header{
+        font-size: 1rem;
+    }
+
+    #pAction{
+        font-size: 1rem;
+    }
+
+    #pots{
+        font-size: 0.5rem;
+    }
+
+    .card{
+        width: 30px;
+    }
+
+    #betCredits, #betBtn{
+        font-size: 0.5rem;
+    }
+
+    #betCredits{
+        margin-bottom: 0.5rem;
+    }
+
+    .chip, .imperial-credits-logo{
+        width: 10px;
+    }
+
+    .playerBox{
+        margin-top: 5px;
+    }
+
+    .playerStuff h5 {
+        font-size: 0.5rem;
+    }
+}
+
+@media screen and (max-width: 800px){
+    .card{
+        width: auto;
+        margin: 0px;
+    }
+
+    #tableCont{
+        margin: 10% auto;
+        width: 85%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #table {
+        display: none;
+    }
+
+    #pAction{
+        position: fixed;
+        top: unset;
+        font-size: 1.5rem;
+        bottom: 18.5%;
+        max-width: 60%;
+        max-height: 6%;
+        translate: 0% 50%;
+    }
+
+    #pAction.playing {
+        right: 30%;
+        bottom: 27%;
+        translate: 50% 50%;
+    }
+
+    #gameInfo{
+        position: fixed;
+        top: unset;
+        bottom: 8%;
+        width: 50%;
+        max-height: 15%;
+        translate: 0% 50%;
+        grid-template-columns: 2fr 2fr 2fr 1fr;
+        grid-template-rows: 1fr 3fr;
+    }
+
+    #gameInfo.playing {
+        right: 30%;
+        bottom: 17%;
+        translate: 50% 50%;
+    }
+
+    #pots{
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        font-size: 0.9rem;
+        grid-area: 1/1/2/5;
+    }
+
+    #pots h5{
+        margin-bottom: 0px;
+    }
+
+    .alderaan{
+        width: 90%;
+        grid-area: 2/1/3/2;
+    }
+
+    #deck{
+        grid-area: 2/2/3/3;
+    }
+
+    #discard{
+        grid-area: 2/3/3/4;
+    }
+
+    .dieContainer{
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        grid-area: 2/4/3/5;
+    }
+
+    .die{
+        width: calc(100% - 9px);
+    }
+
+    #actBox{
+        position: fixed;
+        top: unset;
+        bottom: 4.5%;
+        right: 30%;
+        width: 50%;
+        max-height: 9%;
+        translate: 50% 50%;
+    }
+
+    #betDiv{
+        width: 100%;
+        display: grid;
+        grid-auto-flow: column;
+    }
+
+    #betCredits, #betBtn, #raiseCredits{
+        width: 100%;
+        font-size: 1rem;
+        margin-bottom: 0px;
+    }
+
+    .chip, .imperial-credits-logo{
+        width: 20px;
+    }
+
+    .playerStuff{
+        position: static;
+        translate: 0% 0%;
+        width: max(50%, 200px);
+        margin: 20px 0px;
+    }
+
+    .playerStuff.playing h5{
+        font-size: 0.8rem;
+    }
+
+    .playerStuff h5{
+        font-size: 1.2rem;
+        overflow-wrap: anywhere;
+    }
+
+    .playerStuff > .cardsContainer{
+        width: 100%;
+        position: static;
+        rotate: 0deg;
+        translate: 0% 0%;
+        order: -1;
+        grid-template-columns: repeat(auto-fit, minmax(30%, 1fr));
+        grid-auto-flow: row;
+    }
+
+    .playerStuff.playing{
+        position: fixed;
+        z-index: 4;
+        top: unset;
+        bottom: 15%;
+        left: 20%;
+        width: 35%;
+        height: 26%;
+        margin: 0px;
+        translate: -50% 50%;
+    }
+
+    .playerStuff.playing > .playerBox{
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .mobileActSpacer{
+        display: block;
+        width: 3vw;
+        height: 30vh;
+    }
+
+    .mobileActBox{
+        background-color: #323232;
+        display: block;
+        position: fixed;
+        width: 100%;
+        height: 21.5%;
+        bottom: 0%;
+        left: 0%;
+        z-index: 3;
+    }
+
+    .mobileActBox.playing {
+        height: 30%;
+    }
+}
+
+@supports (-webkit-touch-callout: none){
+    #pAction.playing {
+        bottom: 33%;
+    }
+    #gameInfo.playing {
+        bottom: 19.5%;
+    }
+    .playerStuff.playing{
+        bottom: 22%;
+    }
+    .mobileActSpacer{
+        height: 37vh;
+    }
+    .mobileActBox{
+        height: 22%;
+    }
+    .mobileActBox.playing {
+        height: 37%;
+    }
 }

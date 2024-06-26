@@ -1,9 +1,7 @@
 {
 	"/": [],
 	"/game/[game_id]": [],
-	"/host/corellian-spike": [],
-	"/host/traditional": [],
-	"/how-to-play": [],
+	"/host": [],
 	"/login": [],
 	"/logout": [],
 	"/register": [],

@@ -405,6 +405,9 @@ def gameAction(clientInfo):
     elif game_variant == "corellian_spike":
         game = CorellianSpikeGame.fromDb(game) 
 
+    if not game.getPlayer(username=username):
+        return jsonify({"message": "You are not in this game"}), 401
+
     game.action(clientInfo, db)
 
     conn.commit()

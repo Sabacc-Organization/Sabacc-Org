@@ -77,7 +77,7 @@
 
 <br>
 
-<label for="theme">Theme (Work in Progress)</label>
+<label for="theme">Theme</label>
 
 <select bind:value={theme} name="theme" id="theme">
     <option value="modern">Modern</option>

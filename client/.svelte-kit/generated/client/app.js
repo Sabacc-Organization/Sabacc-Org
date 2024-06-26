@@ -9,9 +9,7 @@ export const nodes = [
 	() => import('./nodes/5'),
 	() => import('./nodes/6'),
 	() => import('./nodes/7'),
-	() => import('./nodes/8'),
-	() => import('./nodes/9'),
-	() => import('./nodes/10')
+	() => import('./nodes/8')
 ];
 
 export const server_loads = [];
@@ -19,13 +17,11 @@ export const server_loads = [];
 export const dictionary = {
 		"/": [2],
 		"/game/[game_id]": [3],
-		"/host/corellian-spike": [4],
-		"/host/traditional": [5],
-		"/how-to-play": [6],
-		"/login": [7],
-		"/logout": [8],
-		"/register": [9],
-		"/settings": [10]
+		"/host": [4],
+		"/login": [5],
+		"/logout": [6],
+		"/register": [7],
+		"/settings": [8]
 	};
 
 export const hooks = {

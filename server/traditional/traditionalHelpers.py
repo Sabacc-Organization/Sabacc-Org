@@ -77,18 +77,14 @@ class TraditionalDeck(Deck):
         for card in cardsToExclude:
             self.cards.remove(card)
         self.shuffle()
-    
-    @staticmethod
-    def fromDb(deck) -> object:
-        return TraditionalDeck([TraditionalCard.fromDb(card) for card in deck])
-    
-    @staticmethod
-    def fromDict(dict) -> object:
-        return TraditionalDeck([TraditionalCard.fromDict(card) for card in dict])
 
 class TraditionalHand(Hand):
     def __init__(self, cards=[]):
         super().__init__(cards)
+
+    def protect(self, card:TraditionalCard):
+        self.cards[self.cards.index(card)].protected = True
+        return
     
     @staticmethod
     def fromDb(hand) -> object:
@@ -101,6 +97,10 @@ class TraditionalPlayer(Player):
     def __init__(self, id:int, username='', credits=0, bet:int = None, hand:Hand=Hand(), folded=False, lastAction=""):
         super().__init__(id=id, username=username, credits=credits, bet=bet, hand=hand, folded=folded, lastaction=lastAction)
     
+    def protect(self, card:TraditionalCard):
+        self.hand.protect(card)
+        self.lastaction = f"protected a {card.val}"
+
     def toDb(self, playerType, cardType):
         for i in range(len(self.hand.cards)):
             self.hand.cards[i] = self.hand.cards[i].toDb(cardType)
@@ -311,4 +311,149 @@ class TraditionalGame(Game):
 
     # overrides parent method
     def action(self, params:dict, db):
-        pass
+
+        player = self.getPlayer(username=params["username"])
+
+        if params['action'] == "protect":
+            card = TraditionalCard.fromDict(params["protect"])
+            player.hand.protect(card)
+            db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), f"{player.username} protected a {card.val}", self.id])
+
+        elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id:
+            players = self.getActivePlayers()
+
+            if params['action'] == "fold":
+                player.fold()
+
+                players = self.getActivePlayers()
+
+                
+
+            elif params["action"] == "bet" and players.index(player):
+                player.makeBet(params["amount"])
+
+            elif params["action"] == 'call':
+                player.makeBet(params["amount"], False)
+                player.lastaction = f'calls'
+
+            elif params["action"] == 'raise':
+                player.makeBet(params["amount"], False)
+                player.lastaction = f'raises to {params["amount"]}'
+
+            betAmount = [i.getBet() for i in self.players]
+            betAmount.append(0)
+            betAmount = max(betAmount)
+            nextPlayer = None
+            for i in players:
+                iBet = i.bet if i.bet != None else -1
+                if iBet < betAmount:
+                    nextPlayer = i.id
+                    break
+
+            if len(players) <= 1:
+                winningPlayer = players[0]
+                winningPlayer.credits += self.hand_pot + winningPlayer.bet
+                self.hand_pot = 0
+                winningPlayer.bet = None
+
+            if nextPlayer == None:
+                # add all bets to hand pot
+                for player in players:
+                    self.hand_pot += player.getBet()
+                    player.bet = None
+
+            dbList = [
+                self.playersToDb(TraditionalPlayer, TraditionalCard),
+                self.hand_pot,
+                'betting' if nextPlayer != None else 'card',
+                nextPlayer if nextPlayer != None else players[0].id,
+                player.username + " " + player.lastaction,
+                len(players) <= 1,
+                self.id
+            ]
+            db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+
+
+
+
+        elif (params["action"] == "draw" or params["action"] == "trade" or params["action"] == "stand" or params["action"] == "alderaan") and (self.phase == "card" or self.phase == "alderaan") and self.player_turn == player.id:
+            
+            if params["action"] == "draw":
+                player.hand.cards.append(self.drawFromDeck())
+                player.lastaction = "draws"
+
+            elif params["action"] == "trade":
+                tradeCard = TraditionalCard.fromDict(params["trade"])
+
+                # The index of the card that is being traded
+                tradeDex = player.hand.cards.index(tradeCard)
+
+                # Draw a card and replace the card being traded with it
+                player.hand.cards[tradeDex] = self.drawFromDeck()
+
+                player.lastaction = "trades"
+
+            elif params["action"] == "stand":
+                player.lastaction = "stands"
+
+            elif params["action"] == "alderaan" and self.cycle_count != 0:
+                self.phase = "alderaan"
+                player.lastaction = "calls Alderaan"
+
+
+
+            # Pass turn to next player
+            uDex = self.getPlayerDex(id=player.id)
+            nextPlayer = uDex + 1
+
+            # String that shows the winner
+            winStr = None
+
+            # If this action was from the last player
+            if nextPlayer == len(players):
+                nextPlayer = 0
+                self.cycle_count += 1
+                if self.phase == "alderaan":
+                    # Get end of game data
+                    winner, bestHand, bombedOutPlayers = self.alderaan()
+
+                    # Enact the bomb out transactions for all players that bombed out
+                    bombOutPrice = int(round(self.hand_pot * .1))
+                    for p in bombedOutPlayers:
+                        p.credits -= bombOutPrice
+                        self.sabacc_pot += bombOutPrice
+
+
+                    # If someone won (i.e. not everyone bombed out)
+                    if winner != None:
+                        # Give winner Hand Pot
+                        winner.credits += self.hand_pot
+                        self.hand_pot = 0
+
+                        # Give winner Sabacc Pot it they had a Sabacc
+                        if bestHand == SpecialHands.IDIOTS_ARRAY or (bestHand != SpecialHands.FAIRY_EMPRESS and abs(bestHand) == 23):
+                            winner.credits += self.sabacc_pot
+                            self.sabacc_pot = 0
+
+                        # Update game and winner string
+                        winStr = f"{winner.username} wins!"
+
+                    # If no one won (i.e. everyone bombed out)
+                    else:
+                        # Hand pot gets added to Sabacc Pot
+                        self.sabacc_pot += self.hand_pot
+
+                        # Update winStr
+                        winStr = "Everyone bombs out and loses!"
+
+            dbList = [
+                self.deck
+                self.playersToDb(TraditionalPlayer, TraditionalCard),
+                self.hand_pot,
+                'betting' if nextPlayer != None else 'card',
+                nextPlayer if nextPlayer != None else players[0].id,
+                player.username + " " + player.lastaction,
+                len(players) <= 1,
+                self.id
+            ]
+            db.execute("UPDATE games SET deck = %s, players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)

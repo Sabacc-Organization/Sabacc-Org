@@ -185,12 +185,28 @@
         updateClientGame(serverInfo);
     }
 
+    let isWaitingOnClick: boolean = false;
+    function clickOrDblclick(clickFunction: () => void, dblclickFunction: () => void, delay: number = 500) {
+        if (isWaitingOnClick){
+            isWaitingOnClick = false;
+            dblclickFunction();
+        } else {
+            isWaitingOnClick = true;
+            setTimeout(() => {
+                if (isWaitingOnClick){
+                    isWaitingOnClick = false;
+                    clickFunction()
+                }
+            }, delay);
+        }
+    }
+
     function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
         let returnText: string = "background-image:url(";
 
-        let darkPath = "../../../../modern-theme-images/dark/"
-        let lightPath = "../../../../modern-theme-images/light/"
-        let pescadoPath = "../../../../modern-theme-images/pescado/"
+        let darkPath = "../../../../images/cards/traditional/dark/"
+        let lightPath = "../../../../images/cards/traditional/light/"
+        let pescadoPath = "../../../../images/cards/traditional/pescado/"
 
         if (cardDesign === "classic"){
             returnText += "../../../../images/rebels-card-back.png);"
@@ -215,15 +231,16 @@
 
         returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
         returnText += cardValue["val"].toString();
+        returnText += cardDesign === "pescado" && cardValue['prot']? "p":""
         returnText += ".png);";
         return returnText;
     }
 
     function renderBack(){
         if (cardDesign === "pescado"){
-            return "background-image:url(../../../../modern-theme-images/pescado/back.png);"
+            return "background-image:url(../../../../images/cards/traditional/pescado/back.png);"
         }
-        return "background-image:url(../../../../images/rebels-card-back.png);"
+        return "background-image:url(../../../../images/cards/traditional/rebels-card-back.png);"
     }
 
     // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
@@ -235,7 +252,6 @@
             "game_id": game_id,
             "protect": protCard
         }
-
         socket.emit('protect', clientInfo)
     }
 
@@ -461,13 +477,13 @@
 </svelte:head>
 
 {#if dataToRender}
-    <h1>{header}</h1>
-    <h2>{game["phase"]} phase</h2>
+    <h1 class="header">{header}</h1>
+    <h2 class="header">{game["phase"]} phase</h2>
 
     <div id="tableCont">
         <div id="table"></div>
-        <h2 id="pAction">{game["p_act"]}</h2>
-        <div id="gameInfo" class="parent">
+        <h2 id="pAction" class:playing={u_dex != -1}>{game["p_act"]}</h2>
+        <div id="gameInfo" class="parent" class:playing={u_dex != -1}>
 
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div on:dblclick={check} class:active={potsActive} id="pots" class="child {potsActive}">
@@ -477,7 +493,7 @@
 
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click={draw} class:active={cardBool} id="deck" class="card child"></div>
+            <div on:click={draw} class:active={cardBool} id="deck" class="card child" style="{renderBack()}"></div>
 
             <div class:active={cardBool} id="discard" class="card child">
                 {#if game["completed"] == 0}
@@ -501,21 +517,16 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
-
-            {#if game["completed"] == 1 && game["player_turn"] === user_id}
-                <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
-            {/if}
-
         </div>
 
         {#each players as p, i}
-            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)}">
+            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)} playerStuff" class:playing={p['username'] === username}>
 
                 <!-- Bet boxes -->
                 {#if p['username'] === username}
-                    <div id="{p['username']}BetBox" class="backBlue {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{p['bet']===null? '':p['bet']}</span></h5> <div id="{p['username']}BetPile"></div></div>
+                    <div id="{p['username']}BetBox" class="betBox backBlue {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div><span id="betSpan">{p['bet']===null? '':p['bet']}</span></h5> <div id="{p['username']}BetPile"></div></div>
                 {:else}
-                    <div id="{p['username']}BetBox" class="backRed {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div>{p['bet']===null? '':p['bet']}</h5></div>
+                    <div id="{p['username']}BetBox" class="betBox backRed {game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"}"><h5><div class="imperial-credits-logo"></div>{p['bet']===null? '':p['bet']}</h5></div>
                 {/if}
 
                 <!-- Cards -->
@@ -527,13 +538,12 @@
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                    on:click={() => trade(c)}
-                                    on:dblclick={() => protect(c)}
+                                    on:click={() => clickOrDblclick(() => trade(c), () => protect(c))}
                                     id="card{ci.toString()}"
                                     class="card child own"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5>{c['val']}</h5>
+                                    <h5>{cardDesign === "pescado"? "":c['val']}</h5>
                                 {:else}
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -543,19 +553,20 @@
                                     class="card child own protected"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5 class="protected">{c['val']}</h5>
+                                    <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
                                 {/if}
                             {:else}
                                 {#if game["completed"] == 0}
                                     {#if !c['prot']}
                                         <div class="card child" style="{renderBack()}"></div>
+                                        <h5>{""}</h5>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
-                                        <h5 class="protected">{c['val']}</h5>
+                                        <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
                                     {/if}
                                 {:else if game["completed"] == 1}
                                     <div class="card child" style="{renderCard(c)}"></div>
-                                    <h5>{c['val']}</h5>
+                                    <h5>{cardDesign === "pescado"? "":c['val']}</h5>
                                 {/if}
                             {/if}
                         </div>
@@ -596,22 +607,22 @@
                     {#if game["phase"] === "betting"}
                         {#if u_dex === 0}
                             {#if players[u_dex + 1]['bet'] === null}
-                                <div id="betDiv" class="backBlue brightBlue"> 
-                                    <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" min="0" max={players[u_dex]['credits']} placeholder="Credits" required> 
+                                <div id="betDiv" class="backBlue brightBlue">
+                                    <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                     <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button>
                                     <p class="red">{betErr}</p>
                                 </div>
                             {:else}
                                 {#if raising === false}
                                     <div id="betDiv" class="backBlue brightBlue"> 
-                                        <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                        <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
-                                        <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
+                                        <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                                        <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
+                                        <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                                     </div>
                                 {:else}
-                                    <div id="betDiv" class="backBlue brightBlue"> 
-                                        <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={players[u_dex]['credits']} placeholder="Credits" required> 
-                                        <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
+                                    <div id="betDiv" class="backBlue brightBlue">
+                                        <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" placeholder="Credits" required>
+                                        <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                         <p class="red">{betErr}</p>
                                     </div>
                                 {/if}
@@ -620,15 +631,15 @@
                         {:else}
 
                             {#if raising === false}
-                                <div id="betDiv" class="backBlue brightBlue"> 
-                                    <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button> 
-                                    <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button> 
-                                    <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button> 
+                                <div id="betDiv" class="backBlue brightBlue">
+                                    <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                                    <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
+                                    <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                                 </div>
                             {:else}
-                                <div id="betDiv" class="backBlue brightBlue"> 
-                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" min="{raiseAmount + 1}" max={players[u_dex]['credits']} placeholder="Credits" required> 
-                                    <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button> 
+                                <div id="betDiv" class="backBlue brightBlue">
+                                    <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" placeholder="Credits" required>
+                                    <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                     <p class="red">{betErr}</p>
                                 </div>
                             {/if}
@@ -637,15 +648,23 @@
                     {/if}
 
                 {/if}
+            {:else if game["player_turn"] === user_id}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
+                </div>
             {/if}
 
         </div>
+        <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>
     {#if theme == 'modern'}
-        <div class="credit-attribution">
-            <a href="http://creativecommons.org/licenses/by-sa/4.0/"><div id="jacob-densford-credit-attribution"></div></a>
-            <a href="http://creativecommons.org/licenses/by-sa/4.0/">Credit to Jacob Densford for table and betting chip design</a>
+        <div class="credit-attribution-container">
+            <div class="credit-attribution">
+                <a href="http://creativecommons.org/licenses/by-sa/4.0/"><div id="jacob-densford-credit-attribution"></div></a>
+                <a href="http://creativecommons.org/licenses/by-sa/4.0/">Credit to Jacob Densford for table and betting chip design</a>
+            </div>
         </div>
+        <div class="mobileActSpacer"></div>
     {/if}
 {/if}
 

@@ -225,6 +225,12 @@ class TraditionalGame(Game):
             self.deck.shuffle()
         return self.deck.draw()
     
+    # roll shift
+    def rollShift(self):
+        roll1 = random.randint(1, 6)
+        roll2 = random.randint(1, 6)
+        self.shift = roll1 == roll2
+
     # replace every unprotected card in every player's hand
     def shift(self):
         # loop thru players
@@ -411,9 +417,11 @@ class TraditionalGame(Game):
 
             # If this action was from the last player
             if nextPlayer == len(players):
+                self.phase = "shift"
                 nextPlayer = 0
                 self.cycle_count += 1
                 if self.phase == "alderaan":
+                    self.phase = "card"
                     # Get end of game data
                     winner, bestHand, bombedOutPlayers = self.alderaan()
 
@@ -447,13 +455,32 @@ class TraditionalGame(Game):
                         winStr = "Everyone bombs out and loses!"
 
             dbList = [
-                self.deck
+                self.deck,
                 self.playersToDb(TraditionalPlayer, TraditionalCard),
                 self.hand_pot,
-                'betting' if nextPlayer != None else 'card',
-                nextPlayer if nextPlayer != None else players[0].id,
-                player.username + " " + player.lastaction,
-                len(players) <= 1,
+                self.sabacc_pot,
+                self.phase,
+                self.getActivePlayers()[nextPlayer].id,
+                player.username + " " + player.lastaction if not winStr else winStr,
+                self.completed,
                 self.id
             ]
             db.execute("UPDATE games SET deck = %s, players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+
+        elif params["action"] == "shift" and self.player_turn == player.id:
+            self.rollShift()
+
+            if self._shift:
+                self.shift()
+
+            # Set the Shift message
+            shiftStr = "Sabacc shift!" if self._shift else "No shift!"
+
+            db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", self.deck.toDb(TraditionalCard), self.playersToDb(TraditionalPlayer, TraditionalCard), self.players[0].id, self._shift, shiftStr, self.id])
+
+        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
+            self.nextRound()
+
+            db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), self.hand_pot, self.sabacc_pot, "betting", self.deck.toDb(TraditionalCard), self.players[0].id, 0, "", False, self.id])
+
+        return self

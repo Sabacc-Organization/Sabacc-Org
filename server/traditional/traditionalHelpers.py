@@ -175,7 +175,7 @@ class TraditionalGame(Game):
         game.shuffleDeck()
         game.dealHands()
 
-        db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=TraditionalPlayer,card_type=TraditionalCard), game.hand_pot, game.sabacc_pot, game.deckToDb(TraditionalCard), game.player_turn, game.p_act])
+        db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=TraditionalPlayer,card_type=TraditionalCard), game.hand_pot, game.sabacc_pot, game.deckToDb(TraditionalCard), game.player_turn, game.p_act])
 
         return game
     
@@ -344,7 +344,7 @@ class TraditionalGame(Game):
             response = player.hand.protect(card)
             if type(response) == str:
                 return response
-            db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), f"{player.username} protected a {card.val}", self.id])
+            db.execute("UPDATE traditional_games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), f"{player.username} protected a {card.val}", self.id])
 
         elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id:
             players = self.getActivePlayers()
@@ -398,7 +398,7 @@ class TraditionalGame(Game):
                 len(players) <= 1,
                 self.id
             ]
-            db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
 
 
 
@@ -486,7 +486,7 @@ class TraditionalGame(Game):
                 self.completed,
                 self.id
             ]
-            db.execute("UPDATE games SET deck = %s, players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE traditional_games SET deck = %s, players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
 
         elif params["action"] == "shift" and self.player_turn == player.id:
             self.rollShift()
@@ -497,12 +497,12 @@ class TraditionalGame(Game):
             # Set the Shift message
             shiftStr = "Sabacc shift!" if self._shift else "No shift!"
 
-            db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", self.deck.toDb(TraditionalCard), self.playersToDb(TraditionalPlayer, TraditionalCard), self.players[0].id, self._shift, shiftStr, self.id])
+            db.execute(f"UPDATE traditional_games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", self.deck.toDb(TraditionalCard), self.playersToDb(TraditionalPlayer, TraditionalCard), self.players[0].id, self._shift, shiftStr, self.id])
 
         elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
             self.nextRound()
 
-            db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), self.hand_pot, self.sabacc_pot, "betting", self.deck.toDb(TraditionalCard), self.players[0].id, 0, "", False, self.id])
+            db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [self.playersToDb(TraditionalPlayer, TraditionalCard), self.hand_pot, self.sabacc_pot, "betting", self.deck.toDb(TraditionalCard), self.players[0].id, 0, "", False, self.id])
 
         if self == originalSelf:
             "invalid user input"

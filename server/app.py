@@ -14,8 +14,10 @@ from dataHelpers import *
 # from traditional.alderaanHelpers import *
 import dbConversion
 from flask_socketio import SocketIO, send, emit, join_room
-from traditional.traditionalHelpers import *
-from corellian_spike.corellianHelpers import *
+import traditional.traditionalHelpers
+from traditional.traditionalHelpers import TraditionalGame
+import corellian_spike.corellianHelpers
+from corellian_spike.corellianHelpers import CorellianSpikeGame
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
@@ -108,10 +110,10 @@ except psycopg.errors.DuplicateObject:
 
 
 # register Traditional custom types
-traditional_card_type = CompositeInfo.fetch(conn, 'traditionalcard')
-traditional_player_type = CompositeInfo.fetch(conn, 'traditionalplayer')
-register_composite(traditional_card_type, db)
-register_composite(traditional_player_type, db)
+traditional.traditionalHelpers.traditionalCardType = CompositeInfo.fetch(conn, 'traditionalcard')
+traditional.traditionalHelpers.traditionalPlayerType = CompositeInfo.fetch(conn, 'traditionalplayer')
+register_composite(traditional.traditionalHelpers.traditionalCardType, db)
+register_composite(traditional.traditionalHelpers.traditionalPlayerType, db)
 print("Registered Traditional custom types")
 
 # create Traditional tables
@@ -161,10 +163,10 @@ except psycopg.errors.DuplicateObject:
 
 
 # register CorellianSpike custom types
-corellian_spike_card_type = CompositeInfo.fetch(conn, 'corellianspikecard')
-corellian_spike_player_type = CompositeInfo.fetch(conn, 'corellianspikeplayer')
-register_composite(corellian_spike_card_type, db)
-register_composite(corellian_spike_player_type, db)
+corellian_spike.corellianHelpers.corellianSpikeCardType = CompositeInfo.fetch(conn, 'corellianspikecard')
+corellian_spike.corellianHelpers.corellianSpikePlayerType = CompositeInfo.fetch(conn, 'corellianspikeplayer')
+register_composite(corellian_spike.corellianHelpers.corellianSpikeCardType, db)
+register_composite(corellian_spike.corellianHelpers.corellianSpikePlayerType, db)
 print("Registered CorellianSpike custom types")
 
 # create CorellianSpike tables
@@ -416,6 +418,9 @@ def host():
 
     game = None
 
+    if game_variant != "traditional" and game_variant != "corellian_spike":
+        return jsonify({"message": "Invalid game variant"}), 401
+
     if game_variant == "traditional":
         # create game
         game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
@@ -431,8 +436,10 @@ def host():
     # Create game in database
     conn.commit()
 
+    print(game_variant)
+
     # Get game ID
-    game_id = db.execute("SELECT game_id FROM %s_games ORDER BY game_id DESC", [game_variant]).fetchone()[0]
+    game_id = db.execute(f"SELECT game_id FROM {game_variant}_games ORDER BY game_id DESC").fetchone()[0]
 
     # Redirect user to game
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_variant}/{game_id}"}), 200

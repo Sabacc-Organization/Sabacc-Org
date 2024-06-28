@@ -1,5 +1,8 @@
 # corellian spike helper functions
 
+corellianSpikeCardType = None
+corellianSpikePlayerType = None
+
 import random
 import sys
 import os
@@ -217,7 +220,7 @@ class CorellianSpikeGame(Game):
         # the 1st player is the 1st dealer
 
         if db:
-            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=CorellianSpikePlayer,card_type=Card), game.hand_pot, game.sabacc_pot, game.deckToDb(Card), game.player_turn, game.p_act])
+            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=corellianSpikePlayerType,card_type=corellianSpikeCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(corellianSpikeCardType), game.player_turn, game.p_act])
 
         # return Game object
         return game
@@ -351,8 +354,8 @@ class CorellianSpikeGame(Game):
 
         return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
     
-    def discardPileToDb(self):
-        return [card.toDb(Card) for card in self.discardPile]
+    def discardPileToDb(self, cardType):
+        return [card.toDb(cardType) for card in self.discardPile]
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
@@ -484,9 +487,9 @@ class CorellianSpikeGame(Game):
                 self.phase = "betting"
 
             dbList = [
-                self.deckToDb(Card),
-                self.discardPileToDb(Card),
-                self.playersToDb(CorellianSpikePlayer, Card),
+                self.deckToDb(corellianSpikeCardType),
+                self.discardPileToDb(corellianSpikeCardType),
+                self.playersToDb(corellianSpikePlayerType, corellianSpikePlayerType),
                 self.phase,
                 self.getActivePlayers()[nextPlayer].id,
                 player.username + " " + player.lastAction,
@@ -537,7 +540,7 @@ class CorellianSpikeGame(Game):
                     player.bet = None
 
             dbList = [
-                self.playersToDb(CorellianSpikePlayer, Card),
+                self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType),
                 self.hand_pot,
                 'betting' if nextPlayer != None else 'shift',
                 nextPlayer if nextPlayer != None else players[0].id,
@@ -574,9 +577,9 @@ class CorellianSpikeGame(Game):
 
             dbList = [
                 "card", 
-                self.deckToDb(Card), 
-                self.discardPileToDb(Card),
-                self.playersToDb(CorellianSpikePlayer, Card), 
+                self.deckToDb(corellianSpikeCardType), 
+                self.discardPileToDb(corellianSpikeCardType),
+                self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType), 
                 self.hand_pot,
                 self.sabacc_pot,
                 self.getActivePlayers()[0].id,
@@ -593,12 +596,12 @@ class CorellianSpikeGame(Game):
             self.nextRound()
 
             dbList = [
-                self.playersToDb(CorellianSpikePlayer, Card), 
+                self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType), 
                 self.hand_pot, 
                 self.sabacc_pot, 
                 "card", 
-                self.deckToDb(Card), 
-                self.discardPileToDb(Card),
+                self.deckToDb(corellianSpikeCardType), 
+                self.discardPileToDb(corellianSpikeCardType),
                 self.players[0].id, 
                 0, 
                 "", 

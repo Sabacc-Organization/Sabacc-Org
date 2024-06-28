@@ -567,7 +567,7 @@ class CorellianSpikeGame(Game):
                     winningPlayer.credits += self.sabacc_pot
                     self.sabacc_pot = 0
 
-                shiftStr = f"{shiftStr} {winData["winStr"]}"
+                shiftStr = f"{shiftStr} {winData['winStr']}"
 
             else:
                 self.cycle_count += 1

@@ -9,7 +9,7 @@
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     let username = Cookies.get("username");
-    let password = Cookies.get("password");
+    let password = Cookies.get("PASSWORD");
     let loggedIn = false;
 
     let dark: boolean | string | undefined = Cookies.get("dark");

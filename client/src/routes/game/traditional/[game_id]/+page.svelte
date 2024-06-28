@@ -11,7 +11,7 @@
 
     // Cookie info
     let username = Cookies.get("username");
-    let password = Cookies.get("password");
+    let password = Cookies.get("PASSWORD");
     let loggedIn = false;
     let dark = (Cookies.get("dark") == "true");
     let cardDesign = (Cookies.get("cardDesign"));

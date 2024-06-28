@@ -9,7 +9,7 @@
 
     let loggedIn = false;
     let username = Cookies.get("username");
-    let password = Cookies.get("password");
+    let password = Cookies.get("PASSWORD");
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 

@@ -63,57 +63,114 @@ print(conn)
 # Open a cursor to perform database operations
 db = conn.cursor()
 
-# create custom types
+# Create users table
+db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
+db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+conn.commit()
 
-# Create custom Suit type
+# create custom traditional types
+
+# Create custom TraditionalSuit type
 try:
-    db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+    db.execute("CREATE TYPE TraditionalSuit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
     conn.commit()
-    print("Created custom PostgreSQL type Suit")
+    print("Created custom PostgreSQL type TraditionalSuit")
 except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type Suit already exists")
+    print("Custom PostgreSQL type TraditionalSuit already exists")
     conn.rollback()
 
-# Create custom Card type
+# Create custom TraditionalCard type
 try:
-    db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit SUIT, protected BOOL);")
     conn.commit()
-    print("Created custom PostgreSQL type Card")
+    print("Created custom PostgreSQL type TraditionalCard")
 except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type Card already exists")
+    print("Custom PostgreSQL type TraditionalCard already exists")
     conn.rollback()
 
-# Create custom Player type
+# Create custom TraditionalPlayer type
 try:
     db.execute("""
-        CREATE TYPE Player AS (
+        CREATE TYPE TraditionalPlayer AS (
         id INTEGER,
         username TEXT,
         credits INTEGER,
         bet INTEGER,
-        hand Card[],
+        hand TraditionalCard[],
         folded BOOL,
-        lastaction TEXT);
+        lastAction TEXT);
     """)
     conn.commit()
-    print("Created custom PostgreSQL type Player")
+    print("Created custom PostgreSQL type TraditionalPlayer")
 except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type Player already exists")
+    print("Custom PostgreSQL type TraditionalPlayer already exists")
     conn.rollback()
 
 
-# register custom types
-card_type = CompositeInfo.fetch(conn, 'card')
-player_type = CompositeInfo.fetch(conn, 'player')
-register_composite(card_type, db)
-register_composite(player_type, db)
+# register Traditional custom types
+traditional_card_type = CompositeInfo.fetch(conn, 'traditionalcard')
+traditional_player_type = CompositeInfo.fetch(conn, 'traditionalplayer')
+register_composite(traditional_card_type, db)
+register_composite(traditional_player_type, db)
+print("Registered Traditional custom types")
 
-# create tables
-db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
-db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
-db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+# create Traditional tables
+db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+print("Created Traditional table")
 conn.commit()
 
+print()
+
+# Create custom Corellian Spike types
+
+# Create custom CorellianSpikeSuit type
+try:
+    db.execute("CREATE TYPE CorellianSpikeSuit AS ENUM ('circle','square','triangle','sylop');")
+    conn.commit()
+    print("Created custom PostgreSQL type CorellianSpikeSuit")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type CorellianSpikeSuit already exists")
+    conn.rollback()
+
+# Create custom CorellianSpikeCard type
+try:
+    db.execute("CREATE TYPE CorellianSpikeCard AS (val INTEGER, suit SUIT);")
+    conn.commit()
+    print("Created custom PostgreSQL type CorellianSpikeCard")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type CorellianSpikeCard already exists")
+    conn.rollback()
+
+# Create custom CorellianSpikePlayer type
+try:
+    db.execute("""
+        CREATE TYPE CorellianSpikePlayer AS (
+        id INTEGER,
+        username TEXT,
+        credits INTEGER,
+        bet INTEGER,
+        hand CorellianSpikeCard[],
+        folded BOOL,
+        lastAction TEXT);
+    """)
+    conn.commit()
+    print("Created custom PostgreSQL type CorellianSpikePlayer")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type CorellianSpikePlayer already exists")
+    conn.rollback()
+
+
+# register CorellianSpike custom types
+corellian_spike_card_type = CompositeInfo.fetch(conn, 'corellianspikecard')
+corellian_spike_player_type = CompositeInfo.fetch(conn, 'corellianspikeplayer')
+register_composite(corellian_spike_card_type, db)
+register_composite(corellian_spike_player_type, db)
+print("Registered CorellianSpike custom types")
+
+# create CorellianSpike tables
+db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+print("Created CorellianSpike table")
+conn.commit()
 
 # # create test game
 # if len(db.execute("SELECT game_id FROM games").fetchall()) == 0:
@@ -198,42 +255,37 @@ def index():
     db.execute("SELECT id FROM users WHERE username = %s", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
-    # Query the database for all the games
-    games = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
-    newGames = []
+    traditionalPlayerTurnUsernames = []
 
-    # IDs of users in games
-    user_ids = []
-
-    # Who's turn it is in each game
-    player_turns = []
+    # Query the database for all the Traditional games
+    allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games").fetchall()]
+    traditionalGames = []
 
     # Remove games that have been completed and that are not relevant to the player
-    for game in games:
+    for game in allTraditionalGames:
         if game.containsPlayer(id=user_id) and not game.completed:
-            newGames.append(game)
-            user_ids.append([player.id for player in game.players])
-            db.execute("SELECT username FROM users WHERE id = %s", [game.player_turn])
-            player_turns.append(getDictsForDB(db)[0]["username"])
+            traditionalGames.append(game)
+            traditionalPlayerTurnUsernames(game.getPlayer(id=game.player_turn))
 
-    # Get all the relevant usernames from the database
-    usernames = []
-    for set in user_ids:
-        s = ""
-        for user in set:
-            db.execute("SELECT * FROM users WHERE id = %s", [int(user)])
-            s += str(getDictsForDB(db)[0]["username"]) + ", "
+    corellianSpikePlayerTurnUsernames = []
 
-        st = s.strip(", ")
+    # Query the database for all the CorellianSpike games
+    allCorellianSpikeGames = [CorellianSpikeGame.fromDb(game) for game in db.execute("SELECT * FROM corellian_spike_games").fetchall()]
+    corellianSpikeGames = []
 
-        usernames.append(st)
+    # Remove games that have been completed and that are not relevant to the player
+    for game in allCorellianSpikeGames:
+        if game.containsPlayer(id=user_id) and not game.completed:
+            corellianSpikeGames.append(game)
+            corellianSpikePlayerTurnUsernames(game.getPlayer(id=game.player_turn))
+
 
     # Return data
     return jsonify({
-        "games": [game.toDict() for game in newGames], 
-        "usernames": usernames, 
-        "gamesLen": len(newGames), 
-        "player_turns": player_turns
+        "traditional_games": [game.toDict() for game in traditionalGames], 
+        "traditional_player_turn_usernames": traditionalPlayerTurnUsernames,
+        "corellian_spike_games": [game.toDict() for game in corellianSpikeGames],
+        "corellian_spike_player_turn_usernames": corellianSpikePlayerTurnUsernames
         }), 200
 
 @app.route("/register", methods=["POST"])
@@ -368,7 +420,7 @@ def host():
         # create game
         game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
     elif game_variant == "corellian_spike":
-        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsername=playerUsernames, startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10, db=db)
+        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10, db=db)
 
     if not game:
         return jsonify({"message": "Invalid game variant"}), 401

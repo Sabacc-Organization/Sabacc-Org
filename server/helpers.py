@@ -206,6 +206,10 @@ class Game:
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
 
+    # shuffle deck
+    def shuffleDeck(self):
+        self.deck.shuffle()
+
     # roll shift
     def rollShift(self):
         roll1 = random.randint(1, 6)

@@ -353,9 +353,12 @@ def returnGameInfo(clientInfo):
     game_variant = clientInfo["game_variant"]
 
     if game_variant == 'traditional':
-        game = TraditionalGame.fromDb(db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, int(game_id)]).fetchall()[0])
+        print('goteah')
+        print(game_id)
+        print('\n\n\n\n')
+        game = TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
     elif game_variant == 'corellian_spike':
-        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, int(game_id)]).fetchall()[0])
+        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -425,7 +428,7 @@ def host():
         # create game
         game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
     elif game_variant == "corellian_spike":
-        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=10, db=db)
+        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
 
     if not game:
         return jsonify({"message": "Invalid game variant"}), 401

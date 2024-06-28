@@ -15,10 +15,18 @@
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 
+    function initializeDropdown() {
+        if (window.jQuery && window.jQuery.fn.dropdown) {
+            window.jQuery(document).ready(() => {
+                window.jQuery('.dropdown-toggle').dropdown();
+        });
+        }
+        return '';
+    }
+
     onMount( async () => {
         loggedIn = await checkLogin(username, password, BACKEND_URL);
     });
-
 
 </script>
 
@@ -78,16 +86,17 @@
             <div class="nav nav-pills collapse navbar-collapse" id="navbar">
                 {#if loggedIn}
                     <ul class="navbar-nav mr-auto mt-2">
-                        <l1 class="nav-item">
+                        <li class="nav-item">
                             <div class="dropdown">
-                                <a class="nav-link dropdown-toggle" data-toggle="dropdown">Host a Game</a>
+                                <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">Host a Game</a>
                                 <div class="dropdown-menu">
                                   <a class="dropdown-item" href="/host/traditional">Traditional Sabacc</a>
                                   <a class="dropdown-item" href="/host/corellian-spike">Corellian Spike Sabacc</a>
                                 </div>
                             </div>
-                        </l1>
+                        </li>
                     </ul>
+                    {initializeDropdown()}
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>
                         <li class="nav-item"><a class="nav-link" href="https://discord.com/invite/AaYrNZjBus" target="_blank">Join the Discord</a></li>

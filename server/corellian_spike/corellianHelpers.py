@@ -22,7 +22,7 @@ class Suit:
 
 class CorellianSpikeDeck(Deck):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         for suit in [Suit.CIRCLE,Suit.SQUARE,Suit.TRIANGLE]:
             for val in range(1, 11):
                 self.cards.extend([Card(val, suit), Card(-val, suit)])
@@ -152,9 +152,10 @@ class CorellianSpikePlayer(Player):
         return f'player {self.id}:\n\thand ({CorellianSpikeHand.HANDS[ranking].capitalize()} #{ranking}): {self.hand} ({len(self.hand.cards)} cards, total: {addPlusBeforeNumber(self.hand.getTotal())})\n'
 
     def toDb(self, playerType, cardType):
-        for i in range(len(self.hand.cards)):
-            self.hand.cards[i] = self.hand.cards[i].toDb(cardType)
-        return playerType.python_type(self.id, self.username, self.credits, self.bet, self.hand.cards, self.folded, self.lastAction)
+        dbcards = []
+        for i in self.hand.cards:
+            dbcards.append(i.toDb(cardType))
+        return playerType.python_type(self.id, self.username, self.credits, self.bet, dbcards, self.folded, self.lastAction)
 
     @staticmethod
     def fromDb(player:object):
@@ -172,10 +173,11 @@ class CorellianSpikeGame(Game):
     discardCostIncremental = False
     standCost = 0
 
-    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='card', round=1, shift=False, completed=False):
+    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, sabacc_pot_ante=10, phase='card', round=1, shift=False, completed=False):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=round, completed=completed)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
+        self.sabaccPotAnte = sabacc_pot_ante
         self._shift = shift
         self.discardPile = discardPile
         
@@ -220,7 +222,7 @@ class CorellianSpikeGame(Game):
         # the 1st player is the 1st dealer
 
         if db:
-            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=corellianSpikePlayerType,card_type=corellianSpikeCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(corellianSpikeCardType), game.player_turn, game.p_act])
+            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=corellianSpikePlayerType,card_type=corellianSpikeCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(corellianSpikeCardType), game.discardPileToDb(corellianSpikeCardType), game.player_turn, game.p_act])
 
         # return Game object
         return game

@@ -81,6 +81,9 @@ class TraditionalDeck(Deck):
             self.cards.remove(card)
         self.shuffle()
 
+    def toDb(self, card_type):
+        return [card.toDb(card_type) for card in self.cards]
+
 class TraditionalHand(Hand):
     def __init__(self, cards=[]):
         super().__init__(cards)
@@ -130,7 +133,7 @@ class TraditionalPlayer(Player):
         }
     @staticmethod
     def fromDb(player:object):
-        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastAction)
+        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastaction)
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalPlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=TraditionalHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])

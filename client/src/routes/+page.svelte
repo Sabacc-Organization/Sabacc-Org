@@ -12,7 +12,12 @@
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 
-    let gamesData: {[id:string] : any} = {"games": []};
+    let gamesData: {[id:string] : any} = {
+        "traditional_games": [],
+        "traditional_player_turn_usernames": [],
+        "corellian_spike_games": [],
+        "corellian_spike_player_turn_usernames": []
+    };
 
     let vidX = 420;
 
@@ -66,6 +71,8 @@
 
     <h2>Your Active Games</h2>
     <br>
+    <h3>Traditional Games</h3>
+    <br>
     <table>
         <tr>
             <th>Players</th>
@@ -73,12 +80,48 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["games"] as game, i}
+        {#each gamesData["traditional_games"] as game, i}
 
             <tr>
-                <td>{gamesData["usernames"][i]}</td>
-                <td>{gamesData["player_turns"][i]}'s</td>
-                <td><a href="/game/{game["id"]}">Play</a></td>
+                <td>
+                    {#each game["players"] as player, j}
+                        {player["username"]}
+                        {#if j++ < game["players"].length}
+                        ,
+                        {/if}
+                    {/each}
+                </td>
+                <td>{gamesData["traditional_player_turn_usernames"][i]}'s</td>
+                <td><a href="/game/traditiona/{game["id"]}">Play</a></td>
+            </tr>
+
+        {/each}
+
+    </table>
+
+    <br>
+    <h3>Corellian Spike Games</h3>
+    <br>
+    <table>
+        <tr>
+            <th>Players</th>
+            <th>Turn</th>
+            <th>Game Link</th>
+        </tr>
+
+        {#each gamesData["corellian_spike_games"] as game, i}
+
+            <tr>
+                <td>
+                    {#each game["players"] as player, j}
+                        {player["username"]}
+                        {#if j++ < game["players"].length}
+                        ,
+                        {/if}
+                    {/each}
+                </td>
+                <td>{gamesData["corellian_spike_player_turn_usernames"][i]}'s</td>
+                <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
             </tr>
 
         {/each}

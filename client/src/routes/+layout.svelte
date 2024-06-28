@@ -78,7 +78,15 @@
             <div class="nav nav-pills collapse navbar-collapse" id="navbar">
                 {#if loggedIn}
                     <ul class="navbar-nav mr-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/host"} href="/host">Host a Game</a></li>
+                        <l1 class="nav-item">
+                            <div class="dropdown">
+                                <a class="nav-link dropdown-toggle" data-toggle="dropdown">Host a Game</a>
+                                <div class="dropdown-menu">
+                                  <a class="dropdown-item" href="/host/traditional">Traditional Sabacc</a>
+                                  <a class="dropdown-item" href="/host/corellian-spike">Corellian Spike Sabacc</a>
+                                </div>
+                            </div>
+                        </l1>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>

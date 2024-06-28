@@ -107,7 +107,8 @@
             let requestData = {
                 "username": username,
                 "password": password,
-                "players": players
+                "players": players,
+                "game_variant": "corellian_spike"
             }
 
             const response = await fetch(BACKEND_URL + "/host", {
@@ -134,9 +135,9 @@
   <title>Sabacc: Host</title>
 </svelte:head>
 
-<h2>Host a game of Sabacc</h2>
+<h2>Host a game of Corellian Spike Sabacc</h2>
 <br>
-<h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>
+<h5>Who would you like to play Corellian Spike Sabacc with? Enter your opponent's username.</h5>
 
 <input bind:value={player2} on:input={refresh} autocomplete="off" autofocus class="form-control form-group" id="player2" name="player2" placeholder="Player 2" type="text" required>
 {#if player2 != ""}

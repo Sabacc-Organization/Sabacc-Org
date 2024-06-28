@@ -22,6 +22,8 @@
         }
     });
 
+    let game_variant = "traditional";
+
     let players: string[] = [];
 
     let player2 = "";
@@ -107,7 +109,8 @@
             let requestData = {
                 "username": username,
                 "password": password,
-                "players": players
+                "players": players,
+                "game_variant": game_variant
             }
 
             const response = await fetch(BACKEND_URL + "/host", {
@@ -135,6 +138,13 @@
 </svelte:head>
 
 <h2>Host a game of Sabacc</h2>
+<br>
+<h5>Which variant of sabacc would you like to play?</h5>
+<select bind:value={game_variant} name="game_variant" id="gameVariant" class="form-control form-group">
+    <option value="traditional">Traditional</option>
+    <option value="corellian_spike">Corellian Spike</option>
+</select>
+
 <br>
 <h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>
 

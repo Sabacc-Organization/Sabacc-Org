@@ -23,7 +23,7 @@ class Suit:
 class CorellianSpikeDeck(Deck):
     def __init__(self):
         super().__init__()
-        for suit in [Suit.CIRCLE,Suit.SQUARE,Suit.TRIANGLE]:
+        for suit in ['circle','square','triangle']:
             for val in range(1, 11):
                 self.cards.extend([Card(val, suit), Card(-val, suit)])
         sylop = Card(0, 'sylop')

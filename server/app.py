@@ -127,7 +127,7 @@ print()
 
 # Create custom CorellianSpikeSuit type
 try:
-    db.execute("CREATE TYPE CorellianSpikeSuit AS ENUM ('circle','square','triangle','sylop');")
+    db.execute("CREATE TYPE CorellianSpikeSuit AS ENUM('circle','square','triangle','sylop');")
     conn.commit()
     print("Created custom PostgreSQL type CorellianSpikeSuit")
 except psycopg.errors.DuplicateObject:
@@ -136,7 +136,7 @@ except psycopg.errors.DuplicateObject:
 
 # Create custom CorellianSpikeCard type
 try:
-    db.execute("CREATE TYPE CorellianSpikeCard AS (val INTEGER, suit SUIT);")
+    db.execute("CREATE TYPE CorellianSpikeCard AS (val INTEGER, suit CorellianSpikeSuit);")
     conn.commit()
     print("Created custom PostgreSQL type CorellianSpikeCard")
 except psycopg.errors.DuplicateObject:
@@ -267,7 +267,7 @@ def index():
     for game in allTraditionalGames:
         if game.containsPlayer(id=user_id) and not game.completed:
             traditionalGames.append(game)
-            traditionalPlayerTurnUsernames(game.getPlayer(id=game.player_turn))
+            traditionalPlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
     corellianSpikePlayerTurnUsernames = []
 
@@ -279,12 +279,12 @@ def index():
     for game in allCorellianSpikeGames:
         if game.containsPlayer(id=user_id) and not game.completed:
             corellianSpikeGames.append(game)
-            corellianSpikePlayerTurnUsernames(game.getPlayer(id=game.player_turn))
+            corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
 
     # Return data
     return jsonify({
-        "traditional_games": [game.toDict() for game in traditionalGames], 
+        "traditional_games": [game.toDict() for game in traditionalGames],
         "traditional_player_turn_usernames": traditionalPlayerTurnUsernames,
         "corellian_spike_games": [game.toDict() for game in corellianSpikeGames],
         "corellian_spike_player_turn_usernames": corellianSpikePlayerTurnUsernames
@@ -353,9 +353,6 @@ def returnGameInfo(clientInfo):
     game_variant = clientInfo["game_variant"]
 
     if game_variant == 'traditional':
-        print('goteah')
-        print(game_id)
-        print('\n\n\n\n')
         game = TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
     elif game_variant == 'corellian_spike':
         game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])

@@ -237,7 +237,7 @@ class Game:
         return self.getPlayer(username=username, id=id) != None
     
     def deckToDb(self, card_type):
-        self.deck.toDb(card_type=card_type)
+        return self.deck.toDb(card_type=card_type)
     
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override

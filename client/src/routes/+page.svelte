@@ -85,14 +85,11 @@
             <tr>
                 <td>
                     {#each game["players"] as player, j}
-                        {player["username"]}
-                        {#if j++ < game["players"].length}
-                        ,
-                        {/if}
+                        {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
                     {/each}
                 </td>
                 <td>{gamesData["traditional_player_turn_usernames"][i]}'s</td>
-                <td><a href="/game/traditiona/{game["id"]}">Play</a></td>
+                <td><a href="/game/traditional/{game["id"]}">Play</a></td>
             </tr>
 
         {/each}
@@ -114,10 +111,7 @@
             <tr>
                 <td>
                     {#each game["players"] as player, j}
-                        {player["username"]}
-                        {#if j++ < game["players"].length}
-                        ,
-                        {/if}
+                        {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
                     {/each}
                 </td>
                 <td>{gamesData["corellian_spike_player_turn_usernames"][i]}'s</td>

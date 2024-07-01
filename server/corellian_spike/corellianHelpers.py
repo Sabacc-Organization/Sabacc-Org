@@ -21,18 +21,21 @@ class Suit:
 # there's no CorellianSpikeCard bc it'd be the same as a regular Card
 
 class CorellianSpikeDeck(Deck):
-    def __init__(self):
+    def __init__(self, cards:list|None=None):
         super().__init__()
-        for suit in ['circle','square','triangle']:
-            for val in range(1, 11):
-                self.cards.extend([Card(val, suit), Card(-val, suit)])
-        sylop = Card(0, 'sylop')
-        self.cards.extend([sylop, sylop])
-        self.shuffle()
+        if cards == None:
+            for suit in ['circle','square','triangle']:
+                for val in range(1, 11):
+                    self.cards.extend([Card(val, suit), Card(-val, suit)])
+            sylop = Card(0, 'sylop')
+            self.cards.extend([sylop, sylop])
+            self.shuffle()
+        else:
+            self.cards.extend(cards)
 
     @staticmethod
     def fromDb(deck) -> object:
-        return CorellianSpikeDeck([CorellianSpikeDeck.fromDb(card) for card in deck])
+        return CorellianSpikeDeck([Card.fromDb(card) for card in deck])
 
 class CorellianSpikeHand(Hand):
     HANDS = {
@@ -136,7 +139,7 @@ class CorellianSpikeHand(Hand):
         return lowest
 
 class CorellianSpikePlayer(Player):
-    def __init__(self, id:int, username:str, credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction='', ):
+    def __init__(self, id:int, username:str, credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction=''):
         self.id = id
         self.username = username
         self.credits = credits
@@ -156,6 +159,17 @@ class CorellianSpikePlayer(Player):
         for i in self.hand.cards:
             dbcards.append(i.toDb(cardType))
         return playerType.python_type(self.id, self.username, self.credits, self.bet, dbcards, self.folded, self.lastAction)
+
+    def toDict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'credits': self.credits,
+            'bet': self.bet,
+            'hand': self.hand.toDict(),
+            'folded': self.folded,
+            'lastAction': self.lastAction
+        }
 
     @staticmethod
     def fromDb(player:object):
@@ -204,8 +218,8 @@ class CorellianSpikeGame(Game):
 
         # create player list
         players = []
-        for id in playerIds:
-            players.append(CorellianSpikePlayer(id, username=playerUsernames[playerIds.index(id)], credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
+        for i in range(len(playerIds)):
+            players.append(CorellianSpikePlayer(playerIds[i], username=playerUsernames[i], credits=startingCredits - CorellianSpikeGame.handPotAnte - CorellianSpikeGame.sabaccPotAnte))
         
         # create deck, discard pile, and pots
         deck = CorellianSpikeDeck()
@@ -358,6 +372,25 @@ class CorellianSpikeGame(Game):
     
     def discardPileToDb(self, cardType):
         return [card.toDb(cardType) for card in self.discardPile]
+    
+    def discardPileToDict(self):
+        return [card.toDict() for card in self.discardPile]
+    
+    def toDict(self):
+        return {
+            'id': self.id,
+            'players': [player.toDict() for player in self.players],
+            'hand_pot': self.hand_pot,
+            'sabacc_pot': self.sabacc_pot,
+            'phase': self.phase,
+            'deck': self.deck.toDict(),
+            'discard_pile': self.discardPileToDict(),
+            'player_turn': self.player_turn,
+            'p_act': self.p_act,
+            'cycle_count': self.cycle_count,
+            'shift': self._shift,
+            'completed': self.completed
+        }
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
@@ -452,7 +485,7 @@ class CorellianSpikeGame(Game):
     
     @staticmethod
     def fromDb(game:object):
-        return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
+        return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], shift=game[10], completed=game[11])
 
     # overrides parent method
     def action(self, params:dict, db):
@@ -460,8 +493,8 @@ class CorellianSpikeGame(Game):
 
         player = self.getPlayer(username=params["username"])
 
-        if (params["action"] == "draw" or params["action"] == "trade" or params["action"] == "stand" or params["action"] == "alderaan") and (self.phase == "card" or self.phase == "alderaan") and self.player_turn == player.id and self.completed == False:
-            
+        if params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard", "alderaan"] and self.phase in ["card", "alderaan"] and self.player_turn == player.id and self.completed == False:
+
             if params["action"] == "deckDraw":
                 self.buyFromDeck(player)
 
@@ -499,7 +532,7 @@ class CorellianSpikeGame(Game):
             ]
             db.execute("UPDATE corellian_spike_games SET deck = %s, discard_pile = %s, players = %s, phase = %s, player_turn = %s, p_act = %s WHERE game_id = %s", dbList)
 
-        elif (params['action'] == "fold" or params['action'] == "bet" or params['action'] == "call" or params['action'] == "raise") and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
+        elif params['action'] in ["fold", "bet", "call", "raise"] and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
             players = self.getActivePlayers()
 
             if params['action'] == "fold":

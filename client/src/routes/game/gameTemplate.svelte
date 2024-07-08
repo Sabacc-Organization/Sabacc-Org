@@ -1,38 +1,42 @@
-<script lang="ts">
+<script lang="ts" context="module">
     import { page } from '$app/stores';
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
+    import { derived } from 'svelte/store';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     // Cookie info
-    let username = Cookies.get("username");
-    let password = Cookies.get("PASSWORD");
-    let loggedIn = false;
-    let dark = (Cookies.get("dark") == "true");
-    let cardDesign = (Cookies.get("cardDesign"));
-    let theme = Cookies.get("theme");
+    const username = Cookies.get("username");
+    const password = Cookies.get("PASSWORD");
+    const dark = (Cookies.get("dark") == "true");
+    const cardDesign = (Cookies.get("cardDesign"));
+    const theme = Cookies.get("theme");
 
+    //socket.io
+    let socket: any;
+
+    export {BACKEND_URL, FRONTEND_URL, username, password, dark, cardDesign, theme, socket}
+</script>
+
+<script lang="ts">
     export let game_variant: string;
+
+    $: game_id = $page.params.game_id;
 
     // dont render the page until dataToRender is true
     let dataToRender = false;
 
-    //socket.io
-    let socket: any;
 
     // Page header (plaer vs. player vs. player)
     let header = "";
 
     // Error message for invalid inputs
     let errorMsg = "";
-
-    // Accessing the 'username' parameter from the URL
-    $: game_id = $page.params.game_id;
 
     // Game information
     let game: {[id: string]: any} = {
@@ -148,7 +152,7 @@
         for (let i = 0; i < serverInfo["users"].length; i++) {
             // Add vs. except on first loop through
             if (i != 0) {
-                header += " vs. "
+                header += " vs. ";
             }
 
             // Update player array
@@ -199,19 +203,7 @@
     export let renderCard;
     export let renderBack;
 
-    // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
-    // this applies to bet, card, shift, and playAgain.
-    function protect(protCard : {[id: string]: any}) {
-        let clientInfo = {
-            "username": username,
-            "password": password,
-            "game_id": game_id,
-            "game_variant": game_variant,
-            "action": "protect",
-            "protect": protCard
-        }
-        socket.emit('gameAction', clientInfo)
-    }
+    export let onDBClickCard;
 
     // Betting Phase
 
@@ -502,7 +494,7 @@
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                    on:click={() => clickOrDblclick(() => trade(c), () => protect(c))}
+                                    on:click={() => clickOrDblclick(() => trade(c), () => onDBClickCard(c))}
                                     id="card{ci.toString()}"
                                     class="card child own"
                                     style="{renderCard(c, cardDesign, dark)}">

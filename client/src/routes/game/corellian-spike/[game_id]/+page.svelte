@@ -1,5 +1,8 @@
 <script lang="ts">
-    import GameTemplate from "../../gameTemplate.svelte";
+    import GameTemplate, { BACKEND_URL, FRONTEND_URL, username, password, dark, cardDesign, theme, socket } from "../../gameTemplate.svelte";
+    import { page } from '$app/stores'
+
+    $: game_id = $page.params.game_id;
 
     let game_variant = 'corellian_spike';
 
@@ -25,4 +28,4 @@
     }
 </script>
 
-<GameTemplate {game_variant} {renderBack} {renderCard}/>
+<GameTemplate {game_variant} {renderBack} {renderCard} onDBClickCard={() => {}}/>

@@ -1,6 +1,8 @@
 <script lang="ts">
-    import GameTemplate from "../../gameTemplate.svelte";
+    import GameTemplate, { BACKEND_URL, FRONTEND_URL, username, password, dark, cardDesign, theme, socket } from "../../gameTemplate.svelte";
+    import { page } from '$app/stores'
 
+    $: game_id = $page.params.game_id;
     let game_variant = 'traditional';
 
     function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}, cardDesign: string, dark: boolean){
@@ -44,6 +46,20 @@
         }
         return "background-image:url(/images/cards/traditional/rebels-card-back.png);";
     }
+
+    // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
+    // this applies to bet, card, shift, and playAgain.
+    function protect(protCard : {[id: string]: any}) {
+        let clientInfo = {
+            "username": username,
+            "password": password,
+            "game_id": game_id,
+            "game_variant": game_variant,
+            "action": "protect",
+            "protect": protCard
+        }
+        socket.emit('gameAction', clientInfo)
+    }
 </script>
 
-<GameTemplate {game_variant} {renderBack} {renderCard}/>
+<GameTemplate {game_variant} {renderBack} {renderCard} onDBClickCard={protect}/>

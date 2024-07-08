@@ -1,6 +1,7 @@
 import random
 from enum import Enum
 from helpers import *
+import copy
 
 traditionalCardType = None
 traditionalPlayerType = None
@@ -479,14 +480,14 @@ class TraditionalGame(Game):
     # overrides parent method
     def action(self, params:dict, db):
 
-        originalSelf = self
+        originalSelf = copy.deepcopy(self)
 
         player = self.getPlayer(username=params["username"])
 
         if params['action'] == "protect":
             card = TraditionalCard.fromDict(params["protect"])
             response = player.hand.protect(card)
-            if type(response) == str:
+            if isinstance(response, str):
                 return response
             db.execute("UPDATE traditional_games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(traditionalPlayerType, traditionalCardType), f"{player.username} protected a {card.val}", self.id])
 

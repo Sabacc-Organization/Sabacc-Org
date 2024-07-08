@@ -338,7 +338,7 @@ def register():
 def getGame(clientInfo):
     game_id = clientInfo['game_id']
     game_variant = clientInfo['game_variant']
-    join_room(f'gameRoom:{game_variant}/{game_id}')
+    join_room(room=f'gameRoom:{game_variant}/{game_id}')
 
     emit('clientUpdate', returnGameInfo(clientInfo))
 
@@ -353,10 +353,7 @@ def returnGameInfo(clientInfo):
     game_id = clientInfo["game_id"]
     game_variant = clientInfo["game_variant"]
 
-    if game_variant == 'traditional':
-        game = TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
-    elif game_variant == 'corellian_spike':
-        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    game = TraditionalGame.fromDb(db.execute(f"SELECT * FROM {game_variant}_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -467,7 +464,7 @@ def gameAction(clientInfo):
     game_variant = clientInfo["game_variant"]
     game_id = clientInfo["game_id"]
 
-    game = db.execute("SELECT * FROM %s_games WHERE game_id = %s", [game_variant, game_id]).fetchone()
+    game = db.execute(f"SELECT * FROM {game_variant}_games WHERE game_id = %s", [game_id]).fetchone()
 
     if not game:
         return jsonify({"message": "Game does not exist"}), 401
@@ -482,7 +479,7 @@ def gameAction(clientInfo):
 
     response = game.action(clientInfo, db)
 
-    if type(response) == str:
+    if isinstance(response, str):
         return jsonify({"message": response}), 401
 
     conn.commit()

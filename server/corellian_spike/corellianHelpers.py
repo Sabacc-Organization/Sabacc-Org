@@ -6,6 +6,7 @@ corellianSpikePlayerType = None
 import random
 import sys
 import os
+import copy
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -489,7 +490,7 @@ class CorellianSpikeGame(Game):
 
     # overrides parent method
     def action(self, params:dict, db):
-        originalSelf = self
+        originalSelf = copy.deepcopy(self)
 
         player = self.getPlayer(username=params["username"])
 

@@ -354,9 +354,9 @@ def returnGameInfo(clientInfo):
     game_variant = clientInfo["game_variant"]
 
     if game_variant == 'traditional':
-        game = TraditionalGame.fromDb(db.execute(f"SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        game = TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
     else:
-        game = CorellianSpikeGame.fromDb(db.execute(f"SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -443,7 +443,7 @@ def host():
     game_id = db.execute(f"SELECT game_id FROM {game_variant}_games ORDER BY game_id DESC").fetchone()[0]
 
     # Redirect user to game
-    return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_variant}/{game_id}"}), 200
+    return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_variant.replace('_', '-')}/{game_id}"}), 200
 
 """ Gameplay REST APIs """
 

@@ -24,6 +24,7 @@ class Suit:
 class CorellianSpikeDeck(Deck):
     def __init__(self, cards:list|None=None):
         super().__init__()
+        self.cards = []
         if cards == None:
             for suit in ['circle','square','triangle']:
                 for val in range(1, 11):
@@ -141,13 +142,7 @@ class CorellianSpikeHand(Hand):
 
 class CorellianSpikePlayer(Player):
     def __init__(self, id:int, username:str, credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction=''):
-        self.id = id
-        self.username = username
-        self.credits = credits
-        self.bet = bet
-        self.hand = hand
-        self.folded = folded
-        self.lastAction = lastAction
+        super().__init__(id, username, credits, bet, hand, folded, lastAction)
     
     def __str__(self) -> str:
         return str(self.id)
@@ -268,7 +263,7 @@ class CorellianSpikeGame(Game):
   
     def dealHands(self):
         for player in self.players:
-            player.hand.cards = self.deck.draw(2)
+            player.hand.cards = self.deck.draw(2).copy()
     
     def determineWinner(self) -> str:
         ret = ''
@@ -445,21 +440,25 @@ class CorellianSpikeGame(Game):
     def buyFromDiscard(self, player:CorellianSpikePlayer):
         player.credits -= self.drawFromDiscardCost
         player.lastAction = "buys from discard"
-        return self._playerDrawDiscard(player)
-    
+        card = self._playerDrawDiscard(player)
+        if len(self.discardPile) == 0:
+            self.discardPile.append(self.deck.draw())
+        return card
+
     # player discards a card, then draws one
     def tradeWithDeck(self, player:CorellianSpikePlayer, tradeCardIndex:int):
         player.credits -= self.deckTradeCost
         player.lastAction = "trades with deck"
+        drawnCard = self._playerDrawFromDeck(player)
         self._playerDiscard(player, tradeCardIndex)
-        return self._playerDrawFromDeck(player)
+        return drawnCard
 
     # player draws top discard, then discards a card
     def tradeWithDiscard(self, player:CorellianSpikePlayer, tradeCardIndex):
         player.credits -= self.discardTradeCost
         player.lastAction = "trades with discard"
-        self._playerDiscard(player, tradeCardIndex)
         drawnCard = self._playerDrawDiscard(player)
+        self._playerDiscard(player, tradeCardIndex)
         return drawnCard
     
     # player discards for increasing price
@@ -479,14 +478,12 @@ class CorellianSpikeGame(Game):
                 player.discard(0)
                 self._playerDrawFromDeck(player, 1)
 
-            self._playerDrawFromDeck(player, handLen)
-
     def playersToDb(self, player_type, card_type):
         return [player.toDb(player_type, card_type) for player in self.players]
 
     @staticmethod
     def fromDb(game:object):
-        return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], shift=game[10], completed=game[11])
+        return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11])
 
     # overrides parent method
     def action(self, params:dict, db):
@@ -509,7 +506,10 @@ class CorellianSpikeGame(Game):
                 self.tradeWithDeck(player, tradeDex)
 
             elif params["action"] == "discardTrade":
-                self.tradeWithDiscard(player, params["tradeIndex"])
+                tradeCard = Card.fromDict(params["trade"])
+                tradeDex = player.hand.cards.index(tradeCard)
+
+                self.tradeWithDiscard(player, tradeDex)
 
             elif params["action"] == "stand":
                 player.credits -= CorellianSpikeGame.standCost
@@ -602,28 +602,27 @@ class CorellianSpikeGame(Game):
                 self.completed = True
                 winData = self.determineWinner()
 
-                winningPlayer.getPlayer(playerId=winData["winner"].id)
+                winningPlayer = self.getPlayer(id=winData["winner"].id)
                 winningPlayer.credits += self.hand_pot
                 self.hand_pot = 0
                 if winData["0"]:
                     winningPlayer.credits += self.sabacc_pot
                     self.sabacc_pot = 0
 
-                shiftStr = f"{shiftStr} {winData['winStr']}"
+                shiftStr = f"{winData['winStr']}"
 
-            else:
-                self.cycle_count += 1
+            self.cycle_count += 1
 
             dbList = [
                 "card", 
-                self.deckToDb(corellianSpikeCardType), 
+                self.deckToDb(corellianSpikeCardType),
                 self.discardPileToDb(corellianSpikeCardType),
-                self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType), 
+                self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType),
                 self.hand_pot,
                 self.sabacc_pot,
                 self.getActivePlayers()[0].id,
-                self._shift, 
-                shiftStr, 
+                self._shift,
+                shiftStr,
                 self.cycle_count,
                 self.completed,
                 self.id

@@ -8,6 +8,7 @@ from cs50 import SQL
 from werkzeug.security import check_password_hash
 import yaml
 from abc import ABC, abstractmethod # allows abstract classes/methods
+import copy
 
 # Get config.yml data
 config = {}
@@ -46,7 +47,7 @@ class Card:
 
 class Deck:
     def __init__(self, cards:list=[]):
-        self.cards = cards
+        self.cards = cards.copy()
     def __str__(self) -> str:
         return f'[{listToStr(self.cards)}]'
     
@@ -63,11 +64,7 @@ class Deck:
         return Deck([Card.fromDict(card) for card in dict])
 
     def shuffle(self):
-        for i in range(len(self.cards)):
-            switchIndex = random.randint(0, len(self.cards) - 1)
-            temp = self.cards[switchIndex]
-            self.cards[switchIndex] = self.cards[i]
-            self.cards[i] = temp
+        random.shuffle(self.cards)
 
     # remove a number of cards from the top (end) of the deck and return them
     def draw(self, numCards=1):
@@ -79,13 +76,14 @@ class Deck:
         if numCards == 1:
             return self.cards.pop()
         else:
-            drawnCards = self.cards[-numCards:]
-            del self.cards[-numCards:] # delete drawn cards from deck
+            drawnCards = []
+            for i in range(numCards):
+                drawnCards.append(self.cards.pop())
             return drawnCards
 
 class Hand:
     def __init__(self, cards=[]):
-        self.cards = cards
+        self.cards = cards.copy()
         self.sort()
     
     def __eq__(self, other:object) -> bool:
@@ -122,6 +120,8 @@ class Hand:
     
     # sort hand by value (selection sort)
     def sort(self):
+        if self.cards == []:
+            return
         for i in range(len(self.cards) - 1):
             minIndex = i
             for j in range(i+1, len(self.cards)):
@@ -145,7 +145,7 @@ class Player:
             self.bet = bet
         else:
             print(f"ERROR: bet is not int or none, it's {type(bet)}")
-        self.hand = hand
+        self.hand = copy.deepcopy(hand)
         self.folded = folded
         self.lastAction = lastAction
         

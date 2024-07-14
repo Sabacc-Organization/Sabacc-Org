@@ -65,8 +65,6 @@
         </div>
     </div>
 
-    <div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->
-
 {:else if loggedIn}
 
     <h2>Your Active Games</h2>
@@ -125,3 +123,5 @@
     
 
 {/if}
+
+<div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->

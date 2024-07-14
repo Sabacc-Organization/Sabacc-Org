@@ -106,13 +106,7 @@ class TraditionalHand(Hand):
 
 class TraditionalPlayer(Player):
     def __init__(self, id:int, username:str, credits=0, bet:int = None, hand:Hand=Hand(), folded=False, lastAction=""):
-        self.id = id
-        self.username = username
-        self.credits = credits
-        self.bet = bet
-        self.hand = hand
-        self.folded = folded
-        self.lastAction = lastAction
+        super().__init__(id, username, credits, bet, hand, folded, lastAction)
     
     def protect(self, card:TraditionalCard):
         self.hand.protect(card)

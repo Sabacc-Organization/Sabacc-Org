@@ -6,7 +6,7 @@
 
     let game_variant = 'corellian_spike';
 
-    function renderCard(cardValue: {'suit': string, 'val':number}, cardDesign: string, dark: boolean){
+    function renderCard(cardValue: {'suit': string, 'val':number}){
         let returnText: string = "background-image:url(";
 
         returnText += '/images/cards/corellian/jacob-densford/';
@@ -23,7 +23,7 @@
         return returnText;
     }
 
-    function renderBack(cardDesign: string){
+    function renderBack(){
         return 'background-image:url(/images/cards/corellian/jacob-densford/Back.png);background-color:transparent;border:transparent;'
     }
 </script>

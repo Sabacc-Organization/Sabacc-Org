@@ -35,7 +35,6 @@
 }
 
 #deck{
-    box-shadow: 3px 3px 0px 3px #323232;
     width: calc(100% - 6px);
     height: auto;
     aspect-ratio: 50 / 67;

@@ -347,7 +347,7 @@ class TraditionalGame(Game):
 
             players = self.getActivePlayers()
 
-        elif params["action"] == "bet":
+        elif params["action"] == "bet" and (players.index(player) == 0):
             player.makeBet(params["amount"])
 
         elif params["action"] == 'call':

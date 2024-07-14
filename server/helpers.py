@@ -112,7 +112,7 @@ class Hand:
     def append(self, card:Card):
         self.cards.append(card)
     def pop(self, index:int) -> object:
-        return self.hand.pop(index)
+        return self.cards.pop(index)
     
     def getListOfVals(self) -> list:
         return [card.val for card in self.cards]
@@ -150,9 +150,9 @@ class Player:
         self.lastAction = lastAction
         
     def addToHand(self, cards):
-        if type(cards) != list:
+        if not isinstance(cards, list):
             cards = [cards]
-        self.hand.extend(cards)
+        self.hand.cards.extend(cards)
 
     def discard(self, discardCardIndex:int):
         try:

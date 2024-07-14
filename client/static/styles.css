@@ -171,16 +171,6 @@ main img
     0 0 50px #fff
 }
 
-#deck {
-    box-shadow: 3px 3px 0px 10px #323232;
-}
-
-#deck.active:hover {
-    box-shadow:
-    inset 0 0 50px #fff,
-    0 0 50px #fff
-}
-
 #discard {
     background-image: none;
     background-color: rgb(226, 182, 24);
@@ -318,8 +308,4 @@ main img
 
 .mobileActBox{
   display: none;
-}
-
-#standBtn { /* help avoid misclicks and looks cleaner */
-  margin-top: 1rem;
 }

@@ -414,7 +414,7 @@ class CorellianSpikeGame(Game):
 
     # add discarded card(s) to discard pile
     def _discard(self, cards):
-        if type(cards) != list:
+        if not isinstance(cards, list):
             cards = [cards]
         self.discardPile.extend(cards)
 
@@ -469,7 +469,7 @@ class CorellianSpikeGame(Game):
         self._playerDiscard(player, discardCardIndex)
 
     # replace every card in every player's hand
-    def shift(self):
+    def shiftcards(self):
         # loop thru players
         for player in self.players:
             hand = player.hand.cards
@@ -478,12 +478,12 @@ class CorellianSpikeGame(Game):
             for i in range(handLen):
                 player.discard(0)
                 self._playerDrawFromDeck(player, 1)
-            
+
             self._playerDrawFromDeck(player, handLen)
 
     def playersToDb(self, player_type, card_type):
         return [player.toDb(player_type, card_type) for player in self.players]
-    
+
     @staticmethod
     def fromDb(game:object):
         return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], shift=game[10], completed=game[11])
@@ -494,7 +494,7 @@ class CorellianSpikeGame(Game):
 
         player = self.getPlayer(username=params["username"])
 
-        if params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard", "alderaan"] and self.phase in ["card", "alderaan"] and self.player_turn == player.id and self.completed == False:
+        if (params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard", "alderaan"]) and (self.phase in ["card", "alderaan"]) and (self.player_turn == player.id) and (self.completed == False):
 
             if params["action"] == "deckDraw":
                 self.buyFromDeck(player)
@@ -503,7 +503,10 @@ class CorellianSpikeGame(Game):
                 self.buyFromDiscard(player)
 
             elif params["action"] == "deckTrade":
-                self.tradeWithDeck(player, params["tradeIndex"])
+                tradeCard = Card.fromDict(params["trade"])
+                tradeDex = player.hand.cards.index(tradeCard)
+
+                self.tradeWithDeck(player, tradeDex)
 
             elif params["action"] == "discardTrade":
                 self.tradeWithDiscard(player, params["tradeIndex"])
@@ -525,7 +528,7 @@ class CorellianSpikeGame(Game):
             dbList = [
                 self.deckToDb(corellianSpikeCardType),
                 self.discardPileToDb(corellianSpikeCardType),
-                self.playersToDb(corellianSpikePlayerType, corellianSpikePlayerType),
+                self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType),
                 self.phase,
                 self.getActivePlayers()[nextPlayer].id,
                 player.username + " " + player.lastAction,
@@ -533,7 +536,7 @@ class CorellianSpikeGame(Game):
             ]
             db.execute("UPDATE corellian_spike_games SET deck = %s, discard_pile = %s, players = %s, phase = %s, player_turn = %s, p_act = %s WHERE game_id = %s", dbList)
 
-        elif params['action'] in ["fold", "bet", "call", "raise"] and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
+        elif (params['action'] in ["fold", "bet", "call", "raise"]) and (self.phase == "betting") and (self.player_turn == player.id) and (self.completed == False):
             players = self.getActivePlayers()
 
             if params['action'] == "fold":
@@ -542,7 +545,7 @@ class CorellianSpikeGame(Game):
                 players = self.getActivePlayers()
 
 
-            elif params["action"] == "bet" and players.index(player):
+            elif (params["action"] == "bet") and (players.index(player) == 0):
                 player.makeBet(params["amount"])
 
             elif params["action"] == 'call':
@@ -586,11 +589,11 @@ class CorellianSpikeGame(Game):
             ]
             db.execute("UPDATE corellian_spike_games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
 
-        elif params["action"] == "shift" and self.player_turn == player.id and self.completed == False:
+        elif (params["action"] == "shift") and (self.player_turn == player.id) and (self.completed == False):
             self._shift = self.rollShift()
 
             if self._shift:
-                self.shift()
+                self.shiftcards()
 
             # Set the Shift message
             shiftStr = "Sabacc shift!" if self._shift else "No shift!"
@@ -628,20 +631,20 @@ class CorellianSpikeGame(Game):
 
             db.execute("UPDATE corellian_spike_games SET phase = %s, deck = %s, discard_pile = %s, players = %s, hand_pot = %s, sabacc_pot = %s, player_turn = %s, shift = %s, p_act = %s, cycle_count = %s, completed = %s WHERE game_id = %s", dbList)
 
-        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
+        elif (params["action"] == "playAgain") and (self.player_turn == player.id) and (self.completed):
             self.nextRound()
 
             dbList = [
                 self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType), 
-                self.hand_pot, 
-                self.sabacc_pot, 
-                "card", 
-                self.deckToDb(corellianSpikeCardType), 
+                self.hand_pot,
+                self.sabacc_pot,
+                "card",
+                self.deckToDb(corellianSpikeCardType),
                 self.discardPileToDb(corellianSpikeCardType),
-                self.players[0].id, 
-                0, 
-                "", 
-                False, 
+                self.players[0].id,
+                0,
+                "",
+                False,
                 self.id
             ]
 

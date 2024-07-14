@@ -5,7 +5,7 @@
     $: game_id = $page.params.game_id;
     let game_variant = 'traditional';
 
-    function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}, cardDesign: string, dark: boolean){
+    function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
         let returnText: string = "background-image:url(";
 
         let darkPath = "/images/cards/traditional/dark/";
@@ -40,7 +40,7 @@
         return returnText;
     }
 
-    function renderBack(cardDesign: string){
+    function renderBack(){
         if (cardDesign === "pescado"){
             return "background-image:url(/images/cards/traditional/pescado/back.png);";
         }

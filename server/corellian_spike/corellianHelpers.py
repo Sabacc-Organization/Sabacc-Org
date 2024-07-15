@@ -239,8 +239,6 @@ class CorellianSpikeGame(Game):
 
     # set up for next round
     def nextRound(self):
-        self.round += 1 # update round number
-
         # rotate dealer (1st in list is always dealer) - move 1st player to end
         self.players.append(self.players.pop(0))
 
@@ -516,7 +514,10 @@ class CorellianSpikeGame(Game):
                 player.lastAction = "stands"
 
             elif params["action"] == "discard":
-                self.playerDiscardAction(player, params["discardIndex"])
+                tradeCard = Card.fromDict(params["trade"])
+                tradeDex = player.hand.cards.index(tradeCard)
+
+                self.playerDiscardAction(player, tradeDex)
 
             uDex = self.getPlayerDex(id=player.id)
             nextPlayer = uDex + 1

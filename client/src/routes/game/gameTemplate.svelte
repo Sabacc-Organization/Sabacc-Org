@@ -4,7 +4,6 @@
     import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
-    import { derived } from 'svelte/store';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -385,10 +384,8 @@
         tradeCard = traCard;
         if (tradeType === 'traditional') {
             card("trade");
-        } else if (tradeType === 'deck') {
-            card('deckTrade');
-        } else if (tradeType === 'discard') {
-            card('discardTrade');
+        } else {
+            card(tradeType);
         }
     }
 
@@ -436,7 +433,7 @@
             "password": password,
             "game_id": game_id,
             "game_variant": game_variant,
-            "action": "cont"
+            "action": "playAgain"
         }
 
         socket.emit('gameAction', clientInfo);
@@ -463,15 +460,22 @@
                 <h5>Hand: <span id="hand_pot">{game["hand_pot"]}</span></h5>
             </div>
 
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click={() => draw('deckDraw')} class:active={cardBool} id="deck" class="card child" style="{renderBack(cardDesign)}"></div>
+            <div class="cardsContainer">
+                <div class="cardContainer">
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div on:click={() => draw('deckDraw')} class:active={cardBool} id="deck" class="card child" style="{renderBack(cardDesign)}"></div>
+                </div>
 
-            {#if game_variant === "corellian_spike"}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('discardDraw')} class:active={cardBool} id="discard" class="card child" style={renderCard(game['discard_pile'][game['discard_pile'].length - 1])}></div>
-            {/if}
+                {#if game_variant === "corellian_spike"}
+                    <div class="cardContainer">
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div on:click={() => draw('discardDraw')} class:active={cardBool} id="discard" class="card child" style={renderCard(game['discard_pile'][game['discard_pile'].length - 1])}></div>
+                        <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":game['discard_pile'][game['discard_pile'].length - 1]['val']}</h5>
+                    </div>
+                {/if}
+            </div>
 
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -609,8 +613,9 @@
                             {#if game_variant === 'traditional'}
                                 <button on:click={() => tradeBtn('traditional')} type="button" id="tradeBtn" class="btn btn-primary">Trade</button>
                             {:else}
-                                <button on:click={() => tradeBtn('deck')} type="button" id="tradeBtn" class="btn btn-primary">Deck Trade</button>
-                                <button on:click={() => tradeBtn('discard')} type="button" id="tradeBtn" class="btn btn-primary">Discard Trade</button>
+                                <button on:click={() => tradeBtn('deckTrade')} type="button" id="tradeBtn" class="btn btn-primary">Deck Trade</button>
+                                <button on:click={() => tradeBtn('discardTrade')} type="button" id="tradeBtn" class="btn btn-primary">Discard Trade</button>
+                                <button on:click={() => tradeBtn('discard')} type="button" id="tradeBtn" class="btn btn-primary">Discard</button>
                             {/if}
                             <button on:click={stand} type="button" id="standBtn" class="btn btn-primary">Stand</button>
                         </div>

@@ -29,8 +29,10 @@ class TraditionalCard(Card):
         return other != None and (self.val == other.val and self.suit == other.suit)
     def __str__(self) -> str:
         return f"{self.val} of {str(self.suit)}{' (protected)' if self.protected else ''}"
+
     def toDb(self, cardType):
         return cardType.python_type(self.val, self.suit, self.protected)
+    
     def toDict(self) -> dict:
         return {
             'val': self.val,
@@ -39,7 +41,8 @@ class TraditionalCard(Card):
         }
     @staticmethod
     def fromDb(card):
-        return TraditionalCard(card.val, card.suit, card.protected)
+        a = TraditionalCard(card.val, card.suit, card.protected)
+        return a
     @staticmethod
     def fromDict(dict):
         return TraditionalCard(dict['val'],dict['suit'],dict['prot'])
@@ -81,6 +84,9 @@ class TraditionalDeck(Deck):
         for card in cardsToExclude:
             self.cards.remove(card)
         self.shuffle()
+    
+    def fromDb(deck):
+        return TraditionalDeck([TraditionalCard.fromDb(card) for card in deck])
 
     def toDb(self, card_type):
         return [card.toDb(card_type) for card in self.cards]
@@ -310,10 +316,9 @@ class TraditionalGame(Game):
             # check for bomb outs
             if tempCurrentHand == 0 or abs(tempCurrentHand) > 23:
                 bombedOutPlayers.append(player)
-                pass
 
             # current val better than stored val
-            if abs(tempCurrentHand) > abs(tempBestHand):
+            elif abs(tempCurrentHand) > abs(tempBestHand):
                 bestHand = currentHand
             elif abs(tempCurrentHand) == abs(tempBestHand): # same abs val
                 # fairy empress beats 22 or -22
@@ -421,9 +426,7 @@ class TraditionalGame(Game):
 
         # If this action was from the last player
         if nextPlayer == len(players):
-            self.phase = "shift"
             nextPlayer = 0
-            self.cycle_count += 1
             if self.phase == "alderaan":
                 self.phase = "card"
                 # Get end of game data
@@ -458,13 +461,18 @@ class TraditionalGame(Game):
                     # Update winStr
                     winStr = "Everyone bombs out and loses!"
 
+            else:
+                self.phase = "shift"
+                self.cycle_count += 1
+
         dbList = [
-            self.deck,
+            self.deck.toDb(traditionalCardType),
             self.playersToDb(traditionalPlayerType, traditionalCardType),
             self.hand_pot,
             self.sabacc_pot,
             self.phase,
             self.getActivePlayers()[nextPlayer].id,
+            self.cycle_count,
             player.username + " " + player.lastAction if not winStr else winStr,
             self.completed,
             self.id
@@ -475,9 +483,7 @@ class TraditionalGame(Game):
     def action(self, params:dict, db):
 
         originalSelf = copy.deepcopy(self)
-
         player = self.getPlayer(username=params["username"])
-
         if params['action'] == "protect":
             card = TraditionalCard.fromDict(params["protect"])
             response = player.hand.protect(card)

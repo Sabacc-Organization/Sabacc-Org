@@ -72,7 +72,7 @@ class Deck:
         if len(self.cards) < numCards:
             print(f"ERROR: trying to draw from deck but not enough cards left")
             return None
-        
+
         if numCards == 1:
             return self.cards.pop()
         else:
@@ -83,7 +83,7 @@ class Deck:
 
 class Hand:
     def __init__(self, cards=[]):
-        self.cards = cards.copy()
+        self.cards: list = cards.copy()
         self.sort()
     
     def __eq__(self, other:object) -> bool:
@@ -122,16 +122,7 @@ class Hand:
     def sort(self):
         if self.cards == []:
             return
-        for i in range(len(self.cards) - 1):
-            minIndex = i
-            for j in range(i+1, len(self.cards)):
-                if self.cards[j].val < self.cards[minIndex].val:
-                    minIndex = j
-            if minIndex != i:
-                # swap min card with current one
-                minCard = self.cards[minIndex]
-                self.cards[minIndex] = self.cards[i]
-                self.cards[i] = minCard
+        self.cards.sort(key=(lambda x: x.val))
 
 class Player:
     def __init__(self, id:int, username:str, credits:int, bet:int, hand:object, folded:bool, lastAction:str):

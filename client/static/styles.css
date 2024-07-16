@@ -171,6 +171,12 @@ main img
     0 0 50px #fff
 }
 
+#deck.active:hover {
+  box-shadow:
+  inset 0 0 50px #fff,
+  0 0 50px #fff
+}
+
 #discard {
     background-image: none;
     background-color: rgb(226, 182, 24);

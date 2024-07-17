@@ -12,7 +12,12 @@
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
 
-    let gamesData: {[id:string] : any} = {"games": []};
+    let gamesData: {[id:string] : any} = {
+        "traditional_games": [],
+        "traditional_player_turn_usernames": [],
+        "corellian_spike_games": [],
+        "corellian_spike_player_turn_usernames": []
+    };
 
     let vidX = 420;
 
@@ -60,11 +65,11 @@
         </div>
     </div>
 
-    <div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->
-
 {:else if loggedIn}
 
     <h2>Your Active Games</h2>
+    <br>
+    <h3>Traditional Games</h3>
     <br>
     <table>
         <tr>
@@ -73,12 +78,42 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["games"] as game, i}
+        {#each gamesData["traditional_games"] as game, i}
 
             <tr>
-                <td>{gamesData["usernames"][i]}</td>
-                <td>{gamesData["player_turns"][i]}'s</td>
-                <td><a href="/game/{game["id"]}">Play</a></td>
+                <td>
+                    {#each game["players"] as player, j}
+                        {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
+                    {/each}
+                </td>
+                <td>{gamesData["traditional_player_turn_usernames"][i]}'s</td>
+                <td><a href="/game/traditional/{game["id"]}">Play</a></td>
+            </tr>
+
+        {/each}
+
+    </table>
+
+    <br>
+    <h3>Corellian Spike Games</h3>
+    <br>
+    <table>
+        <tr>
+            <th>Players</th>
+            <th>Turn</th>
+            <th>Game Link</th>
+        </tr>
+
+        {#each gamesData["corellian_spike_games"] as game, i}
+
+            <tr>
+                <td>
+                    {#each game["players"] as player, j}
+                        {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
+                    {/each}
+                </td>
+                <td>{gamesData["corellian_spike_player_turn_usernames"][i]}'s</td>
+                <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
             </tr>
 
         {/each}
@@ -88,3 +123,5 @@
     
 
 {/if}
+
+<div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->

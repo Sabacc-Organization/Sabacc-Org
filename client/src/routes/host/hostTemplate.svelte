@@ -12,11 +12,13 @@
     let password = Cookies.get("password");
     let dark = Cookies.get("dark");
     let theme = Cookies.get("theme");
+    export let game_variant: string;
+    let game_variant_string = {'traditional':'Traditional', 'corellian_spike':'Corellian Spike'}[game_variant]
 
     let errorMsg = "";
 
     onMount( async () => {
-        loggedIn = await checkLogin(username, password, BACKEND_URL);
+        loggedIn = await checkLogin(username!, password!, BACKEND_URL);
         if (!loggedIn) {
             customRedirect(FRONTEND_URL + "/login");
         }
@@ -90,7 +92,7 @@
             return;
         }
 
-        if (players.indexOf(username) != -1) {
+        if (players.indexOf(username!) != -1) {
             errorMsg = "You cannot play with yourself";
             return;
         }
@@ -107,7 +109,8 @@
             let requestData = {
                 "username": username,
                 "password": password,
-                "players": players
+                "players": players,
+                "game_variant": game_variant
             }
 
             const response = await fetch(BACKEND_URL + "/host", {
@@ -134,9 +137,9 @@
   <title>Sabacc: Host</title>
 </svelte:head>
 
-<h2>Host a game of Sabacc</h2>
+<h2>Host a game of {game_variant_string} Sabacc</h2>
 <br>
-<h5>Who would you like to play Sabacc with? Enter your opponent's username.</h5>
+<h5>Who would you like to play {game_variant_string} Sabacc with? Enter your opponent's username.</h5>
 
 <input bind:value={player2} on:input={refresh} autocomplete="off" autofocus class="form-control form-group" id="player2" name="player2" placeholder="Player 2" type="text" required>
 {#if player2 != ""}

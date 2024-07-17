@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" context="module">
     import { page } from '$app/stores';
     import { checkLogin, customRedirect } from '$lib';
     import Cookies from 'js-cookie';
@@ -10,27 +10,32 @@
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     // Cookie info
-    let username = Cookies.get("username");
-    let password = Cookies.get("password");
-    let loggedIn = false;
-    let dark = (Cookies.get("dark") == "true");
-    let cardDesign = (Cookies.get("cardDesign"));
-    let theme = Cookies.get("theme");
+    const username = Cookies.get("username");
+    const password = Cookies.get("PASSWORD");
+    const dark = (Cookies.get("dark") == "true");
+    const cardDesign = (Cookies.get("cardDesign"));
+    const theme = Cookies.get("theme");
+
+    //socket.io
+    let socket: any;
+
+    export {BACKEND_URL, FRONTEND_URL, username, password, dark, cardDesign, theme, socket}
+</script>
+
+<script lang="ts">
+    export let game_variant: string;
+
+    $: game_id = $page.params.game_id;
 
     // dont render the page until dataToRender is true
     let dataToRender = false;
 
-    //socket.io
-    let socket: any;
 
     // Page header (plaer vs. player vs. player)
     let header = "";
 
     // Error message for invalid inputs
     let errorMsg = "";
-
-    // Accessing the 'username' parameter from the URL
-    $: game_id = $page.params.game_id;
 
     // Game information
     let game: {[id: string]: any} = {
@@ -54,16 +59,7 @@
     // Index of user in list of users
     let u_dex = -1;
 
-    // Game data refresh interval
-    let refreshInterval: NodeJS.Timeout;
-
     let turnSound: HTMLAudioElement;
-
-    // Clean up request cycle
-    onDestroy(() => {
-        clearInterval(refreshInterval);
-
-    });
 
     // Once page is mounted
     onMount(() => {
@@ -103,10 +99,11 @@
         let clientInfo = {};
 
         // If logged in user
-            clientInfo = {
-                "username": username != undefined? username:"",
-                "game_id": game_id != undefined? game_id:"invalid :("
-            }
+        clientInfo = {
+            "username": username != undefined? username:"",
+            "game_id": game_id != undefined? game_id:"invalid :(",
+            "game_variant": game_variant
+        }
 
         // Send info
         socket.emit('getGame', clientInfo);
@@ -154,7 +151,7 @@
         for (let i = 0; i < serverInfo["users"].length; i++) {
             // Add vs. except on first loop through
             if (i != 0) {
-                header += " vs. "
+                header += " vs. ";
             }
 
             // Update player array
@@ -201,59 +198,11 @@
         }
     }
 
-    function renderCard(cardValue: {'suit': string, 'val':number, 'prot':boolean}){
-        let returnText: string = "background-image:url(";
+    //cards are handled differently on different versions, so I export them to let each version decide for itself what to do.
+    export let renderCard;
+    export let renderBack;
 
-        let darkPath = "../../../../images/cards/traditional/dark/"
-        let lightPath = "../../../../images/cards/traditional/light/"
-        let pescadoPath = "../../../../images/cards/traditional/pescado/"
-
-        if (cardDesign === "classic"){
-            returnText += "../../../../images/rebels-card-back.png);"
-            return returnText
-        }
-
-        else if (cardDesign === "auto"){
-            returnText += dark? darkPath:lightPath
-        }
-
-        else if (cardDesign === "dark"){
-            returnText += darkPath
-        }
-
-        else if (cardDesign === "light"){
-            returnText += lightPath
-        }
-
-        else if (cardDesign === "pescado"){
-            returnText += pescadoPath
-        }
-
-        returnText += {"flasks":"b", "sabers":"r", "staves":"g", "coins":"y", "negative/neutral":"p"}[cardValue["suit"]];
-        returnText += cardValue["val"].toString();
-        returnText += cardDesign === "pescado" && cardValue['prot']? "p":""
-        returnText += ".png);";
-        return returnText;
-    }
-
-    function renderBack(){
-        if (cardDesign === "pescado"){
-            return "background-image:url(../../../../images/cards/traditional/pescado/back.png);"
-        }
-        return "background-image:url(../../../../images/cards/traditional/rebels-card-back.png);"
-    }
-
-    // protect doesnt request any data, it just sends it. when the server recieves it, it updates the game, and sends the new info to every client through updateClientGame
-    // this applies to bet, card, shift, and playAgain.
-    function protect(protCard : {[id: string]: any}) {
-        let clientInfo = {
-            "username": username,
-            "password": password,
-            "game_id": game_id,
-            "protect": protCard
-        }
-        socket.emit('protect', clientInfo)
-    }
+    export let onDBClickCard;
 
     // Betting Phase
 
@@ -277,10 +226,11 @@
                     "username": username,
                     "password": password,
                     "game_id": game_id,
+                    "game_variant": game_variant,
                     "action": action,
                     "amount": tempCreds
                 }
-                socket.emit('bet', clientInfo);
+                socket.emit('gameAction', clientInfo);
             }
             raising = false;
             betCreds = 0;
@@ -366,12 +316,21 @@
     let cardBool = false;
     let alderaanActive = false;
 
-    let tradeOpen = false;
-    let tradeCard = {
-        'val': 0,
-        'suit': 'none',
-        'prot': false
-    };
+    let tradeType = 'none';
+
+    let tradeCard = {}
+    if (game_variant === "traditional"){
+        tradeCard = {
+            'val': 0,
+            'suit': 'none',
+            'prot': false
+        };
+    } else {
+        tradeCard = {
+            'val': 0,
+            'suit': 'none',
+        };
+    }
 
     $: {
         if (game["player_turn"] === user_id) {
@@ -400,27 +359,33 @@
                 "username": username,
                 "password": password,
                 "game_id": game_id,
+                "game_variant": game_variant,
                 "action": action,
                 "trade": tradeCard
             }
 
-            socket.emit('card', clientInfo);
-            tradeOpen = false;
+            socket.emit('gameAction', clientInfo);
+            tradeType = 'none';
         }
     }
 
-    function draw() {
+    function draw(type: string) {
+        if (game_variant === 'corellian_spike') {
+            card(type);
+        }
         card("draw");
     }
 
-    function tradeBtn() {
-        tradeOpen = true;
+    function tradeBtn(type: string) {
+        tradeType = type;
     }
 
     function trade(traCard: {'val':number, 'suit':string, 'prot':boolean}) {
-        if (tradeOpen) {
-            tradeCard = traCard;
+        tradeCard = traCard;
+        if (tradeType === 'traditional') {
             card("trade");
+        } else {
+            card(tradeType);
         }
     }
 
@@ -451,10 +416,12 @@
             let clientInfo = {
                 "username": username,
                 "password": password,
-                "game_id": game_id
+                "game_id": game_id,
+                "game_variant": game_variant,
+                "action": "shift"
             }
 
-            socket.emit('shift', clientInfo);
+            socket.emit('gameAction', clientInfo);
         }
     }
 
@@ -464,10 +431,12 @@
         let clientInfo = {
             "username": username,
             "password": password,
-            "game_id": game_id
+            "game_id": game_id,
+            "game_variant": game_variant,
+            "action": "playAgain"
         }
 
-        socket.emit('cont', clientInfo);
+        socket.emit('gameAction', clientInfo);
     }
 
 </script>
@@ -491,19 +460,20 @@
                 <h5>Hand: <span id="hand_pot">{game["hand_pot"]}</span></h5>
             </div>
 
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click={draw} class:active={cardBool} id="deck" class="card child" style="{renderBack()}"></div>
+            <div class="cardsContainer">
+                <div class="cardContainer">
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div on:click={() => draw('deckDraw')} class:active={cardBool} id="deck" class="card child" style="{renderBack(cardDesign)}"></div>
+                </div>
 
-            <div class:active={cardBool} id="discard" class="card child">
-                {#if game["completed"] == 0}
-                    {#if game["player_turn"] === user_id}
-                        {#if game["phase"] === "card" || game["phase"] === "alderaan"}
-                            <button on:click={tradeBtn} type="button" id="tradeBtn" class="btn btn-primary smol">Trade</button>
-                            <br>
-                            <button on:click={stand} type="button" id="standBtn" class="btn btn-primary smol">Stand</button>
-                        {/if}
-                    {/if}
+                {#if game_variant === "corellian_spike"}
+                    <div class="cardContainer">
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div on:click={() => draw('discardDraw')} class:active={cardBool} id="discard" class="card child" style={renderCard(game['discard_pile'][game['discard_pile'].length - 1])}></div>
+                        <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":game['discard_pile'][game['discard_pile'].length - 1]['val']}</h5>
+                    </div>
                 {/if}
             </div>
 
@@ -514,9 +484,11 @@
                 <div id="dieTwo" class="child die shift{game["shift"]}"></div>
             </span>
 
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
+            {#if game_variant === 'traditional'}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {game["phase"]}Blown"></div>
+            {/if}
         </div>
 
         {#each players as p, i}
@@ -538,12 +510,12 @@
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                    on:click={() => clickOrDblclick(() => trade(c), () => protect(c))}
+                                    on:click={() => clickOrDblclick(() => trade(c), () => onDBClickCard(c))}
                                     id="card{ci.toString()}"
                                     class="card child own"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5>{cardDesign === "pescado"? "":c['val']}</h5>
+                                    <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
                                 {:else}
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -553,7 +525,7 @@
                                     class="card child own protected"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
+                                    <h5 class="protected">{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
                                 {/if}
                             {:else}
                                 {#if game["completed"] == 0}
@@ -562,11 +534,11 @@
                                         <h5>{""}</h5>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
-                                        <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
+                                        <h5 class="protected">{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
                                     {/if}
                                 {:else if game["completed"] == 1}
                                     <div class="card child" style="{renderCard(c)}"></div>
-                                    <h5>{cardDesign === "pescado"? "":c['val']}</h5>
+                                    <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
                                 {/if}
                             {/if}
                         </div>
@@ -601,59 +573,59 @@
         {/each}
 
         <div id="actBox">
-
             {#if !game["completed"]}
                 {#if game["player_turn"] === user_id}
                     {#if game["phase"] === "betting"}
-                        {#if u_dex === 0}
-                            {#if players[u_dex + 1]['bet'] === null}
-                                <div id="betDiv" class="backBlue brightBlue">
+                        <div id="betDiv" class="backBlue brightBlue">
+                            {#if u_dex === 0}
+                                {#if players[u_dex + 1]['bet'] === null}
                                     <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                     <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button>
                                     <p class="red">{betErr}</p>
-                                </div>
-                            {:else}
-                                {#if raising === false}
-                                    <div id="betDiv" class="backBlue brightBlue"> 
+                                {:else}
+                                    {#if raising === false}
                                         <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
                                         <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                         <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
-                                    </div>
-                                {:else}
-                                    <div id="betDiv" class="backBlue brightBlue">
+                                    {:else}
                                         <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                         <button on:click={() => {raise(); chipInput = false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                         <p class="red">{betErr}</p>
-                                    </div>
+                                    {/if}
                                 {/if}
-                            {/if}
 
-                        {:else}
+                            {:else}
 
-                            {#if raising === false}
-                                <div id="betDiv" class="backBlue brightBlue">
+                                {#if raising === false}
                                     <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
                                     <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
-                                </div>
-                            {:else}
-                                <div id="betDiv" class="backBlue brightBlue">
+                                {:else}
                                     <input bind:value={betCreds} id="raiseCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                     <button on:click={() => {raise(); chipInput=false}} id="raiseBtn" type="button" class="btn btn-primary">Raise</button>
                                     <p class="red">{betErr}</p>
-                                </div>
+                                {/if}
+
                             {/if}
-
-                        {/if}
+                        </div>
+                    {:else if game["phase"] === "card" || game["phase"] === "alderaan"}
+                        <div id="betDiv" class="backBlue brightBlue">
+                            {#if game_variant === 'traditional'}
+                                <button on:click={() => tradeBtn('traditional')} type="button" id="tradeBtn" class="btn btn-primary">Trade</button>
+                            {:else}
+                                <button on:click={() => tradeBtn('deckTrade')} type="button" id="tradeBtn" class="btn btn-primary">Deck Trade</button>
+                                <button on:click={() => tradeBtn('discardTrade')} type="button" id="tradeBtn" class="btn btn-primary">Discard Trade</button>
+                                <button on:click={() => tradeBtn('discard')} type="button" id="tradeBtn" class="btn btn-primary">Discard</button>
+                            {/if}
+                            <button on:click={stand} type="button" id="standBtn" class="btn btn-primary">Stand</button>
+                        </div>
                     {/if}
-
                 {/if}
             {:else if game["player_turn"] === user_id}
                 <div id="betDiv" class="backBlue brightBlue">
                     <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
                 </div>
             {/if}
-
         </div>
         <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>

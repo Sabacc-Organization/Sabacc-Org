@@ -11,10 +11,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
-from traditional.alderaanHelpers import *
+# from traditional.alderaanHelpers import *
 import dbConversion
 from flask_socketio import SocketIO, send, emit, join_room
-from traditional.traditionalHelpers import *
+import traditional.traditionalHelpers
+from traditional.traditionalHelpers import TraditionalGame
+import corellian_spike.corellianHelpers
+from corellian_spike.corellianHelpers import CorellianSpikeGame
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
@@ -62,57 +65,114 @@ print(conn)
 # Open a cursor to perform database operations
 db = conn.cursor()
 
-# create custom types
+# Create users table
+db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
+db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+conn.commit()
 
-# Create custom Suit type
+# create custom traditional types
+
+# Create custom TraditionalSuit type
 try:
-    db.execute("CREATE TYPE Suit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
+    db.execute("CREATE TYPE TraditionalSuit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
     conn.commit()
-    print("Created custom PostgreSQL type Suit")
+    print("Created custom PostgreSQL type TraditionalSuit")
 except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type Suit already exists")
+    print("Custom PostgreSQL type TraditionalSuit already exists")
     conn.rollback()
 
-# Create custom Card type
+# Create custom TraditionalCard type
 try:
-    db.execute("CREATE TYPE Card AS (val INTEGER, suit SUIT, protected BOOL);")
+    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit SUIT, protected BOOL);")
     conn.commit()
-    print("Created custom PostgreSQL type Card")
+    print("Created custom PostgreSQL type TraditionalCard")
 except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type Card already exists")
+    print("Custom PostgreSQL type TraditionalCard already exists")
     conn.rollback()
 
-# Create custom Player type
+# Create custom TraditionalPlayer type
 try:
     db.execute("""
-        CREATE TYPE Player AS (
+        CREATE TYPE TraditionalPlayer AS (
         id INTEGER,
         username TEXT,
         credits INTEGER,
         bet INTEGER,
-        hand Card[],
+        hand TraditionalCard[],
         folded BOOL,
-        lastaction TEXT);
+        lastAction TEXT);
     """)
     conn.commit()
-    print("Created custom PostgreSQL type Player")
+    print("Created custom PostgreSQL type TraditionalPlayer")
 except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type Player already exists")
+    print("Custom PostgreSQL type TraditionalPlayer already exists")
     conn.rollback()
 
 
-# register custom types
-card_type = CompositeInfo.fetch(conn, 'card')
-player_type = CompositeInfo.fetch(conn, 'player')
-register_composite(card_type, db)
-register_composite(player_type, db)
+# register Traditional custom types
+traditional.traditionalHelpers.traditionalCardType = CompositeInfo.fetch(conn, 'traditionalcard')
+traditional.traditionalHelpers.traditionalPlayerType = CompositeInfo.fetch(conn, 'traditionalplayer')
+register_composite(traditional.traditionalHelpers.traditionalCardType, db)
+register_composite(traditional.traditionalHelpers.traditionalPlayerType, db)
+print("Registered Traditional custom types")
 
-# create tables
-db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
-db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
-db.execute("CREATE TABLE IF NOT EXISTS games (game_id SERIAL PRIMARY KEY, players PLAYER[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CARD[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+# create Traditional tables
+db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+print("Created Traditional table")
 conn.commit()
 
+print()
+
+# Create custom Corellian Spike types
+
+# Create custom CorellianSpikeSuit type
+try:
+    db.execute("CREATE TYPE CorellianSpikeSuit AS ENUM('circle','square','triangle','sylop');")
+    conn.commit()
+    print("Created custom PostgreSQL type CorellianSpikeSuit")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type CorellianSpikeSuit already exists")
+    conn.rollback()
+
+# Create custom CorellianSpikeCard type
+try:
+    db.execute("CREATE TYPE CorellianSpikeCard AS (val INTEGER, suit CorellianSpikeSuit);")
+    conn.commit()
+    print("Created custom PostgreSQL type CorellianSpikeCard")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type CorellianSpikeCard already exists")
+    conn.rollback()
+
+# Create custom CorellianSpikePlayer type
+try:
+    db.execute("""
+        CREATE TYPE CorellianSpikePlayer AS (
+        id INTEGER,
+        username TEXT,
+        credits INTEGER,
+        bet INTEGER,
+        hand CorellianSpikeCard[],
+        folded BOOL,
+        lastAction TEXT);
+    """)
+    conn.commit()
+    print("Created custom PostgreSQL type CorellianSpikePlayer")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type CorellianSpikePlayer already exists")
+    conn.rollback()
+
+
+# register CorellianSpike custom types
+corellian_spike.corellianHelpers.corellianSpikeCardType = CompositeInfo.fetch(conn, 'corellianspikecard')
+corellian_spike.corellianHelpers.corellianSpikePlayerType = CompositeInfo.fetch(conn, 'corellianspikeplayer')
+register_composite(corellian_spike.corellianHelpers.corellianSpikeCardType, db)
+register_composite(corellian_spike.corellianHelpers.corellianSpikePlayerType, db)
+print("Registered CorellianSpike custom types")
+
+# create CorellianSpike tables
+db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+print("Created CorellianSpike table")
+conn.commit()
 
 # # create test game
 # if len(db.execute("SELECT game_id FROM games").fetchall()) == 0:
@@ -127,6 +187,11 @@ conn.commit()
 """ copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
 # dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
 # conn.commit()
+
+
+
+
+conn.commit()
 
 
 """ REST APIs """
@@ -192,42 +257,38 @@ def index():
     db.execute("SELECT id FROM users WHERE username = %s", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
-    # Query the database for all the games
-    games = [Game.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
-    newGames = []
+    traditionalPlayerTurnUsernames = []
 
-    # IDs of users in games
-    user_ids = []
-
-    # Who's turn it is in each game
-    player_turns = []
+    # Query the database for all the Traditional games
+    allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games").fetchall()]
+    traditionalGames = []
 
     # Remove games that have been completed and that are not relevant to the player
-    for game in games:
+    for game in allTraditionalGames:
         if game.containsPlayer(id=user_id) and not game.completed:
-            newGames.append(game)
-            user_ids.append([player.id for player in game.players])
-            db.execute("SELECT username FROM users WHERE id = %s", [game.player_turn])
-            player_turns.append(getDictsForDB(db)[0]["username"])
+            traditionalGames.append(game)
+            traditionalPlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
-    # Get all the relevant usernames from the database
-    usernames = []
-    for set in user_ids:
-        s = ""
-        for user in set:
-            db.execute("SELECT * FROM users WHERE id = %s", [int(user)])
-            s += str(getDictsForDB(db)[0]["username"]) + ", "
+    corellianSpikePlayerTurnUsernames = []
 
-        st = s.strip(", ")
+    # Query the database for all the CorellianSpike games
+    allCorellianSpikeGames = [CorellianSpikeGame.fromDb(game) for game in db.execute("SELECT * FROM corellian_spike_games").fetchall()]
+    corellianSpikeGames = []
 
-        usernames.append(st)
+    # Remove games that have been completed and that are not relevant to the player
+    for game in allCorellianSpikeGames:
+        if game.containsPlayer(id=user_id) and not game.completed:
+            corellianSpikeGames.append(game)
+            print(game.player_turn)
+            corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
+
 
     # Return data
     return jsonify({
-        "games": [game.toDict() for game in newGames], 
-        "usernames": usernames, 
-        "gamesLen": len(newGames), 
-        "player_turns": player_turns
+        "traditional_games": [game.toDict() for game in traditionalGames],
+        "traditional_player_turn_usernames": traditionalPlayerTurnUsernames,
+        "corellian_spike_games": [game.toDict() for game in corellianSpikeGames],
+        "corellian_spike_player_turn_usernames": corellianSpikePlayerTurnUsernames
         }), 200
 
 @app.route("/register", methods=["POST"])
@@ -271,12 +332,13 @@ def register():
 
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
-    
-# this is called manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
+
+# this is caled manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
 def getGame(clientInfo):
     game_id = clientInfo['game_id']
-    join_room(f'gameRoom{game_id}')
+    game_variant = clientInfo['game_variant']
+    join_room(room=f'gameRoom:{game_variant}/{game_id}')
 
     emit('clientUpdate', returnGameInfo(clientInfo))
 
@@ -286,11 +348,15 @@ def returnGameInfo(clientInfo):
 
     # Get username (if any, guests will not have usernames)
     username = clientInfo["username"]
-    
+
     # Get game
     game_id = clientInfo["game_id"]
-    db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)])
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    game_variant = clientInfo["game_variant"]
+
+    if game_variant == 'traditional':
+        game = TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    else:
+        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
 
     # Get the user's id if the user is in the game
     user_id = -1
@@ -309,8 +375,6 @@ def returnGameInfo(clientInfo):
     temp = game.toDict()
     temp.pop('deck')
     return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
-
-
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
@@ -331,14 +395,11 @@ def host():
     # Get list of players in the game
     formPlayers = request.json.get("players")
 
-    # Make list of players
-    players = [Player(id=user_id,username=username)]
+    game_variant = request.json.get("game_variant")
 
-    # Make sure the number of players is valid
-    if len(formPlayers) > 7:
-        return jsonify({"message": "You can only have a maximum of eight players"}), 401
-    elif len(formPlayers) < 1:
-        return jsonify({"message": "You cannot play alone"}), 401
+    # Make list of players
+    playerIds = [user_id]
+    playerUsernames = [username]
 
     # Ensure each submitted player is valid
     for pForm in formPlayers:
@@ -349,29 +410,46 @@ def host():
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
             if str(p[0]["id"]) == str(user_id):
                 return jsonify({"message": "You cannot play with yourself"}), 401
-            if p[0]["id"] in players:
+            if p[0]["id"] in playerIds:
                 return jsonify({"message": "All players must be different"}), 401
-            players.append(Player(p[0]["id"],pForm))
 
-    # create game
-    game = Game.newGame(players=players,startingCredits=1000,hand_pot_ante=5,sabacc_pot_ante=5)
+            playerIds.append(p[0]["id"])
+            playerUsernames.append(p[0]["username"])
+
+
+    game = None
+
+    if game_variant != "traditional" and game_variant != "corellian_spike":
+        return jsonify({"message": "Invalid game variant"}), 401
+
+    if game_variant == "traditional":
+        # create game
+        game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
+    elif game_variant == "corellian_spike":
+        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
+
+    if not game:
+        return jsonify({"message": "Invalid game variant"}), 401
+    
+    if type(game) == str:
+        return jsonify({"message": game}), 401
 
     # Create game in database
-    db.execute("INSERT INTO games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=player_type,card_type=card_type), game.hand_pot, game.sabacc_pot, game.deckToDb(card_type), game.player_turn, game.p_act])
     conn.commit()
 
+    print(game_variant)
+
     # Get game ID
-    game_id = db.execute("SELECT game_id FROM games ORDER BY game_id DESC").fetchone()[0]
+    game_id = db.execute(f"SELECT game_id FROM {game_variant}_games ORDER BY game_id DESC").fetchone()[0]
 
     # Redirect user to game
-    return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_id}"}), 200
+    return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_variant.replace('_', '-')}/{game_id}"}), 200
 
 """ Gameplay REST APIs """
 
-# when the server recieves a protect command from a client, it updates the game accordingly and then it sends the new game to all connected clients in that game.
-@socketio.on('protect')
-def protect(clientInfo):
-    """ Protect a card """
+@socketio.on("gameAction")
+def gameAction(clientInfo):
+    """ Perform an action in a game """
 
     # Authenticate User
     username = clientInfo["username"]
@@ -380,385 +458,35 @@ def protect(clientInfo):
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
-    # Get game
+    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username]).fetchone()
+
+    if not user_id:
+        return jsonify({"message": "User does not exist"}), 401
+
+    # Get game info
+    game_variant = clientInfo["game_variant"]
     game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
 
-    # Get card being protected
-    print(clientInfo)
-    protect = Card.fromDict(clientInfo["protect"])
+    game = db.execute(f"SELECT * FROM {game_variant}_games WHERE game_id = %s", [game_id]).fetchone()
 
-    # Check if card being protected is in player's hand
-    targetCard = None
-    for card in game.getPlayer(username=username).hand:
-        if card == protect:
-            targetCard = card
-            break
+    if not game:
+        return jsonify({"message": "Game does not exist"}), 401
 
-    if targetCard == None:
-        print("NON-MATCHING USER INPUT")
-        return jsonify({"message": "non matching user input"}), 401
+    if game_variant == "traditional":
+        game = TraditionalGame.fromDb(game)
+    elif game_variant == "corellian_spike":
+        game = CorellianSpikeGame.fromDb(game)
 
-    # protect chosen card
-    targetCard.protected = True
+    if not game.getPlayer(username=username):
+        return jsonify({"message": "You are not in this game"}), 401
 
-    # Update the database
-    db.execute("UPDATE games SET players = %s, p_act = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), f"{username} protected a card", game_id])
+    response = game.action(clientInfo, db)
 
-    # send game data to all connected clients in the current game. this applies to bet, card, shift, and cont aswell.
-    conn.commit()
-    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
-
-@socketio.on('bet')
-def bet(clientInfo):
-    # Authenticate User
-    username = clientInfo["username"]
-    password = clientInfo["password"]
-    check = checkLogin(username, password)
-    if check["status"] != 200:
-        return jsonify({"message": check["message"]}), check["status"]
-
-    # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
-    user_id = getDictsForDB(db)[0]["id"]
-
-    game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
-
-    # Get betting action
-    action = clientInfo["action"]
-    if action != 'fold':
-        amount = clientInfo['amount']
-
-    # Get active (not folded) players in game
-    players = game.getActivePlayers()
-
-    # get current player index
-    currentPlayer = game.getPlayer(id=user_id)
-    currentPlayerDex = players.index(currentPlayer)
-
-    gameEnd = False
-    nextPhase = 'betting'
-
-    # If phase is not betting
-    if game.phase != "betting":
-        return
-
-    if action == 'fold':
-        # Remove folding player from player list
-        currentPlayer.fold()
-        players = game.getActivePlayers()
-
-        # if the player folding results in only one player remaining resulting in the end of the
-        if len(players) <= 1:
-            gameEnd = True
-
-        pAct = f'{username} folds'
-
-    elif action == 'bet' and currentPlayerDex == 0:
-        currentPlayer.makeBet(amount)
-        if amount != 0:
-            pAct = f'{username} bets {amount}'
-        else:
-            pAct = f'{username} checks'
-
-    elif action == 'call':
-        currentPlayer.makeBet(amount, False)
-        pAct = f'{username} calls'
-
-    elif action == 'raise':
-        currentPlayer.makeBet(amount, False)
-        pAct = f'{username} raises to {amount}'
-
-    betAmount = [i.getBet() for i in players]
-    betAmount.append(0)
-    betAmount = max(betAmount)
-    nextPlayer = None
-    for i in players:
-        iBet = i.bet if i.bet != None else -1
-        if iBet < betAmount:
-            nextPlayer = i.id
-            break
-
-    if gameEnd == True:
-        winningPlayer = game.players[0]
-        winningPlayer.credits += game.hand_pot + winningPlayer.bet
-        game.hand_pot = 0
-        winningPlayer.bet = None
-
-    if nextPlayer == None:
-        # add all bets to hand pot
-        for player in players:
-            game.hand_pot += player.getBet()
-            player.bet = None
-
-    dbList = [
-        game.playersToDb(player_type, card_type),
-        game.hand_pot,
-        'betting' if nextPlayer != None else 'card',
-        nextPlayer if nextPlayer != None else players[0].id,
-        pAct,
-        gameEnd,
-        game_id
-    ]
-    db.execute("UPDATE games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+    if isinstance(response, str):
+        return jsonify({"message": response}), 401
 
     conn.commit()
-    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
-
-
-@socketio.on('card')
-def card(clientInfo):
-
-
-    """ Any card phase actions """ 
-
-    # Authenticate User
-    username = clientInfo["username"]
-    password = clientInfo["password"]
-    check = checkLogin(username, password)
-    if check["status"] != 200:
-        return jsonify({"message": check["message"]}), check["status"]
-
-    # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
-    user_id = getDictsForDB(db)[0]["id"]
-
-    # Get game
-    game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
-
-    # Action information
-    action = clientInfo["action"]
-    tradeCard = Card.fromDict(clientInfo["trade"])
-
-    # Players list
-    players = game.getActivePlayers()
-
-    # Username of requester
-    db.execute("SELECT username FROM users where id = %s", [user_id])
-    uName = getDictsForDB(db)[0]["username"]
-
-    # The index of ther user in the list of users
-    u_dex = [player.id for player in players].index(user_id)
-
-    # current player
-    player: Player = players[u_dex]
-
-    # Indicators of if the card phase and/or game end after an action
-    endRound = False
-    endGame = False
-
-    # If the game phase is incorrect
-    if game.phase != "card" and game.phase != "alderaan":
-        return
-
-    # If it is not this player's turn
-    if game.player_turn != int(user_id):
-        return
-    
-    if action == "draw":
-        player.hand.append(game.drawFromDeck())
-
-        # Update next player
-        nextPlayer = u_dex + 1
-
-        # If this action was from the last player
-        if user_id == players[-1].id:
-            endRound = True
-            nextPlayer = 0
-
-        # Update game
-        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deckToDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} draws", game_id])
-
-    elif action == "trade":
-
-        # The index of the card that is being traded
-        tradeDex = player.hand.index(tradeCard)
-
-        # Draw a card and replace the card being traded with it
-        player.hand[tradeDex] = game.drawFromDeck()
-
-        # Update next player
-        nextPlayer = u_dex + 1
-
-        # If this action was from the last player
-        if user_id == players[-1].id:
-            endRound = True
-            nextPlayer = 0
-
-        # Update game
-        db.execute("UPDATE games SET deck = %s, players = %s, player_turn = %s, p_act = %s WHERE game_id = %s", [game.deckToDb(card_type), game.playersToDb(player_type, card_type), players[nextPlayer].id, f"{uName} trades", game_id])
-
-    elif action == "stand":
-
-        # Pass turn to next player
-        nextPlayer = u_dex + 1
-
-        # If this action was from the last player
-        if user_id == players[-1].id:
-            endRound = True
-            nextPlayer = 0
-
-        # Update game
-        db.execute("UPDATE games SET player_turn = %s, p_act = %s WHERE game_id = %s", [players[nextPlayer].id, f"{uName} stands", game_id])
-
-    elif action == "alderaan" and game.cycle_count != 0:
-
-        # Pass turn to next player
-        nextPlayer = u_dex + 1
-
-        # If this action was from the last player
-        if user_id == players[-1].id:
-            endGame = True
-            nextPlayer = 0
-
-        # Update game
-        db.execute("UPDATE games SET phase = %s, player_turn = %s, p_act = %s WHERE game_id = %s", ["alderaan", players[nextPlayer].id, f"{uName} calls Alderaan", game_id])
-
-
-    # Update game data variables
-    game = Game.fromDb(db.execute(f"SELECT * FROM games WHERE game_id = {game_id}").fetchall()[0])
-    players = game.getActivePlayers()
-
-    # If the action just made was the last one of the card phase
-    if endRound == True:
-
-        # Increasing the cycle count
-        newCycleCount = game.cycle_count + 1
-
-        # If someone had called alderaan, end the game
-        if game.phase == "alderaan":
-            endGame = True
-
-        else:
-            # Sabacc Shift procedure
-            db.execute("UPDATE games SET phase = %s, player_turn = %s, cycle_count = %s WHERE game_id = %s", ["shift", players[0].id, newCycleCount, game_id])
-
-
-    # Someone called Alderaan and everyone has done their turn
-    if endGame == True:
-        game = Game.fromDb(db.execute(f"SELECT * FROM games WHERE game_id = {game_id}").fetchall()[0])
-
-        # Get end of game data
-        winner, bestHand, bombedOutPlayers = game.alderaan()
-
-        # Enact the bomb out transactions for all players that bombed out
-        bombOutPrice = int(round(game.hand_pot * .1))
-        for player in bombedOutPlayers:
-            player.credits -= bombOutPrice
-            game.sabacc_pot += bombOutPrice
-
-        # String that shows the winner
-        winStr = ""
-
-        # If someone won (i.e. not everyone bombed out)
-        if winner != None:
-            # Give winner Hand Pot
-            winner.credits += game.hand_pot
-            game.hand_pot = 0
-
-            # Give winner Sabacc Pot it they had a Sabacc
-            if bestHand == SpecialHands.IDIOTS_ARRAY or (bestHand != SpecialHands.FAIRY_EMPRESS and abs(bestHand) == 23):
-                winner.credits += game.sabacc_pot
-                game.sabacc_pot = 0
-
-            # Update game and winner string
-            winStr = f"{winner.username} wins!"
-
-        # If no one won (i.e. everyone bombed out)
-        else:
-            # Hand pot gets added to Sabacc Pot
-            game.sabacc_pot += game.hand_pot
-
-            # Update winStr
-            winStr = "Everyone bombs out and loses!"
-
-        # Update game
-        db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, deck = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type, card_type), 0, game.sabacc_pot, game.deckToDb(card_type), game.players[0].id, winStr, True, game_id])
-
-    # Return new game data
-    conn.commit()
-    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
-
-@socketio.on('shift')
-def shift(clientInfo):
-    """ Shift phase """
-
-    # Authenticate User
-    username = clientInfo["username"]
-    password = clientInfo["password"]
-    check = checkLogin(username, password)
-    if check["status"] != 200:
-        return jsonify({"message": check["message"]}), check["status"]
-
-    # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
-    user_id = getDictsForDB(db)[0]["id"]
-
-    # Set some variables for the whole function
-    game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
-    players = game.getActivePlayers()
-
-    # verify that the current phase is the shift phase
-    if game.phase != 'shift':
-        return
-    
-    # verify that the user is player 1
-    if user_id != game.player_turn:
-        return
-    
-    # Roll the shift
-    shift = rollShift()
-
-    if shift:
-        game.shift()
-
-    # Set the Shift message
-    shiftStr = "Sabacc shift!" if shift else "No shift!"
-
-    # Update game
-    db.execute(f"UPDATE games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", game.deckToDb(card_type), game.playersToDb(player_type, card_type), game.players[0].id, shift, shiftStr, game_id])
-    conn.commit()
-    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
-    
-@socketio.on('cont')
-def cont(clientInfo):
-
-    """ Request to play again """
-
-    # Authenticate User
-    username = clientInfo["username"]
-    password = clientInfo["password"]
-    check = checkLogin(username, password)
-    if check["status"] != 200:
-        return jsonify({"message": check["message"]}), check["status"]
-
-    # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
-    user_id = getDictsForDB(db)[0]["id"]
-
-    # Set some variables for the whole function
-    game_id = clientInfo["game_id"]
-    game = Game.fromDb(db.execute("SELECT * FROM games WHERE game_id = %s", [game_id]).fetchall()[0])
-
-    if game.completed != True:
-        return
-
-    # If it is not this player's turn
-    if game.player_turn != int(user_id):
-        return
-
-    game.nextRound()
-
-    # Create game in database
-    db.execute("UPDATE games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [game.playersToDb(player_type,card_type), game.hand_pot, game.sabacc_pot, "betting", game.deckToDb(card_type), game.players[0].id, 0, "", False, game_id])
-
-    # Return game
-    conn.commit()
-    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom{game_id}')
-
+    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom:{game_variant}/{game_id}')
 
 
 """ Old Socket Stuff - May be brought back in the future"""

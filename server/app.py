@@ -185,13 +185,13 @@ conn.commit()
 #     conn.commit()
 
 """ copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
-# dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
+# dbConversion.convertSqliteToPsql(db=db, card_type=traditional.traditionalHelpers.traditionalCardType, player_type=traditional.traditionalHelpers.traditionalPlayerType)
 # conn.commit()
 
-
-
-
+""" transfer traditional games data from games to traditional_games table """ # Uncomment to run - DO NOT DELETE
+dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
 conn.commit()
+
 
 
 """ REST APIs """

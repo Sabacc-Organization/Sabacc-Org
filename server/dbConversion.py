@@ -3,6 +3,7 @@ from helpers import *
 from dataHelpers import *
 # from traditional.alderaanHelpers import *
 from traditional.traditionalHelpers import *
+from corellian_spike.corellianHelpers import *
 from colorama import Fore
 
 
@@ -30,8 +31,8 @@ def cleanDeckData(sqlite3_db):
 
             sqlite3_db.execute("UPDATE games SET deck = ? WHERE game_id = ?", deck, game["game_id"])
 
-# copy over data from sqlite3
-def convertDb(db, card_type, player_type):
+# copy over data from sqlite3 to postgresql db with only traditional (pre CS)
+def convertSqliteToPsql(db, card_type, player_type):
 
     """ Verify PostgreSQL db is empty - VERY IMPORTANT """
     if len(db.execute("SELECT * FROM users").fetchall()) > 0 or len(db.execute("SELECT * FROM games").fetchall()) > 0:
@@ -138,3 +139,28 @@ def convertDb(db, card_type, player_type):
 
     # if numUsersAdded != 0 or numGamesCopied != 0:
     print(f"{numUsersAdded} users and {numGamesCopied} of {len(games)} games copied over from sqlite3 db to PostgreSQL db")
+
+
+# copy over data from postgresql db with only traditional to db with traditional and CS
+# only needs to modify the games table and game data
+def transferTraditionalGames(db, traditional_card_type, traditional_player_type):
+    allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games").fetchall()]
+
+    numGamesCopied = 0
+
+    print("saf")
+    print(allTraditionalGames[0])
+
+    for game in allTraditionalGames:
+        print(game.id)
+        print(game.deck)
+        db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(traditional_card_type, traditional_player_type))
+        numGamesCopied += 1
+
+    print(f"{numGamesCopied} of {len(allTraditionalGames)} games copied over from games to traditional_games")
+    if numGamesCopied == len(allTraditionalGames):
+        print("\nExecute the following Postgres commands to get rid of old data:")
+        print("DROP TABLE games;")
+        print("DROP TYPE Player;")
+        print("DROP TYPE Card;")
+        print("DROP TYPE Suit;")

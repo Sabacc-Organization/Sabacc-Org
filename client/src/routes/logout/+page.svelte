@@ -6,7 +6,7 @@
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     Cookies.remove("username");
-    Cookies.remove("PASSWORD");
+    Cookies.remove("password");
     Cookies.remove("theme");
     Cookies.remove("dark");
     Cookies.remove("cardDesign");

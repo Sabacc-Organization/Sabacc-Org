@@ -33,7 +33,7 @@
             let res = await response.json();
             if (response.ok) {
                 Cookies.set("username", username, {"expires": 30});
-                Cookies.set("PASSWORD", password, {"expires": 30});
+                Cookies.set("password", password, {"expires": 30});
                 Cookies.set("dark", "false", {"expires": 30});
                 Cookies.set("theme", "modern", {"expires": 30});
                 Cookies.set("cardDesign", "auto", {"expires": 30});

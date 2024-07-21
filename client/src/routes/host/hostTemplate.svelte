@@ -8,10 +8,10 @@
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     let loggedIn = false;
-    let username = Cookies.get("username");
-    let password = Cookies.get("password");
-    let dark = Cookies.get("dark");
-    let theme = Cookies.get("theme");
+    const username = Cookies.get("username");
+    const password = Cookies.get("password");
+    const dark = Cookies.get("dark");
+    const theme = Cookies.get("theme");
     export let game_variant: string;
     let game_variant_string = {'traditional':'Traditional', 'corellian_spike':'Corellian Spike'}[game_variant]
 

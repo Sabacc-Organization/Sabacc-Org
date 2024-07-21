@@ -26,7 +26,7 @@
 
     onMount(async() => {
 
-        loggedIn = await checkLogin(username, password, BACKEND_URL);
+        loggedIn = await checkLogin(username!, password!, BACKEND_URL);
         if (!loggedIn) {
             customRedirect(FRONTEND_URL + "/login");
         }
@@ -36,9 +36,9 @@
     function save() {
         Cookies.set("dark", dark? "true":"false", {"expires": 30});
 
-        Cookies.set("cardDesign", cardDesign, {"expires": 30});
+        Cookies.set("cardDesign", cardDesign!, {"expires": 30});
 
-        Cookies.set("theme", theme, {"expires": 30});
+        Cookies.set("theme", theme!, {"expires": 30});
 
         customRedirect(FRONTEND_URL + "/");
     }

@@ -11,7 +11,7 @@
 
     // Cookie info
     const username = Cookies.get("username");
-    const password = Cookies.get("PASSWORD");
+    const password = Cookies.get("password");
     const dark = (Cookies.get("dark") == "true");
     const cardDesign = (Cookies.get("cardDesign"));
     const theme = Cookies.get("theme");

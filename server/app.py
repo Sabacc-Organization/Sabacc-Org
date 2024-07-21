@@ -83,7 +83,7 @@ except psycopg.errors.DuplicateObject:
 
 # Create custom TraditionalCard type
 try:
-    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit SUIT, protected BOOL);")
+    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit TraditionalSuit, protected BOOL);")
     conn.commit()
     print("Created custom PostgreSQL type TraditionalCard")
 except psycopg.errors.DuplicateObject:

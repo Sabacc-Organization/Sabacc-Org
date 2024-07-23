@@ -189,8 +189,9 @@ conn.commit()
 # conn.commit()
 
 """ transfer traditional games data from games to traditional_games table """ # Uncomment to run - DO NOT DELETE
-dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
-conn.commit()
+""" when using this, types in table must be traditional types, not generic types """
+# dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
+# conn.commit()
 
 
 

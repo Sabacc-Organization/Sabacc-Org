@@ -144,16 +144,11 @@ def convertSqliteToPsql(db, card_type, player_type):
 # copy over data from postgresql db with only traditional to db with traditional and CS
 # only needs to modify the games table and game data
 def transferTraditionalGames(db, traditional_card_type, traditional_player_type):
-    allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games").fetchall()]
+    allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
 
     numGamesCopied = 0
 
-    print("saf")
-    print(allTraditionalGames[0])
-
     for game in allTraditionalGames:
-        print(game.id)
-        print(game.deck)
         db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(traditional_card_type, traditional_player_type))
         numGamesCopied += 1
 

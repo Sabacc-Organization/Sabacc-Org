@@ -173,6 +173,8 @@ class Player:
         else:
             self.bet = self.bet if creditAmount == 0 else self.getBet()
             self.credits -= creditAmount
+            if not self.bet:
+                self.bet = 0
             self.bet += creditAmount
 
         if creditAmount != 0:

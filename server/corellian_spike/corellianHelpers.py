@@ -515,6 +515,11 @@ class CorellianSpikeGame(Game):
                 player.lastAction = "stands"
 
             elif params["action"] == "discard":
+
+                if len(player.hand.cards) <= 2:
+                    # not enough cards to discard
+                    return
+
                 tradeCard = Card.fromDict(params["trade"])
                 tradeDex = player.hand.cards.index(tradeCard)
 

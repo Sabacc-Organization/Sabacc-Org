@@ -266,7 +266,7 @@ class CorellianSpikeGame(Game):
     
     def determineWinner(self) -> str:
         ret = ''
-        handRankings = [player.hand.getRanking() for player in self.players]
+        handRankings = [player.hand.getRanking() for player in self.getActivePlayers()]
         winningHand = min(handRankings)
         winningPlayers = []
         for player in self.players:

@@ -472,7 +472,7 @@
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <div on:click={() => draw('discardDraw')} class:active={cardBool} id="discard" class="card child" style={renderCard(game['discard_pile'][game['discard_pile'].length - 1])}></div>
-                        <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":game['discard_pile'][game['discard_pile'].length - 1]['val']}</h5>
+                        <h5>{cardDesign === "pescado"? "":game['discard_pile'][game['discard_pile'].length - 1]['val']}</h5>
                     </div>
                 {/if}
             </div>
@@ -515,7 +515,7 @@
                                     class="card child own"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
+                                    <h5>{cardDesign === "pescado"? "":c['val']}</h5>
                                 {:else}
                                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -525,7 +525,7 @@
                                     class="card child own protected"
                                     style="{renderCard(c)}">
                                     </div>
-                                    <h5 class="protected">{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
+                                    <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
                                 {/if}
                             {:else}
                                 {#if game["completed"] == 0}
@@ -534,11 +534,11 @@
                                         <h5>{""}</h5>
                                     {:else}
                                         <div class="card child protected" style="{renderCard(c)}"></div>
-                                        <h5 class="protected">{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
+                                        <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
                                     {/if}
                                 {:else if game["completed"] == 1}
                                     <div class="card child" style="{renderCard(c)}"></div>
-                                    <h5>{cardDesign === "pescado" && game_variant != 'corellian_spike'? "":c['val']}</h5>
+                                    <h5>{cardDesign === "pescado"? "":c['val']}</h5>
                                 {/if}
                             {/if}
                         </div>

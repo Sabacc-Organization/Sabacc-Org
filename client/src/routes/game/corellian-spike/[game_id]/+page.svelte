@@ -9,7 +9,11 @@
     function renderCard(cardValue: {'suit': string, 'val':number}){
         let returnText: string = "background-image:url(";
 
-        returnText += '/images/cards/corellian/jacob-densford/';
+        if (cardDesign === "pescado"){
+            returnText += '/images/cards/corellian/pescado/';
+        } else {
+            returnText += '/images/cards/corellian/jacob-densford/';
+        }
 
         if (cardValue['val'] > 0){
             returnText += '+';
@@ -24,7 +28,14 @@
     }
 
     function renderBack(){
-        return 'background-image:url(/images/cards/corellian/jacob-densford/Back.png);background-color:transparent;border:transparent;'
+        let returnText = 'background-image:url(/images/cards/corellian/';
+        if (cardDesign === 'pescado'){
+            returnText += 'pescado';
+        } else {
+            returnText += 'jacob-densford';
+        }
+        returnText += '/Back.png);background-color:transparent;border:transparent;';
+        return returnText
     }
 </script>
 

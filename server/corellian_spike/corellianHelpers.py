@@ -576,16 +576,18 @@ class CorellianSpikeGame(Game):
 
             if nextPlayer == None:
                 # add all bets to hand pot
-                for player in players:
-                    self.hand_pot += player.getBet()
-                    player.bet = None
+                for p in players:
+                    self.hand_pot += p.getBet()
+                    p.bet = None
+
+            p_act = player.username + " " + player.lastAction
 
             dbList = [
                 self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType),
                 self.hand_pot,
                 'betting' if nextPlayer != None else 'shift',
                 nextPlayer if nextPlayer != None else players[0].id,
-                player.username + " " + player.lastAction,
+                p_act if len(players) > 1 else p_act + "; " + players[0].username + " wins!",
                 len(players) <= 1,
                 self.id
             ]

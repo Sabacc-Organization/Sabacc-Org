@@ -7,6 +7,7 @@ import random
 import sys
 import os
 import copy
+from typing import Optional, List
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -22,7 +23,7 @@ class Suit:
 # there's no CorellianSpikeCard bc it'd be the same as a regular Card
 
 class CorellianSpikeDeck(Deck):
-    def __init__(self, cards:list|None=None):
+    def __init__(self, cards: Optional[List] = None):
         super().__init__()
         self.cards = []
         if cards == None:

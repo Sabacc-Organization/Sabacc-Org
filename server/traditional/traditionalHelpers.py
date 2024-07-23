@@ -85,7 +85,8 @@ class TraditionalDeck(Deck):
             self.cards.remove(card)
         self.shuffle()
     
-    def fromDb(deck):
+    @staticmethod
+    def fromDb(deck) -> object:
         return TraditionalDeck([TraditionalCard.fromDb(card) for card in deck])
 
     def toDb(self, card_type):

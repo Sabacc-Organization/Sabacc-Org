@@ -83,7 +83,7 @@ except psycopg.errors.DuplicateObject:
 
 # Create custom TraditionalCard type
 try:
-    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit SUIT, protected BOOL);")
+    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit TraditionalSuit, protected BOOL);")
     conn.commit()
     print("Created custom PostgreSQL type TraditionalCard")
 except psycopg.errors.DuplicateObject:
@@ -185,13 +185,14 @@ conn.commit()
 #     conn.commit()
 
 """ copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
-# dbConversion.convertDb(db=db, card_type=card_type, player_type=player_type)
+# dbConversion.convertSqliteToPsql(db=db, card_type=traditional.traditionalHelpers.traditionalCardType, player_type=traditional.traditionalHelpers.traditionalPlayerType)
 # conn.commit()
 
+""" transfer traditional games data from games to traditional_games table """ # Uncomment to run - DO NOT DELETE
+""" when using this, types in table must be traditional types, not generic types """
+# dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
+# conn.commit()
 
-
-
-conn.commit()
 
 
 """ REST APIs """

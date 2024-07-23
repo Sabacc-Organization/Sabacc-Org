@@ -615,7 +615,9 @@
                             {:else}
                                 <button on:click={() => tradeBtn('deckTrade')} type="button" id="tradeBtn" class="btn btn-primary">Deck Trade</button>
                                 <button on:click={() => tradeBtn('discardTrade')} type="button" id="tradeBtn" class="btn btn-primary">Discard Trade</button>
-                                <button on:click={() => tradeBtn('discard')} type="button" id="tradeBtn" class="btn btn-primary">Discard</button>
+                                {#if players[u_dex]["hand"].length > 2}
+                                    <button on:click={() => tradeBtn('discard')} type="button" id="tradeBtn" class="btn btn-primary">Discard</button>
+                                {/if}
                             {/if}
                             <button on:click={stand} type="button" id="standBtn" class="btn btn-primary">Stand</button>
                         </div>

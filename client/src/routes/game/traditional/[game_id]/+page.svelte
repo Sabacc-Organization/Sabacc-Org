@@ -1,6 +1,14 @@
 <script lang="ts">
-    import GameTemplate, { BACKEND_URL, FRONTEND_URL, username, password, dark, cardDesign, theme, socket } from "../../gameTemplate.svelte";
+    import GameTemplate, { BACKEND_URL, FRONTEND_URL, socket } from "../../gameTemplate.svelte";
     import { page } from '$app/stores'
+
+    /** @type {import('./$types').PageData} */
+	export let data;
+    let username = data.username;
+    let password = data.password;
+    let dark = data.dark;
+    let cardDesign = data.cardDesign;
+    let theme = data.theme;
 
     $: game_id = $page.params.game_id;
     let game_variant = 'traditional';
@@ -62,4 +70,4 @@
     }
 </script>
 
-<GameTemplate {game_variant} {renderBack} {renderCard} onDBClickCard={protect}/>
+<GameTemplate {game_variant} {username} {password} {dark} {cardDesign} {theme} {renderBack} {renderCard} onDBClickCard={protect}/>

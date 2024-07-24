@@ -619,8 +619,9 @@ class CorellianSpikeGame(Game):
                     self.sabacc_pot = 0
 
                 shiftStr = f"{winData['winStr']}"
-
-            self.cycle_count += 1
+                
+            else:
+                self.cycle_count += 1
 
             dbList = [
                 "card", 

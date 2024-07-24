@@ -8,7 +8,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ cookies, platform }) {
+export async function load({ cookies }) {
     if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
         throw redirect(303, "/login");
     }
@@ -27,13 +27,23 @@ export const actions = {
         const cardDesign = formData.get('cardDesign')?.toString();
         const theme = formData.get('theme')?.toString();
 
-        if (!dark || !cardDesign || !theme) {
+        if (!cardDesign || !theme) {
             return {error: "Missing required fields"};
         }
 
-        if (typeof dark !== "boolean" || typeof cardDesign !== "string" || typeof theme !== "string") {
+        let darkString;
+
+        if (dark === "on") {
+            darkString = "true";
+        } else {
+            darkString = "false";
+        }
+
+        if (typeof cardDesign !== "string" || typeof theme !== "string") {
             return {error: "Invalid data type"}
         }
+
+
 
         if (cardDesign !== "classic" && cardDesign !== "auto" && cardDesign !== "dark" && cardDesign !== "light" && cardDesign !== "pescado") {
             return {error: "Invalid card design"}
@@ -41,14 +51,6 @@ export const actions = {
 
         if (theme !== "modern" && theme !== "rebels" && theme !== "solo" && theme !== "classic") {
             return {error: "Invalid theme"}
-        }
-
-        let darkString;
-
-        if (dark) {
-            darkString = "true";
-        } else {
-            darkString = "false";
         }
 
         cookies.set('dark', darkString, {

@@ -8,15 +8,13 @@
 	export let data;
     $: loggedIn = data.loggedIn;
     $: username = data.username;
-    let dark = false;
-    let cardDesign = "auto";
-    let theme = "modern";
+    let dark = data.dark;
+    let cardDesign = data.cardDesign;
+    let theme = data.theme;
 
-    onMount ( async () => {
-        dark = data.dark;
-        cardDesign = data.cardDesign;
-        theme = data.theme;
-    });
+    if (dark === "false") {
+        dark = false;
+    }
 
 
 </script>

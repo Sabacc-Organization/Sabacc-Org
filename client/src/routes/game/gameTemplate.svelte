@@ -447,7 +447,7 @@
 
 {#if dataToRender}
     <h1 class="header">{header}</h1>
-    <h2 class="header">round {game["cycle_count"]++} during {game["phase"]} phase</h2>
+    <h2 class="header">round {game["cycle_count"] + 1} during {game["phase"]} phase</h2>
 
     <div id="tableCont">
         <div id="table"></div>

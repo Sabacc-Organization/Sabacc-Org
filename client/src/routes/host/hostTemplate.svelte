@@ -1,23 +1,28 @@
 <script lang="ts">
-    import { enhance } from "$app/forms";
 
-
-    export let form;
+    import Cookies from 'js-cookie'
+    import { onMount } from 'svelte';
+    import { checkLogin, customRedirect} from '$lib/index.js';
 
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
-    /** @type {import('./$types').PageData} */
-	export let data;
-    $: loggedIn = data.loggedIn;
-    $: username = data.username;
-    $: dark = data.dark;
-    $: cardDesign = data.cardDesign;
-    $: theme = data.theme;
+    let loggedIn = false;
+    const username = Cookies.get("username");
+    const password = Cookies.get("password");
+    const dark = Cookies.get("dark");
+    const theme = Cookies.get("theme");
     export let game_variant: string;
     let game_variant_string = {'traditional':'Traditional', 'corellian_spike':'Corellian Spike'}[game_variant]
 
     let errorMsg = "";
+
+    onMount( async () => {
+        loggedIn = await checkLogin(username!, password!, BACKEND_URL);
+        if (!loggedIn) {
+            customRedirect(FRONTEND_URL + "/login");
+        }
+    });
 
     let players: string[] = [];
 
@@ -69,8 +74,61 @@
             if (player8 != "") {
                 players.push(player8);
             }
-        }  
+        }
+
+    
         
+        
+    }
+
+    async function host() {
+
+        if (players.length > 7) {
+            errorMsg = "You can only have a maximum of eight players";
+            return;
+        }
+        else if (players.length < 1) {
+            errorMsg = "You cannot play alone";
+            return;
+        }
+
+        if (players.indexOf(username!) != -1) {
+            errorMsg = "You cannot play with yourself";
+            return;
+        }
+
+        for (let i = 0; i < players.length; i++) {
+            if (players.lastIndexOf(players[i]) != i) {
+                errorMsg = "All players must be different";
+                return;
+            }
+        }
+
+        try {
+
+            let requestData = {
+                "username": username,
+                "password": password,
+                "players": players,
+                "game_variant": game_variant
+            }
+
+            const response = await fetch(BACKEND_URL + "/host", {
+                method: 'POST', // Set the method to POST
+                headers: {
+                    'Content-Type': 'application/json' // Set the headers appropriately
+                },
+                body: JSON.stringify(requestData) // Convert your data to JSON
+            });
+
+            let res = await response.json();
+            if (response.ok) {
+                customRedirect(FRONTEND_URL + res["redirect"]);
+            }
+            errorMsg = res["message"];
+        } catch (e) {
+            console.log(e);
+        }
     }
 
 </script>
@@ -83,28 +141,26 @@
 <br>
 <h5>Who would you like to play {game_variant_string} Sabacc with? Enter your opponent's username.</h5>
 
-<form method="POST" use:enhance>
-    <input bind:value={player2} on:input={refresh} autocomplete="off" autofocus class="form-control form-group" id="player2" name="player2" placeholder="Player 2" type="text" required>
-    {#if player2 != ""}
-        <input bind:value={player3} on:input={refresh} autocomplete="off" class="form-control form-group" id="player3" name="player3" placeholder="Player 3" type="text">
-    {/if}
-    {#if player3 != ""}
-        <input bind:value={player4} on:input={refresh} autocomplete="off" class="form-control form-group" id="player4" name="player4" placeholder="Player 4" type="text">
-    {/if}
-    {#if player4 != ""}
-        <input bind:value={player5} on:input={refresh} autocomplete="off" class="form-control form-group" id="player5" name="player5" placeholder="Player 5" type="text">
-    {/if}
-    {#if player5 != ""}
-        <input bind:value={player6} on:input={refresh} autocomplete="off" class="form-control form-group" id="player6" name="player6" placeholder="Player 6" type="text">
-    {/if}
-    {#if player6 != ""}
-        <input bind:value={player7} on:input={refresh} autocomplete="off" class="form-control form-group" id="player7" name="player7" placeholder="Player 7" type="text">
-    {/if}
-    {#if player7 != ""}
-        <input bind:value={player8} on:input={refresh} autocomplete="off" class="form-control form-group" id="player8" name="player8" placeholder="Player 8" type="text">
-    {/if}
-    <br>
-    <button class="btn btn-primary" type="submit">Play</button>
-</form>
+<input bind:value={player2} on:input={refresh} autocomplete="off" autofocus class="form-control form-group" id="player2" name="player2" placeholder="Player 2" type="text" required>
+{#if player2 != ""}
+    <input bind:value={player3} on:input={refresh} autocomplete="off" class="form-control form-group" id="player3" name="player3" placeholder="Player 3" type="text">
+{/if}
+{#if player3 != ""}
+    <input bind:value={player4} on:input={refresh} autocomplete="off" class="form-control form-group" id="player4" name="player4" placeholder="Player 4" type="text">
+{/if}
+{#if player4 != ""}
+    <input bind:value={player5} on:input={refresh} autocomplete="off" class="form-control form-group" id="player5" name="player5" placeholder="Player 5" type="text">
+{/if}
+{#if player5 != ""}
+    <input bind:value={player6} on:input={refresh} autocomplete="off" class="form-control form-group" id="player6" name="player6" placeholder="Player 6" type="text">
+{/if}
+{#if player6 != ""}
+    <input bind:value={player7} on:input={refresh} autocomplete="off" class="form-control form-group" id="player7" name="player7" placeholder="Player 7" type="text">
+{/if}
+{#if player7 != ""}
+    <input bind:value={player8} on:input={refresh} autocomplete="off" class="form-control form-group" id="player8" name="player8" placeholder="Player 8" type="text">
+{/if}
+<br>
+<button on:click={host} class="btn btn-primary" type="submit">Play</button>
 
-<p>{form?.error || ""}</p>
+<p>{errorMsg}</p>

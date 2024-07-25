@@ -72,7 +72,7 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["traditional_games"] as game, i}
+        {#each gamesData["traditional_games"] || [] as game, i}
 
             <tr>
                 <td>
@@ -98,7 +98,7 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["corellian_spike_games"] as game, i}
+        {#each gamesData["corellian_spike_games"] || [] as game, i}
 
             <tr>
                 <td>

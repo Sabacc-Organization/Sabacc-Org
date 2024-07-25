@@ -1,5 +1,7 @@
 <script lang="ts" context="module">
     import { page } from '$app/stores';
+    import { checkLogin, customRedirect } from '$lib';
+    import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
 
@@ -7,28 +9,21 @@
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
-    // /** @type {import('./$types').PageData} */
-	// export let data;
-    // let loggedIn = data.loggedIn;
-    // let username = data.username;
-    // let dark = data.dark;
-    // let cardDesign = data.cardDesign;
-    // let theme = data.theme;
+    // Cookie info
+    const username = Cookies.get("username");
+    const password = Cookies.get("password");
+    const dark = (Cookies.get("dark") == "true");
+    const cardDesign = (Cookies.get("cardDesign"));
+    const theme = Cookies.get("theme");
 
     //socket.io
     let socket: any;
 
-    export {BACKEND_URL, FRONTEND_URL, socket}
+    export {BACKEND_URL, FRONTEND_URL, username, password, dark, cardDesign, theme, socket}
 </script>
 
 <script lang="ts">
-
     export let game_variant: string;
-    export let username: string;
-    export let password: string;
-    export let dark: string;
-    export let cardDesign: string;
-    export let theme: string;
 
     $: game_id = $page.params.game_id;
 
@@ -443,13 +438,6 @@
 
         socket.emit('gameAction', clientInfo);
     }
-
-    onDestroy(() => {
-        if (socket) {
-            socket.disconnect();
-            console.log('Socket disconnected');
-        }
-    });
 
 </script>
 

@@ -1,7 +1,5 @@
 <script lang="ts" context="module">
     import { page } from '$app/stores';
-    import { checkLogin, customRedirect } from '$lib';
-    import Cookies from 'js-cookie';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
 
@@ -24,6 +22,7 @@
 </script>
 
 <script lang="ts">
+
     export let game_variant: string;
     export let username: string;
     export let password: string;
@@ -444,6 +443,13 @@
 
         socket.emit('gameAction', clientInfo);
     }
+
+    onDestroy(() => {
+        if (socket) {
+            socket.disconnect();
+            console.log('Socket disconnected');
+        }
+    });
 
 </script>
 

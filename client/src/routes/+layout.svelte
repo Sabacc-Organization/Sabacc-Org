@@ -1,19 +1,18 @@
 
 <script lang="ts"> 
 
-    import Cookies from 'js-cookie'
-    import { onMount } from 'svelte';
-    import { checkLogin} from '$lib/index.js';
     import { page } from '$app/stores'
+    import { onMount } from 'svelte';
 
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-    const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
+    /** @type {import('./$types').PageData} */
+	export let data;
+    $: loggedIn = data.loggedIn;
+    $: username = data.username;
+    $: dark = data.dark;
+    $: cardDesign = data.cardDesign;
+    $: theme = data.theme;
 
-    let loggedIn = false;
-    let username = Cookies.get("username");
-    let password = Cookies.get("password");
-    let dark = Cookies.get("dark");
-    let theme = Cookies.get("theme");
+    
 
     function initializeDropdown() {
         if (window.jQuery && window.jQuery.fn.dropdown) {
@@ -25,8 +24,9 @@
     }
 
     onMount( async () => {
-        loggedIn = await checkLogin(username, password, BACKEND_URL);
+        initializeDropdown();
     });
+
 
 </script>
 
@@ -96,7 +96,7 @@
                             </div>
                         </li>
                     </ul>
-                    {initializeDropdown()}
+                    <!-- {initializeDropdown()} -->
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>
                         <li class="nav-item"><a class="nav-link" href="https://discord.com/invite/AaYrNZjBus" target="_blank">Join the Discord</a></li>

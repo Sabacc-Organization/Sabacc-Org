@@ -8,5 +8,4 @@ export async function load({ cookies }) {
     cookies.delete('dark', { path: '/' });
     cookies.delete('theme', { path: '/' });
     cookies.delete('cardDesign', { path: '/' });
-    throw redirect(303, '/');
 }

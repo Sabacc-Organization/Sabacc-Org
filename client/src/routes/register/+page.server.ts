@@ -52,18 +52,28 @@ export const actions = {
             if (response.ok) {
                 cookies.set('username', username, {
                     path: '/',
+                    httpOnly: false,
+                    secure: false,
                     maxAge: 60 * 60 * 24 * 30});
                 cookies.set('password', password, {
                     path: '/',
+                    httpOnly: false,
+                    secure: false,
                     maxAge: 60 * 60 * 24 * 30});
                 cookies.set('dark', "false", {
                     path: '/',
+                    httpOnly: false,
+                    secure: false,
                     maxAge: 60 * 60 * 24 * 30});
                 cookies.set('theme', "modern", {
                     path: '/',
+                    httpOnly: false,
+                    secure: false,
                     maxAge: 60 * 60 * 24 * 30});
                 cookies.set('cardDesign', "auto", {
                     path: '/',
+                    httpOnly: false,
+                    secure: false,
                     maxAge: 60 * 60 * 24 * 30});
 
                 throw redirect(303, "/");

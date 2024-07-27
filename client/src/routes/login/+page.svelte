@@ -10,6 +10,8 @@
   <title>Sabacc: Login</title>
 </svelte:head>
 
+<h1>Login</h1>
+
 <form method="POST" use:enhance>
     <input bind:value={username} type="text" class="form-control form-group" name="username" placeholder="Username" autocomplete="off" required>
     <br>

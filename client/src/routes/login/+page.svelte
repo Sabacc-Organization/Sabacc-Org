@@ -52,17 +52,6 @@
 </svelte:head>
   
 <h1>Login</h1>
-  
-
-<div>
-    <input bind:value={username} autocomplete="off" class="form-control form-group" name="username" placeholder="Username" type="text" required/>
-</div>
-
-<div>
-    <input bind:value={password} class="form-control form-group" name="password" placeholder="Password" type="password" required/>
-</div>
-
-<button on:click={login} class="btn btn-primary" type="submit">Log in</button>
 
 <h1>Login</h1>
 

@@ -266,7 +266,7 @@ class CorellianSpikeGame(Game):
     
     def determineWinner(self) -> str:
         ret = ''
-        handRankings = [player.hand.getRanking() for player in self.players]
+        handRankings = [player.hand.getRanking() for player in self.getActivePlayers()]
         winningHand = min(handRankings)
         winningPlayers = []
         for player in self.players:
@@ -274,7 +274,7 @@ class CorellianSpikeGame(Game):
                 winningPlayers.append(player)
         
         if len(winningPlayers) == 1:
-            return {"winStr": f'player {winningPlayers[0].id} won with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})', "winner": winningPlayers[0], "0": winningHand < 18}
+            return {"winStr": f'{winningPlayers[0].username} won with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})', "winner": winningPlayers[0], "0": winningHand < 18}
         ret += f"{bothOrAll(len(winningPlayers)) + ' players' if len(winningPlayers) == len(self.players) else f'players {listToStr(winningPlayers)}'} tied with a hand of {CorellianSpikeHand.HANDS[winningHand]} (#{winningHand})\n"
         
         ''' tie breakers '''
@@ -287,7 +287,7 @@ class CorellianSpikeGame(Game):
                 if handTotals[i] != closestTo0:
                     del winningPlayers[i]
             if len(winningPlayers) == 1:
-                return {"winStr":ret + f'player {winningPlayers[0].id} won with a total of {addPlusBeforeNumber(winningPlayers[0].hand.getTotal())}', "winner": winningPlayers[0], "0": closestTo0 == 0}
+                return {"winStr":ret + f'{winningPlayers[0].username} won with a total of {addPlusBeforeNumber(winningPlayers[0].hand.getTotal())}', "winner": winningPlayers[0], "0": closestTo0 == 0}
             ret += f'players {listToStr(winningPlayers)} tied with a total of {addPlusBeforeNumber(closestTo0)}\n'
         
             # 18b. Positive Score
@@ -298,7 +298,7 @@ class CorellianSpikeGame(Game):
                     if handTotals[i] < 0:
                         del winningPlayers[i]
                 if len(winningPlayers) == 1:
-                    return {"winStr": ret + f'player {winningPlayers[0].id} won with a positive score', "winner": winningPlayers[0], "0": False}
+                    return {"winStr": ret + f'{winningPlayers[0].username} won with a positive score', "winner": winningPlayers[0], "0": False}
             ret += f"players {listToStr(winningPlayers)} {'both' if len(winningPlayers) == 2 else 'all'} had a {'positive' if atLeast1Pos else 'negative'} score\n"
 
             # 19-Most Cards
@@ -308,7 +308,7 @@ class CorellianSpikeGame(Game):
                 if numCards[i] < mostCards:
                     del winningPlayers[i]
             if len(winningPlayers) == 1:
-                return {"winStr": ret + f'player {winningPlayers[0].id} won with {len(winningPlayers[0].hand.cards)} cards', "winner": winningPlayers[0], "0": False}
+                return {"winStr": ret + f'{winningPlayers[0].username} won with {len(winningPlayers[0].hand.cards)} cards', "winner": winningPlayers[0], "0": False}
             ret += f'players {listToStr(winningPlayers)} tied with {mostCards} cards\n'
             
             # 20- lowest sum of all positive cards
@@ -325,7 +325,7 @@ class CorellianSpikeGame(Game):
                     del winningPlayers[i]
             
             if len(winningPlayers) == 1:
-                return {"winStr": ret + f'player {winningPlayers[0].id} won with the lowest positive card total of {minPosTotal}', "winner": winningPlayers[0], "0": False}
+                return {"winStr": ret + f'{winningPlayers[0].username} won with the lowest positive card total of {minPosTotal}', "winner": winningPlayers[0], "0": False}
             ret += f'players {listToStr(winningPlayers)} tied with a positive card total of {minPosTotal}\n'
 
         # 21- lowest positive card
@@ -339,7 +339,7 @@ class CorellianSpikeGame(Game):
             if player.hand.lowestPosValue() == lowest:
                 newWinningPlayers.append(player)
         if len(newWinningPlayers) == 1:
-            return {"winStr": ret + f"player {newWinningPlayers[0].id} won with a lowest positive value of +{lowest}", "winner": winningPlayers[0], "0": True}
+            return {"winStr": ret + f"{winningPlayers[0].username} won with a lowest positive value of +{lowest}", "winner": winningPlayers[0], "0": True}
         winningPlayers = newWinningPlayers
         ret += f"players {listToStr(winningPlayers)} tied with a lowest positive value of +{lowest}\n"
 
@@ -361,7 +361,7 @@ class CorellianSpikeGame(Game):
             if len(winningPlayers) > 1:
                 ret += f"{'everyone' if len(winningPlayers) == len(blindDraws) else listToStr(winningPlayers)} tied with {closestTo0}s\n"
             else:
-                ret += f'player {winningPlayers[0].id} won with a {closestTo0}'
+                ret += f'{winningPlayers[0].username} won with a {closestTo0}'
 
         return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
     
@@ -515,6 +515,11 @@ class CorellianSpikeGame(Game):
                 player.lastAction = "stands"
 
             elif params["action"] == "discard":
+
+                if len(player.hand.cards) <= 2:
+                    # not enough cards to discard
+                    return
+
                 tradeCard = Card.fromDict(params["trade"])
                 tradeDex = player.hand.cards.index(tradeCard)
 
@@ -576,16 +581,18 @@ class CorellianSpikeGame(Game):
 
             if nextPlayer == None:
                 # add all bets to hand pot
-                for player in players:
-                    self.hand_pot += player.getBet()
-                    player.bet = None
+                for p in players:
+                    self.hand_pot += p.getBet()
+                    p.bet = None
+
+            p_act = player.username + " " + player.lastAction
 
             dbList = [
                 self.playersToDb(corellianSpikePlayerType, corellianSpikeCardType),
                 self.hand_pot,
                 'betting' if nextPlayer != None else 'shift',
                 nextPlayer if nextPlayer != None else players[0].id,
-                player.username + " " + player.lastAction,
+                p_act if len(players) > 1 else p_act + "; " + players[0].username + " wins!",
                 len(players) <= 1,
                 self.id
             ]
@@ -612,8 +619,9 @@ class CorellianSpikeGame(Game):
                     self.sabacc_pot = 0
 
                 shiftStr = f"{winData['winStr']}"
-
-            self.cycle_count += 1
+                
+            else:
+                self.cycle_count += 1
 
             dbList = [
                 "card", 

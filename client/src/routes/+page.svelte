@@ -1,28 +1,34 @@
 <script lang="ts">
 
+    import Cookies from 'js-cookie'
     import { onMount } from 'svelte';
+    import { backendPostRequest, checkLogin } from '$lib/index.js';
 
-    /** @type {import('./$types').PageData} */
-	export let data;
-    $: loggedIn = data.loggedIn;
-    $: username = data.username;
-    $: dark = data.dark;
-    $: cardDesign = data.cardDesign;
-    $: theme = data.theme;
-    $: gamesData = data.gamesData;
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-    // let gamesData: {[id:string] : any} = {
-    //     "traditional_games": [],
-    //     "traditional_player_turn_usernames": [],
-    //     "corellian_spike_games": [],
-    //     "corellian_spike_player_turn_usernames": []
-    // };
+    let loggedIn = false;
+    let username = Cookies.get("username");
+    let password = Cookies.get("password");
+    let dark = Cookies.get("dark");
+    let theme = Cookies.get("theme");
+
+    let gamesData: {[id:string] : any} = {
+        "traditional_games": [],
+        "traditional_player_turn_usernames": [],
+        "corellian_spike_games": [],
+        "corellian_spike_player_turn_usernames": []
+    };
 
     let vidX = 420;
 
     let viewportProbe: undefined|HTMLElement = undefined;
 
     onMount( async () => {
+        loggedIn = await checkLogin(username!, password!, BACKEND_URL);
+        if (loggedIn) {
+            gamesData = await backendPostRequest(username!, password!, BACKEND_URL + "/");
+        }
+
         viewportProbe = document.getElementById('viewportProbe')!;
         let viewportSize = [viewportProbe?.clientWidth, viewportProbe?.clientHeight];
         console.log(viewportSize);
@@ -72,7 +78,7 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["traditional_games"] || [] as game, i}
+        {#each gamesData["traditional_games"] as game, i}
 
             <tr>
                 <td>
@@ -98,7 +104,7 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["corellian_spike_games"] || [] as game, i}
+        {#each gamesData["corellian_spike_games"] as game, i}
 
             <tr>
                 <td>

@@ -55,12 +55,18 @@ export const actions = {
 
         cookies.set('dark', darkString, {
             path: '/',
+            httpOnly: false,
+            secure: false,
             maxAge: 60 * 60 * 24 * 30});
         cookies.set('theme', theme, {
             path: '/',
+            httpOnly: false,
+            secure: false,
             maxAge: 60 * 60 * 24 * 30});
         cookies.set('cardDesign', cardDesign, {
             path: '/',
+            httpOnly: false,
+            secure: false,
             maxAge: 60 * 60 * 24 * 30});
 
         throw redirect(303, "/");

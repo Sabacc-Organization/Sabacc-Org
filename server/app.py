@@ -280,6 +280,7 @@ def index():
     for game in allCorellianSpikeGames:
         if game.containsPlayer(id=user_id) and not game.completed:
             corellianSpikeGames.append(game)
+            print(game.player_turn)
             corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
 

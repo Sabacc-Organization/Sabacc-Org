@@ -21,7 +21,7 @@ export async function load({ cookies, platform }) {
 }
 
 export const actions = {
-	default: async ({cookies, request}) => {
+    default: async ({cookies, request}) => {
         const formData = await request.formData();
         const username = formData.get('username')?.toString();
         const password = formData.get('password')?.toString();
@@ -38,11 +38,31 @@ export const actions = {
             return {error: "Login data is invalid"}
         }
 
-        cookies.delete('username', { path: '/' });
-        cookies.delete('password', { path: '/' });
-        cookies.delete('dark', { path: '/' });
-        cookies.delete('theme', { path: '/' });
-        cookies.delete('cardDesign', { path: '/' });
+        cookies.delete('username', {
+	    path: '/',
+	    httpOnly: false,
+	    secure: false,
+	});
+	cookies.delete('password', {
+	    path: '/',
+	    httpOnly: false,
+	    secure: false,
+	});
+	cookies.delete('dark', {
+	    path: '/',
+	    httpOnly: false,
+	    secure: false,
+	});
+	cookies.delete('theme', {
+	    path: '/',
+	    httpOnly: false,
+	    secure: false,
+	});
+	cookies.delete('cardDesign', {
+	    path: '/',
+	    httpOnly: false,
+	    secure: false,
+	});
 
         cookies.set('username', username, {
             path: '/',
@@ -71,5 +91,5 @@ export const actions = {
             maxAge: 60 * 60 * 24 * 30});
 
         throw redirect(303, "/");
-	}
+    }
 };

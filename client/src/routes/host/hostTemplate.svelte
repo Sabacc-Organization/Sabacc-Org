@@ -1,17 +1,11 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
 
-    export let form;
-
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-    const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     /** @type {import('./$types').PageData} */
-	// export let data;
     export let game_variant: string;
     let game_variant_string = {'traditional':'Traditional', 'corellian_spike':'Corellian Spike'}[game_variant]
-
-    $: errorMsg = form?.error;
+    export let form;
 
     let players: string[] = [];
 
@@ -101,4 +95,4 @@
     <button class="btn btn-primary" type="submit">Play</button>
 </form>
 
-<p>{errorMsg || ""}</p>
+<p class="error"><b>{form?.error || ""}</b></p>

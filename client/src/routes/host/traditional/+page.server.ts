@@ -64,6 +64,9 @@ export const actions = {
             }
         }
 
+
+	let redirectPath;
+		
         try {
 
             let requestData = {
@@ -83,8 +86,7 @@ export const actions = {
 
             let res = await response.json();
             if (response.ok) {
-                console.log("ok")
-                throw redirect(303, res["redirect"])
+                redirectPath = res["redirect"];
             }
             else {
                 console.log(res["message"])
@@ -94,5 +96,7 @@ export const actions = {
             console.log(e);
             return {error: e};
         }
-	}
+
+	throw redirect(303, redirectPath);
+    }
 };

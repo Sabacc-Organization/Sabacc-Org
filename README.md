@@ -46,7 +46,7 @@ Setup the server side by installing all of the dependencies in server/requiremen
 2. Install Python(==3.12.4) (https://www.python.org/downloads/) (or via terminal)
     - Install Pip if it did not install with Python
 3. Install pip dependencies `pip install -r pipRequirements.txt`
-4. Install PostgreSQL (https://www.codecademy.com/article/installing-and-using-postgresql-locally) and make a database. **Postbird** is highly recommended!
+4. Install PostgreSQL (https://www.codecademy.com/article/installing-and-using-postgresql-locally) and make a database. **Postbird** is highly recommended, learn how to install it for your OS here: https://github.com/Paxa/postbird
 5. Update the `DATABASE` part of config.yml according to your database. If you're not sure how to do that, check CS50's Python library docs: https://cs50.readthedocs.io/libraries/cs50/python/?highlight=postgres#cs50.SQL
 6. Run the backend by starting the Postgres server and using `flask run`
 

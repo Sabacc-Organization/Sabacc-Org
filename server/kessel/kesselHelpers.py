@@ -69,11 +69,21 @@ class KesselPlayer(Player):
         self.shiftTokens = shiftTokens
         self.outOfGame = outOfGame
 
-    def replaceCard(self, suit: str, card: Card):
-        if suit == "negative":
-            self.negativeCard = card
-        elif suit == "positive":
-            self.positiveCard = card
+    def getHandValue(self):
+        if self.positiveCard.suit == "sylop":
+            if self.negativeCard.suit == "sylop":
+                return (0, 0)
+            else:
+                return (0, self.negativeCard.val)
+
+        elif self.negativeCard.suit == "sylop":
+            if self.positiveCard.suit == "sylop":
+                return (0, 0)
+            else:
+                return (0, self.positiveCard.val)
+
+        else:
+            return ((abs(self.positiveCard.val - self.negativeCard.val), min(self.positiveCard.val, self.negativeCard.val)))
 
     def toDb(self, player_type, card_type, shiftTokenType):
 
@@ -170,7 +180,7 @@ class KesselGame(Game):
     def playersToDb(self, player_type, card_type):
         return [i.toDb(player_type, card_type) for i in self.players]
 
-    def getActivePlayers(self):
+    def getActivePlayers(self) -> list[KesselPlayer]:
         activePlayers = []
         for player in self.players:
             if not player.outOfGame:
@@ -212,6 +222,53 @@ class KesselGame(Game):
             else:
                 pass
 
+    def roundOver(self):
+        # determine winners of the hand
+        handWinners = []
+        winningHand = (6, 6) # distance between cards, lowest card
+        for i in self.getActivePlayers():
+            tempHand = i.getHandValue()
+
+            if (tempHand[0] < winningHand[0]) or ((tempHand[0] == winningHand[0]) and (tempHand[1] < winningHand[1])):
+                winningHand = tempHand
+
+        for i in self.getActivePlayers():
+            tempHand = i.getHandValue()
+
+            if tempHand == winningHand:
+                handWinners.append(i)
+
+        for i in self.getActivePlayers():
+            if i in handWinners:
+                i.chips += i.usedChips
+            i.usedChips = 0
+
+        # remove players who have no chips.
+        for i in self.getActivePlayers():
+            if i.chips == 0:
+                i.outOfGame = True
+
+        # if someone has won the game, game over.
+        if len(self.getActivePlayers() <= 1):
+            self.completed = True
+
+        # otherwise, distribute chips to winners, delete chips from losers, reshuffle cards, and deal
+        else:
+            self.nextHand()
+
+    def nextHand(self):
+        self.positiveDeck = KesselDeck()
+        self.negativeDeck = KesselDeck()
+
+        self.positiveDiscard = [self.positiveDeck.draw()]
+        self.negativeDiscard = [self.negativeDeck.draw()]
+
+        for i in self.getActivePlayers():
+            i.positiveCard = self.positiveDeck.draw()
+            i.negativeCard = self.negativeDeck.draw()
+
+        self.player_turn = self.getActivePlayers()[0].id
+
     def action(self, params: dict, db):
         originalSelf = copy.deepcopy(self)
 
@@ -238,7 +295,7 @@ class KesselGame(Game):
             if nextPlayer >= len(self.getActivePlayers()):
                 nextPlayer = 0
                 if self.cycle_count >= 2:
-                    self.gameOver() #TODO
+                    self.roundOver()
                 else:
                     self.cycle_count += 1
 

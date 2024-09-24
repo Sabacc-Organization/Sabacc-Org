@@ -199,6 +199,17 @@ class Game:
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
 
+    def getClientData(self, user_id = None, username = None):
+        player: Player = self.getPlayer(username, user_id)
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        users = [i.username for i in self.getActivePlayers()]
+        # print(gameDict)
+        # print(f'\n\n{self.player_turn}\n\n')
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
+
     # shuffle deck
     def shuffleDeck(self):
         self.deck.shuffle()

@@ -13,7 +13,8 @@ from helpers import *
 from dataHelpers import *
 # from traditional.alderaanHelpers import *
 import dbConversion
-from flask_socketio import SocketIO, send, emit, join_room
+from socketio import Client
+from flask_socketio import SocketIO, send, emit, join_room, rooms
 import traditional.traditionalHelpers
 from traditional.traditionalHelpers import TraditionalGame
 import corellian_spike.corellianHelpers
@@ -57,6 +58,8 @@ allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/car
 socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
 CORS(app, origins=allowedCORS)
 
+# links the socketio session to a users username and id
+clientUserMap = {}
 
 # Connect to postgresql database
 conn = psycopg.connect(config['DATABASE'])
@@ -333,48 +336,64 @@ def register():
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
 
+def getGameFromDb(game_variant, game_id):
+    if game_variant == 'traditional':
+        return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    elif game_variant == 'corellian_spike':
+        return CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    else:
+        return None
+
 # this is caled manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
-def getGame(clientInfo):
+def getGameClientInfo(clientInfo):
+    user_id = -1
+    if clientInfo["username"] != "":
+        db.execute("SELECT id FROM users WHERE username = %s", [clientInfo["username"]])
+        user_id = getDictsForDB(db)[0]["id"]
+
     game_id = clientInfo['game_id']
     game_variant = clientInfo['game_variant']
     join_room(room=f'gameRoom:{game_variant}/{game_id}')
 
-    emit('clientUpdate', returnGameInfo(clientInfo))
+    clientUserMap[request.sid] = (user_id, clientInfo["username"])
+    game = getGameFromDb(game_variant, game_id)
+    # print(game.getClientData(user_id, clientInfo["username"]))
+
+    emit('clientUpdate', game.getClientData(user_id, clientInfo["username"]))#
 
 # uses the game_id to find the game, and returns the gmae information. used by protect, bet, card, shift, and cont.
-def returnGameInfo(clientInfo):
-    """ Get game info for game <game_id> """
+# def returnGameInfo(clientInfo):
+#     """ Get game info for game <game_id> """
 
-    # Get username (if any, guests will not have usernames)
-    username = clientInfo["username"]
+#     # Get username (if any, guests will not have usernames)
+#     username = clientInfo["username"]
 
-    # Get game
-    game_id = clientInfo["game_id"]
-    game_variant = clientInfo["game_variant"]
+#     # Get game
+#     game_id = clientInfo["game_id"]
+#     game_variant = clientInfo["game_variant"]
 
-    if game_variant == 'traditional':
-        game = TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
-    else:
-        game = CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+#     game = getGameFromDb(game_variant, game_id)
 
-    # Get the user's id if the user is in the game
-    user_id = -1
-    if username != "":
-        db.execute("SELECT id FROM users WHERE username = %s", [username])
-        user_id = getDictsForDB(db)[0]["id"]
+#     # Get the user's id if the user is in the game
+#     user_id = -1
+#     if username != "":
+#         db.execute("SELECT id FROM users WHERE username = %s", [username])
+#         user_id = getDictsForDB(db)[0]["id"]
 
-    # Get list of usernames of players in game
-    users = []
-    for u in game.players:
-        if not u.folded:
-            db.execute("SELECT id, username FROM users WHERE id = %s", [int(u.id)])
-            users.append(getDictsForDB(db)[0]["username"])
+#     # Get list of usernames of players in game
+#     users = []
+#     for u in game.players:
+#         if not u.folded:
+#             db.execute("SELECT id, username FROM users WHERE id = %s", [int(u.id)])
+#             users.append(getDictsForDB(db)[0]["username"])
 
-    # Return game data
-    temp = game.toDict()
-    temp.pop('deck')
-    return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
+#     print(users)
+
+#     # Return game data
+#     temp = game.toDict()
+#     temp.pop('deck')
+#     return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
@@ -467,15 +486,7 @@ def gameAction(clientInfo):
     game_variant = clientInfo["game_variant"]
     game_id = clientInfo["game_id"]
 
-    game = db.execute(f"SELECT * FROM {game_variant}_games WHERE game_id = %s", [game_id]).fetchone()
-
-    if not game:
-        return jsonify({"message": "Game does not exist"}), 401
-
-    if game_variant == "traditional":
-        game = TraditionalGame.fromDb(game)
-    elif game_variant == "corellian_spike":
-        game = CorellianSpikeGame.fromDb(game)
+    game = getGameFromDb(game_variant, game_id)
 
     if not game.getPlayer(username=username):
         return jsonify({"message": "You are not in this game"}), 401
@@ -486,8 +497,11 @@ def gameAction(clientInfo):
         return jsonify({"message": response}), 401
 
     conn.commit()
-    emit('gameUpdate', returnGameInfo(clientInfo), to=f'gameRoom:{game_variant}/{game_id}')
 
+    game = getGameFromDb(game_variant, game_id)
+    clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')
+    for i in clients:
+        emit('gameUpdate', game.getClientData(clientUserMap[i[0]][0]), to=i[0])
 
 """ Old Socket Stuff - May be brought back in the future"""
 

@@ -106,6 +106,7 @@
         // If logged in user
         clientInfo = {
             "username": username != undefined? username:"",
+            "user_id": user_id != undefined? user_id:-1,
             "game_id": game_id != undefined? game_id:"invalid :(",
             "game_variant": game_variant
         }

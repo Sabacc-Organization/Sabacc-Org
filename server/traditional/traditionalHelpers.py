@@ -2,6 +2,7 @@ import random
 from enum import Enum
 from helpers import *
 import copy
+import json
 
 traditionalCardType = None
 traditionalPlayerType = None
@@ -157,15 +158,16 @@ class TraditionalGame(Game):
     handPotAnte = 5
     sabaccPotAnte = 10
 
-    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False):
+    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings={ "PokerStyleBetting": False }):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
         self._shift = shift
+        self.settings = settings
 
     # create a new game
     @staticmethod
-    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
+    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None, settings={ "PokerStyleBetting": False }):
 
         if len(playerIds) != len(playerUsernames):
             return "Uneqal amount of ids and usernames"
@@ -190,7 +192,7 @@ class TraditionalGame(Game):
         game.dealHands()
 
         if db:
-            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act) VALUES(%s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=traditionalPlayerType,card_type=traditionalCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(traditionalCardType), game.player_turn, game.p_act])
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=traditionalPlayerType,card_type=traditionalCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(traditionalCardType), game.player_turn, game.p_act, json.dumps(settings)])
 
         return game
     
@@ -220,9 +222,9 @@ class TraditionalGame(Game):
 
     def toDb(self, card_type, player_type, includeId=False):
         if includeId:
-            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
+            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings)]
         elif includeId == False:
-            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed]
+            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings)]
     def playersToDb(self, player_type, card_type):
         return [player.toDb(player_type, card_type) for player in self.players]
     def toDict(self):
@@ -237,14 +239,15 @@ class TraditionalGame(Game):
             'p_act': self.p_act,
             'cycle_count': self.cycle_count,
             'shift': self._shift,
-            'completed': self.completed
+            'completed': self.completed,
+            'settings': self.settings
         }
     @staticmethod
     def fromDb(game:object):
-        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10])
+        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=game[11])
     @staticmethod
     def fromDict(dict:dict):
-        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'])
+        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'])
 
     def drawFromDeck(self):
         # if deck is empty, reshuffle
@@ -343,30 +346,35 @@ class TraditionalGame(Game):
     def betPhaseAction(self, params:dict, player, db):
         players = self.getActivePlayers()
         if params['action'] == "fold":
-            player.fold()
+            self.playerFold()
 
             players = self.getActivePlayers()
 
-        elif params["action"] == "bet" and (players.index(player) == 0):
-            player.makeBet(params["amount"])
+        elif params["action"] == "bet" and (self.getActivePlayers().index(player) == 0) and player.bet == None:
+            player.makeBet(params["amount"], True)
 
         elif params["action"] == 'call':
-            player.makeBet(params["amount"], False)
-            player.lastAction = f'calls'
+            player.makeBet(self.getGreatestBet(), True)
+            player.lastAction = 'calls'
 
         elif params["action"] == 'raise':
-            player.makeBet(params["amount"], False)
+            player.makeBet(params["amount"], True)
             player.lastAction = f'raises to {params["amount"]}'
 
-        betAmount = [i.getBet() for i in self.players]
-        betAmount.append(0)
-        betAmount = max(betAmount)
         nextPlayer = None
-        for i in players:
-            iBet = i.bet if i.bet != None else -1
-            if iBet < betAmount:
-                nextPlayer = i.id
-                break
+
+        if not self.settings["PokerStyleBetting"]:
+            betAmount = [i.getBet() for i in self.players]
+            betAmount.append(0)
+            betAmount = max(betAmount)
+            for i in players:
+                iBet = i.bet if i.bet != None else -1
+                if iBet < betAmount:
+                    nextPlayer = i.id
+                    break
+        elif self.settings["PokerStyleBetting"]:
+            if self.getNextPlayer(player).getBet() < player.getBet() or self.getNextPlayer(player).bet == None:
+                nextPlayer = self.getNextPlayer(player).id
 
         if len(players) <= 1:
             winningPlayer = players[0]

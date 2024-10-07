@@ -160,8 +160,9 @@ class Player:
     def getBet(self) -> int:
         return self.bet if self.bet != None else 0
         
-    def fold(self):
-        self.credits += self.getBet()
+    def fold(self, pokerStyle=False):
+        if pokerStyle:
+            self.credits += self.getBet()
         self.bet = None
         self.folded = True
         self.lastAction = "folded"
@@ -183,7 +184,7 @@ class Player:
             self.lastAction = f'checks'
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False):
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False, shift=False, settings={ "PokerStyleBetting": False }):
         self.players = players
         self.id = id
         self.player_turn = player_turn
@@ -192,7 +193,8 @@ class Game:
         self.phase = phase
         self.cycle_count = cycle_count
         self.completed = completed
-        self.shift = False
+        self.shift = shift
+        self.settings = settings
 
     @staticmethod
     @abstractmethod
@@ -216,6 +218,12 @@ class Game:
             if not player.folded:
                 activePlayers.append(player)
         return activePlayers
+    
+    def getPreviousPlayer(self, player):
+        return self.getActivePlayers()[(self.getActivePlayers().index(player) - 1) % len(self.getActivePlayers())]
+    
+    def getNextPlayer(self, player):
+        return self.getActivePlayers()[(self.getActivePlayers().index(player) + 1) % len(self.getActivePlayers())]
 
     def getPlayerDex(self, username:str=None, id:int=None):
         for i in range(len(self.players)):
@@ -228,6 +236,18 @@ class Game:
         return None if dex == -1 else self.players[dex]
     def containsPlayer(self, username:str=None, id:int=None) -> bool:
         return self.getPlayer(username=username, id=id) != None
+    
+    def getGreatestBet(self):
+        maxBet = 0
+        for player in self.getActivePlayers():
+            if player.getBet() > maxBet:
+                maxBet = player.getBet()
+        return maxBet
+    
+    def playerFold(self, player):
+        if self.settings["PokerStyleBetting"]:
+            self.handPot += player.getBet()
+        player.fold(self.settings["PokerStyleBetting"])
     
     def deckToDb(self, card_type):
         return self.deck.toDb(card_type=card_type)

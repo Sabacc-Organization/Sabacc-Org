@@ -15,6 +15,7 @@ export const actions = {
         const player6 = formData.get('player6')?.toString();
         const player7 = formData.get('player7')?.toString();
         const player8 = formData.get('player8')?.toString();
+        const pokerStyleBettingString = formData.get('pokerStyleBetting')?.toString();
 
         const username = cookies.get("username");
         const password = cookies.get("password");
@@ -48,6 +49,12 @@ export const actions = {
             players.push(player8);
         }
 
+
+        let pokerStyleBetting = false;
+        if (pokerStyleBettingString === "on") {
+            pokerStyleBetting = true;
+        }
+
         // Standard player vailidity checks
         
         if (players.length < 1) {
@@ -73,7 +80,10 @@ export const actions = {
                 "username": username,
                 "password": password,
                 "players": players,
-                "game_variant": "traditional"
+                "game_variant": "traditional",
+                "settings": {
+                    "PokerStyleBetting": pokerStyleBetting
+                }
             }
 
             const response = await fetch(BACKEND_URL + "/host", {

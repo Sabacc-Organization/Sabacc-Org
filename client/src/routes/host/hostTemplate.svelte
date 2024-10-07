@@ -1,10 +1,13 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
 
-
     /** @type {import('./$types').PageData} */
     export let game_variant: string;
-    let game_variant_string = {'traditional':'Traditional', 'corellian_spike':'Corellian Spike'}[game_variant]
+    let game_variant_string = {'traditional':'Traditional', 'corellian-spike':'Corellian Spike'}[game_variant]
+    import TraditionalSettings from './traditional/settings.svelte';
+    import CorellianSpikeSettings from './corellian-spike/settings.svelte';
+
+
     export let form;
 
     let players: string[] = [];
@@ -92,6 +95,16 @@
         <input bind:value={player8} on:input={refresh} autocomplete="off" class="form-control form-group" id="player8" name="player8" placeholder="Player 8" type="text">
     {/if}
     <br>
+    <br>
+
+    {#if game_variant === "traditional"}
+        <TraditionalSettings />
+    {:else if game_variant === "corellian-spike"}
+        <CorellianSpikeSettings />
+    {/if}
+
+    <br>
+
     <button class="btn btn-primary" type="submit">Play</button>
 </form>
 

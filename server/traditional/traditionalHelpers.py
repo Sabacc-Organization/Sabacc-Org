@@ -277,7 +277,9 @@ class TraditionalGame(Game):
             'settings': self.settings
         }
     @staticmethod
-    def fromDb(game:object):
+    def fromDb(game:object, preSettings=False):
+        if preSettings:
+            return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings)
         return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=game[11])
     @staticmethod
     def fromDict(dict:dict):

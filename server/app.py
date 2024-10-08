@@ -193,6 +193,9 @@ conn.commit()
 # dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
 # conn.commit()
 
+""" transfer old games which did not have settings or timestamps to new tables """ # Uncomment to run - DO NOT DELETE
+# dbConversion.convertPreSettingsToPostSettings(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType, corellian_spike.corellianHelpers.corellianSpikeCardType, corellian_spike.corellianHelpers.corellianSpikePlayerType)
+# conn.commit()
 
 
 """ REST APIs """

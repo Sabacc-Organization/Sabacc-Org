@@ -177,7 +177,12 @@ class CorellianSpikePlayer(Player):
         return CorellianSpikePlayer(player.id, player.username, player.credits, player.bet, CorellianSpikeHand.fromDb(player.hand), player.folded, player.lastaction)
 
 defaultSettings = { 
-    "PokerStyleBetting": False, 
+    "PokerStyleBetting": False,
+    "DeckDrawCost": 5,
+    "DiscardDrawCost": 10,
+    "DeckTradeCost": 10,
+    "DiscardTradeCost": 15,
+    "DiscardCosts": [15, 20, 25], 
     "SmallBlind": 1, 
     "BigBlind": 2, 
     "HandPotAnte": 5, 
@@ -186,16 +191,6 @@ defaultSettings = {
 }
 
 class CorellianSpikeGame(Game):
-    handPotAnte = 5
-    sabaccPotAnte = 10
-
-    drawFromDeckCost = 0
-    drawFromDiscardCost = 0
-    deckTradeCost = 0
-    discardTradeCost = 0
-    discardCost = 0
-    discardCostIncremental = False
-    standCost = 0
 
     def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, sabacc_pot_ante=10, phase='card', round=1, shift=False, completed=False, settings=defaultSettings):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=round, completed=completed)
@@ -404,6 +399,12 @@ class CorellianSpikeGame(Game):
             'completed': self.completed,
             'settings': self.settings
         }
+    
+    def toDb(self, card_type, player_type, includeId=False):
+        if includeId:
+            return [self.id, self.playersToDb(player_type, card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(), self.discardPileToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings)]
+        else:
+            return [self.playersToDb(player_type, card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.discardPileToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings)]
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
@@ -504,7 +505,11 @@ class CorellianSpikeGame(Game):
         return [player.toDb(player_type, card_type) for player in self.players]
 
     @staticmethod
-    def fromDb(game:object):
+    def fromDb(game:object, preSettings=False):
+
+        if preSettings:
+            return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings)
+
         return CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=game[12])
 
     # overrides parent method

@@ -598,7 +598,11 @@
                                     <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button>
                                     <p class="red">{betErr}</p>
                                 {:else}
-                                    {#if raising === false}
+                                    {#if game["settings"]["PokerStyleBetting"] && players[u_dex]['bet'] === greatestBet && !raising}
+                                        <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
+                                        <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
+                                        <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
+                                    {:else if !raising}
                                         <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
                                         <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                         <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>

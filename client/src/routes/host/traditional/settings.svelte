@@ -58,13 +58,13 @@
 {#if pokerStyleBetting}
     <div class="parent">
         <div class="stacked-input child">
-            <label for="smallBlind">Small Blind</label>
-            <input name="smallBlind" type="number" bind:value={smallBlind} class="form-control-sm" min="1" max="299" step="1" required>
+            <label for="bigBlind">Big Blind</label>
+            <input name="bigBlind" type="number" bind:value={bigBlind} class="form-control-sm" min="2" max="300" step="1" required>
         </div>
 
         <div class="stacked-input child">
-            <label for="bigBlind">Big Blind</label>
-            <input name="bigBlind" type="number" bind:value={bigBlind} class="form-control-sm" min="2" max="300" step="1" required>
+            <label for="smallBlind">Small Blind</label>
+            <input name="smallBlind" type="number" bind:value={smallBlind} class="form-control-sm" min="1" max="299" step="1" required>
         </div>
     </div>
 {/if}

@@ -36,11 +36,6 @@ main img
     max-width: 100%;
 }
 
-.stacked-input label {
-  display: block;
-  margin-bottom: 10px;
-}
-
 /* Horizontal Alignment of divs and other tags */
 .parent
 {
@@ -54,6 +49,16 @@ main img
     padding: 1rem 2rem;
     margin: 10px;
     border-radius: 10px;
+}
+
+.stacked-input {
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.stacked-input label {
+  display: block;
+  margin-bottom: 10px;
 }
 
 .video

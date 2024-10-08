@@ -161,7 +161,7 @@ class Player:
         return self.bet if self.bet != None else 0
         
     def fold(self, pokerStyle=False):
-        if pokerStyle:
+        if not pokerStyle:
             self.credits += self.getBet()
         self.bet = None
         self.folded = True

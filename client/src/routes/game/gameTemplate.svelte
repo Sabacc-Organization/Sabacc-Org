@@ -60,6 +60,7 @@
 
     let greatestBet = 0;
     $: {
+        greatestBet = 0;
         for (let player of players) {
             if (player['bet'] > greatestBet) {
                 greatestBet = player['bet'];

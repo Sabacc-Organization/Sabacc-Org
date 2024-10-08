@@ -21,7 +21,7 @@ from corellian_spike.corellianHelpers import CorellianSpikeGame
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
-# import signal
+import signal
 
 # Get config.yml data
 config = {}
@@ -170,7 +170,7 @@ register_composite(corellian_spike.corellianHelpers.corellianSpikePlayerType, db
 print("Registered CorellianSpike custom types")
 
 # create CorellianSpike tables
-db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\": 1000, \"HandRanking\": \"Wayne\", \"DeckDrawCost\": 5, \"DiscardDrawCost\": 10, \"DeckTradeCost\": 10, \"DiscardTradeCost\": 15, \"DiscardCosts\": [15, 20, 25] }', created_at TIMESTAMP DEFAULT NOW());")
 print("Created CorellianSpike table")
 conn.commit()
 
@@ -422,11 +422,11 @@ def host():
     if game_variant != "traditional" and game_variant != "corellian_spike":
         return jsonify({"message": "Invalid game variant"}), 401
 
+    # Create new game
     if game_variant == "traditional":
-        # create game
         game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
     elif game_variant == "corellian_spike":
-        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
+        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
 
     if not game:
         return jsonify({"message": "Invalid game variant"}), 401
@@ -545,4 +545,4 @@ def handle_sigint(signum, frame):
     # After cleanup, raise KeyboardInterrupt to allow the normal exit process
     raise KeyboardInterrupt
 
-# signal.signal(signal.SIGINT, handle_sigint)
+signal.signal(signal.SIGINT, handle_sigint)

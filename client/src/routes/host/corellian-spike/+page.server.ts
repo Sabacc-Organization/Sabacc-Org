@@ -15,6 +15,20 @@ export const actions = {
         const player6 = formData.get('player6')?.toString();
         const player7 = formData.get('player7')?.toString();
         const player8 = formData.get('player8')?.toString();
+        const handRanking = formData.get('handRanking')?.toString();
+        let pokerStyleBetting: string | boolean | undefined = formData.get('pokerStyleBetting')?.toString();
+        let startingCredits: string | number | undefined = formData.get('startingCredits')?.toString();
+        let deckDrawCost: string | number | undefined = formData.get('deckDrawCost')?.toString();
+        let discardDrawCost: string | number | undefined = formData.get('discardDrawCost')?.toString();
+        let deckTradeCost: string | number | undefined = formData.get('deckTradeCost')?.toString();
+        let discardTradeCost: string | number | undefined = formData.get('discardTradeCost')?.toString();
+        let r1DiscardCost: string | number | undefined = formData.get('r1DiscardCost')?.toString();
+        let r2DiscardCost: string | number | undefined = formData.get('r2DiscardCost')?.toString();
+        let r3DiscardCost: string | number | undefined = formData.get('r3DiscardCost')?.toString();
+        let handPotAnte: string | number | undefined = formData.get('handPotAnte')?.toString();
+        let sabaccPotAnte: string | number | undefined = formData.get('sabaccPotAnte')?.toString();
+        let smallBlind: string | number | undefined = formData.get('smallBlind')?.toString();
+        let bigBlind: string | number | undefined = formData.get('bigBlind')?.toString();
 
         const username = cookies.get("username");
         const password = cookies.get("password");
@@ -48,6 +62,101 @@ export const actions = {
             players.push(player8);
         }
 
+        if (handRanking !== "Wayne") {
+            return;
+        }
+
+        if (pokerStyleBetting === "on") {
+            pokerStyleBetting = true;
+        }
+        else {
+            pokerStyleBetting = false;
+        }
+
+        if (startingCredits) {
+            startingCredits = parseInt(startingCredits);
+        }
+        else {
+            return;
+        }
+
+        if (deckDrawCost) {
+            deckDrawCost = parseInt(deckDrawCost);
+        }
+        else {
+            return;
+        }
+
+        if (discardDrawCost) {
+            discardDrawCost = parseInt(discardDrawCost);
+        }
+        else {
+            return;
+        }
+
+        if (deckTradeCost) {
+            deckTradeCost = parseInt(deckTradeCost);
+        }
+        else {
+            return;
+        }
+
+        if (discardTradeCost) {
+            discardTradeCost = parseInt(discardTradeCost);
+        }
+        else {
+            return;
+        }
+
+        if (r1DiscardCost) {
+            r1DiscardCost = parseInt(r1DiscardCost);
+        }
+        else {
+            return;
+        }
+
+        if (r2DiscardCost) {
+            r2DiscardCost = parseInt(r2DiscardCost);
+        }
+        else {
+            return;
+        }
+
+        if (r3DiscardCost) {
+            r3DiscardCost = parseInt(r3DiscardCost);
+        }
+        else {
+            return;
+        }
+
+        if (handPotAnte) {
+            handPotAnte = parseInt(handPotAnte);
+        }
+        else {
+            return;
+        }
+
+        if (sabaccPotAnte) {
+            sabaccPotAnte = parseInt(sabaccPotAnte);
+        }
+        else {
+            return;
+        }
+
+        if (smallBlind) {
+            smallBlind = parseInt(smallBlind);
+        }
+        else {
+            smallBlind = 1;
+        }
+
+        if (bigBlind) {
+            bigBlind = parseInt(bigBlind);
+        }
+        else {
+            bigBlind = 2;
+        }
+
         // Standard player vailidity checks
         
         if (players.length < 1) {
@@ -72,7 +181,21 @@ export const actions = {
                 "username": username,
                 "password": password,
                 "players": players,
-                "game_variant": "corellian_spike"
+                "game_variant": "corellian_spike",
+                "settings": {
+                    "HandRanking": handRanking,
+                    "PokerStyleBetting": pokerStyleBetting,
+                    "StartingCredits": startingCredits,
+                    "DeckDrawCost": deckDrawCost,
+                    "DiscardDrawCost": discardDrawCost,
+                    "DeckTradeCost": deckTradeCost,
+                    "DiscardTradeCost": discardTradeCost,
+                    "DiscardCosts": [r1DiscardCost, r2DiscardCost, r3DiscardCost],
+                    "HandPotAnte": handPotAnte,
+                    "SabaccPotAnte": sabaccPotAnte,
+                    "SmallBlind": smallBlind,
+                    "BigBlind": bigBlind
+                }
             }
 
             const response = await fetch(BACKEND_URL + "/host", {

@@ -36,7 +36,6 @@ main img
     max-width: 100%;
 }
 
-
 /* Horizontal Alignment of divs and other tags */
 .parent
 {
@@ -52,10 +51,58 @@ main img
     border-radius: 10px;
 }
 
+.stacked-input {
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.stacked-input label {
+  display: block;
+  margin-bottom: 10px;
+}
+
 .video
 {
   margin: 0;
 }
+
+#cs-hand-ranking-img {
+  max-width: 50%;
+}
+
+.game-settings-display-table {
+  max-width: 50%;
+  margin: 0 auto;
+}
+
+.game-settings-table {
+  max-width: 25%;
+  margin: 0 auto;
+}
+
+.game-settings-table input {
+  margin: 0;
+  padding: 0;
+}
+
+td input[type="number"] {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+td select {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+
 @media screen and (max-width: 560px){
   .video{
     padding: 1rem 0px;

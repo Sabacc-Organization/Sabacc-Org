@@ -11,7 +11,7 @@
     </div>
 
     <div class="child video">
-        <p style="margin-bottom: 260px;"><a href="https://hyperspaceprops.com/wp-content/uploads/2022/05/Coruscant-Shift-Rules.pdf" target=”_blank”>Corellian Spike Rules</a></p>
+        <p style="margin-bottom: 260px;"><a href="https://hyperspaceprops.com/how-to-play-corellian-spike/" target=”_blank”>Corellian Spike Rules</a></p>
     </div>
 
     <div class="child video">

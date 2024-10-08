@@ -654,6 +654,23 @@
         </div>
         <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>
+
+    <h5>Game Settings</h5>
+    <table class="game-settings-display-table">
+        <tr>
+            <th>Setting</th>
+            <th>Value</th>
+        </tr>
+        {#each Object.keys(game["settings"]) as key}
+            <tr>
+                <td>{key}</td>
+                <td>{game["settings"][key]}</td>
+            </tr>
+        {/each}
+    </table>
+
+    <br>
+
     {#if theme == 'modern'}
         <div class="credit-attribution-container">
             <div class="credit-attribution">

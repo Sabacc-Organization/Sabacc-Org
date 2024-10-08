@@ -29,42 +29,43 @@
 <h5>Game Settings</h5>
 
 <br>
-<div class="stacked-input">
-    <label for="startingCredits">Starting Credits</label>
-    <input bind:value={startingCredits} name="startingCredits" class="form-control-sm" placeholder="Starting Credits" type="number" min="1" max="1000000" step="1" required>
-</div>
 
-<div class="parent">
-    <div class="stacked-input child">
-        <label for="handPotAnte">Hand Pot Ante</label>
-        <input bind:value={handPotAnte} name="handPotAnte" class="form-control-sm" placeholder="Hand Pot Ante" type="number" min="1" max="1000000" step="1" required>
-    </div>
+<table class="game-settings-table">
+    <tr>
+        <th colspan="2" class="text-center">Game Settings</th>
+    </tr>
+    <tr>
+        <th colspan="2" class="text-center">Credits & Antes</th>
+    </tr>
+    <tr>
+        <td>Starting Credits</td>
+        <td><input bind:value={startingCredits} name="startingCredits" placeholder="Starting Credits" type="number" min="1" max="1000000" step="1" required></td>
+    </tr>
+    <tr>
+        <td>Hand Pot Ante</td>
+        <td><input bind:value={handPotAnte} name="handPotAnte" placeholder="Hand Pot Ante" type="number" min="1" max="1000000" step="1" required></td>
+    </tr>
+    <tr>
+        <td>Sabacc Pot Ante</td>
+        <td><input bind:value={sabaccPotAnte} name="sabaccPotAnte" placeholder="Sabacc Pot Ante" type="number" min="2" max="1000000" step="1" required></td>
+    </tr>
 
-    <div class="stacked-input child">
-        <label for="sabaccPotAnte">Sabacc Pot Ante</label>
-        <input bind:value={sabaccPotAnte} name="sabaccPotAnte" class="form-control-sm" placeholder="Sabacc Pot Ante" type="number" min="2" max="1000000" step="1" required>
-    </div>
-</div>
-
-<div class="parent">
-    <h6 class="child">Poker Style Betting</h6>
-    <!-- Rounded switch -->
-    <label class="switch child">
-        <input bind:checked={pokerStyleBetting} name="pokerStyleBetting" type="checkbox">
-        <span class="slider round"></span>
-    </label>
-</div>
-
-{#if pokerStyleBetting}
-    <div class="parent">
-        <div class="stacked-input child">
-            <label for="bigBlind">Big Blind</label>
-            <input name="bigBlind" type="number" bind:value={bigBlind} class="form-control-sm" min="2" max="300" step="1" required>
-        </div>
-
-        <div class="stacked-input child">
-            <label for="smallBlind">Small Blind</label>
-            <input name="smallBlind" type="number" bind:value={smallBlind} class="form-control-sm" min="1" max="299" step="1" required>
-        </div>
-    </div>
-{/if}
+    <tr>
+        <th colspan="2" class="text-center">Poker Style Betting
+            <label class="switch child">
+                <input bind:checked={pokerStyleBetting} name="pokerStyleBetting" type="checkbox">
+                <span class="slider round"></span>
+            </label>
+        </th>
+    </tr>
+    {#if pokerStyleBetting}
+        <tr>
+            <td>Big Blind</td>
+            <td><input bind:value={bigBlind} name="bigBlind" type="number" min="2" max="300" step="1" required></td>
+        </tr>
+        <tr>
+            <td>Small Blind</td>
+            <td><input bind:value={smallBlind} name="smallBlind" type="number" min="1" max="299" step="1" required></td>
+        </tr>
+    {/if}
+</table>

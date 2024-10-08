@@ -15,7 +15,10 @@ export const actions = {
         const player6 = formData.get('player6')?.toString();
         const player7 = formData.get('player7')?.toString();
         const player8 = formData.get('player8')?.toString();
-        const pokerStyleBettingString = formData.get('pokerStyleBetting')?.toString();
+        let pokerStyleBetting: string | boolean | undefined = formData.get('pokerStyleBetting')?.toString();
+        let startingCredits: string | number | undefined = formData.get('startingCredits')?.toString();
+        let handPotAnte: string | number | undefined = formData.get('handPotAnte')?.toString();
+        let sabaccPotAnte: string | number | undefined = formData.get('sabaccPotAnte')?.toString();
         let smallBlind: string | number | undefined = formData.get('smallBlind')?.toString();
         let bigBlind: string | number | undefined = formData.get('bigBlind')?.toString();
 
@@ -53,9 +56,32 @@ export const actions = {
 
 
 
-        let pokerStyleBetting = false;
-        if (pokerStyleBettingString === "on") {
+        if (pokerStyleBetting === "on") {
             pokerStyleBetting = true;
+        }
+        else {
+            pokerStyleBetting = false;
+        }
+
+        if (startingCredits) {
+            startingCredits = parseInt(startingCredits);
+        }
+        else {
+            return;
+        }
+
+        if (handPotAnte) {
+            handPotAnte = parseInt(handPotAnte);
+        }
+        else {
+            return;
+        }
+
+        if (sabaccPotAnte) {
+            sabaccPotAnte = parseInt(sabaccPotAnte);
+        }
+        else {
+            return;
         }
 
         if (smallBlind) {
@@ -100,6 +126,9 @@ export const actions = {
                 "game_variant": "traditional",
                 "settings": {
                     "PokerStyleBetting": pokerStyleBetting,
+                    "StartingCredits": startingCredits,
+                    "HandPotAnte": handPotAnte,
+                    "SabaccPotAnte": sabaccPotAnte,
                     "SmallBlind": smallBlind,
                     "BigBlind": bigBlind
                 }

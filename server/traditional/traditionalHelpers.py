@@ -153,12 +153,18 @@ class TraditionalPlayer(Player):
             return SpecialHands.FAIRY_EMPRESS
         
         return sum(cardVals)
+    
+defaultSettings = { 
+    "PokerStyleBetting": False, 
+    "SmallBlind": 1, 
+    "BigBlind": 2, 
+    "HandPotAnte": 5, 
+    "SabaccPotAnte": 10, 
+    "StartingCredits": 1000 
+}
 
 class TraditionalGame(Game):
-    handPotAnte = 5
-    sabaccPotAnte = 10
-
-    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }):
+    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings=defaultSettings):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
@@ -167,7 +173,7 @@ class TraditionalGame(Game):
 
     # create a new game
     @staticmethod
-    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }):
+    def newGame(playerIds:list, playerUsernames:list, db=None, settings=defaultSettings):
 
         if len(playerIds) != len(playerUsernames):
             return "Uneqal amount of ids and usernames"
@@ -182,12 +188,12 @@ class TraditionalGame(Game):
         # create player list
         players = []
         for id in playerIds:
-            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=startingCredits - TraditionalGame.handPotAnte - TraditionalGame.sabaccPotAnte))
+            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=settings["StartingCredits"] - settings["HandPotAnte"] - settings["SabaccPotAnte"]))
 
         # construct deck
         deck = TraditionalDeck()
 
-        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=TraditionalGame.handPotAnte*len(players), sabacc_pot=TraditionalGame.sabaccPotAnte*len(players))
+        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=settings["HandPotAnte"]*len(players), sabacc_pot=settings["SabaccPotAnte"]*len(players))
         
         # Blinds
         if settings["PokerStyleBetting"]:
@@ -217,14 +223,14 @@ class TraditionalGame(Game):
         self.players.append(self.players.pop(0))
 
         for player in self.players:
-            player.credits -= (TraditionalGame.sabaccPotAnte + TraditionalGame.handPotAnte) # Make users pay Sabacc and Hand pot Antes
+            player.credits -= (self.settings["HandPotAnte"] + self.settings["SabaccPotAnte"]) # Make users pay Sabacc and Hand pot Antes
             player.bet = None # reset bets
             player.folded = False # reset folded
             player.lastAction = '' # reset last action
         
-        # Antes
-        self.hand_pot = TraditionalGame.handPotAnte * len(self.players)
-        self.sabacc_pot += TraditionalGame.sabaccPotAnte * len(self.players)
+        # Antes (Pots)
+        self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
+        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
 
         # Blinds
         if self.settings["PokerStyleBetting"]:
@@ -467,7 +473,7 @@ class TraditionalGame(Game):
 
 
         # Pass turn to next player
-        uDex = self.getActivePlayers().index(player)
+        uDex = players.index(player)
         nextPlayer = uDex + 1
 
         # String that shows the winner
@@ -501,6 +507,8 @@ class TraditionalGame(Game):
 
                     # Update game and winner string
                     winStr = f"{winner.username} wins!"
+
+                    self.completed = True
 
                 # If no one won (i.e. everyone bombed out)
                 else:

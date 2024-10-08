@@ -36,6 +36,10 @@ main img
     max-width: 100%;
 }
 
+.stacked-input label {
+  display: block;
+  margin-bottom: 10px;
+}
 
 /* Horizontal Alignment of divs and other tags */
 .parent

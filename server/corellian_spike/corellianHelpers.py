@@ -543,7 +543,7 @@ class CorellianSpikeGame(Game):
             ]
             db.execute("UPDATE corellian_spike_games SET deck = %s, discard_pile = %s, players = %s, phase = %s, player_turn = %s, p_act = %s WHERE game_id = %s", dbList)
 
-        elif (params['action'] in ["fold", "bet", "call", "raise"]) and (self.phase == "betting") and (self.player_turn == player.id) and (self.completed == False):
+        elif (params['action'] in ["fold", "check", "bet", "call", "raise"]) and (self.phase == "betting") and (self.player_turn == player.id) and (self.completed == False):
             players = self.getActivePlayers()
 
             if params['action'] == "fold":
@@ -551,8 +551,14 @@ class CorellianSpikeGame(Game):
 
                 players = self.getActivePlayers()
 
+            elif params['action'] == "check":
+                if player.getBet() != self.getGreatestBet():
+                    return
+                player.makeBet(0, False)
 
-            elif (params["action"] == "bet") and (players.index(player) == 0):
+            elif params["action"] == "bet":
+                if player.getBet() != self.getGreatestBet() or player.bet != None or players.index(player) != 0:
+                    return
                 player.makeBet(params["amount"])
 
             elif params["action"] == 'call':
@@ -560,7 +566,7 @@ class CorellianSpikeGame(Game):
                 player.lastAction = f'calls'
 
             elif params["action"] == 'raise':
-                player.makeBet(params["amount"], False)
+                player.makeBet(params["amount"], True)
                 player.lastAction = f'raises to {params["amount"]}'
 
             betAmount = [i.getBet() for i in self.players]

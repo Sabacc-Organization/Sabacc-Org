@@ -16,6 +16,8 @@ export const actions = {
         const player7 = formData.get('player7')?.toString();
         const player8 = formData.get('player8')?.toString();
         const pokerStyleBettingString = formData.get('pokerStyleBetting')?.toString();
+        let smallBlind: string | number | undefined = formData.get('smallBlind')?.toString();
+        let bigBlind: string | number | undefined = formData.get('bigBlind')?.toString();
 
         const username = cookies.get("username");
         const password = cookies.get("password");
@@ -50,9 +52,24 @@ export const actions = {
         }
 
 
+
         let pokerStyleBetting = false;
         if (pokerStyleBettingString === "on") {
             pokerStyleBetting = true;
+        }
+
+        if (smallBlind) {
+            smallBlind = parseInt(smallBlind);
+        }
+        else {
+            smallBlind = 1;
+        }
+
+        if (bigBlind) {
+            bigBlind = parseInt(bigBlind);
+        }
+        else {
+            bigBlind = 2;
         }
 
         // Standard player vailidity checks
@@ -82,7 +99,9 @@ export const actions = {
                 "players": players,
                 "game_variant": "traditional",
                 "settings": {
-                    "PokerStyleBetting": pokerStyleBetting
+                    "PokerStyleBetting": pokerStyleBetting,
+                    "SmallBlind": smallBlind,
+                    "BigBlind": bigBlind
                 }
             }
 

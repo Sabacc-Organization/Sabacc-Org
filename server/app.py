@@ -21,7 +21,7 @@ from corellian_spike.corellianHelpers import CorellianSpikeGame
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
-import signal
+# import signal
 
 # Get config.yml data
 config = {}
@@ -117,7 +117,7 @@ register_composite(traditional.traditionalHelpers.traditionalPlayerType, db)
 print("Registered Traditional custom types")
 
 # create Traditional tables
-db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false }', created_at TIMESTAMP DEFAULT NOW());")
+db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2 }', created_at TIMESTAMP DEFAULT NOW());")
 print("Created Traditional table")
 conn.commit()
 
@@ -545,4 +545,4 @@ def handle_sigint(signum, frame):
     # After cleanup, raise KeyboardInterrupt to allow the normal exit process
     raise KeyboardInterrupt
 
-signal.signal(signal.SIGINT, handle_sigint)
+# signal.signal(signal.SIGINT, handle_sigint)

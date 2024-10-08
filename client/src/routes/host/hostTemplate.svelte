@@ -104,6 +104,7 @@
     {/if}
 
     <br>
+    <br>
 
     <button class="btn btn-primary" type="submit">Play</button>
 </form>

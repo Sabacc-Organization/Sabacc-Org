@@ -58,6 +58,15 @@
     let players: any[] = []
     let orderedPlayers: any[] = []
 
+    let greatestBet = 0;
+    $: {
+        for (let player of players) {
+            if (player['bet'] > greatestBet) {
+                greatestBet = player['bet'];
+            }
+        }
+    }
+
     // User ID
     let user_id = -1;
 
@@ -222,18 +231,13 @@
                 betErr = "Please input a number of credits you would like to bet(an integer 0 to " + players[u_dex]['credits'] + ")";
             } else {
 
-                let tempCreds = betCreds;
-                if (raising && !isNaN(players[u_dex]['bet'])) {
-                    tempCreds = betCreds - players[u_dex]['bet'];
-                }
-
                 let clientInfo = {
                     "username": username,
                     "password": password,
                     "game_id": game_id,
                     "game_variant": game_variant,
                     "action": action,
-                    "amount": tempCreds
+                    "amount": betCreds
                 }
                 socket.emit('gameAction', clientInfo);
             }
@@ -243,10 +247,8 @@
     }
 
     function check() {
-        if (u_dex === 0) {
-            betCreds = 0;
-            bet("bet");
-        }
+        betCreds = 0;
+        bet("check");
     }
 
     $: {
@@ -606,10 +608,18 @@
                                     {/if}
                                 {/if}
 
+                            {:else if game["settings"]["PokerStyleBetting"] && players[u_dex]['bet'] === greatestBet && !raising}
+                                <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
+                                <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
+                                <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                             {:else}
 
-                                {#if raising === false}
+                                {#if raising === false && players[u_dex - 1 % players.length]['bet'] > 0}
                                     <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                                    <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
+                                    <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
+                                {:else if raising === false && players[u_dex - 1 % players.length]['bet'] === 0}
+                                    <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
                                     <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                                 {:else}

@@ -2,6 +2,7 @@
     import { page } from '$app/stores';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
+  import Page from '../+page.svelte';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -124,19 +125,44 @@
         socket.emit('getGame', clientInfo);
     }
 
+    let backupServerInfo: any;
+    let movesDone = 0;
+
     // automatically called when server sends update
     function updateClientGame(serverInfo: any) {
+
+        backupServerInfo = serverInfo;
+
+        currentMove = undefined;
 
         // Set game data
         for (let key in serverInfo['gata']){
             game[key] = serverInfo['gata'][key]
         }
 
+        if (game["move_history"] !== undefined && game["move_history"] !== null) {
+            movesDone = game["move_history"].length;
+        }
+
+        updateGame(serverInfo)
+
+        if (game["player_turn"] === user_id) {
+            if (!soundPlayed) {
+                turnSound.play();
+                soundPlayed = true;
+            }
+        } else {
+            soundPlayed = false;
+        }
+        dataToRender = true;
+    }
+
+    function updateGame(info:any) {
         // sets all player specific elements, such as hands and whatnot
         players = [];
 
         game['players'].forEach((element : any) => {
-            if (serverInfo["users"].indexOf(element['username']) != -1){
+            if (info["users"].indexOf(element['username']) != -1){
                 players.push(element);
 
                 //sets u_dex
@@ -163,28 +189,18 @@
         header = "";
 
         // For every user in users
-        for (let i = 0; i < serverInfo["users"].length; i++) {
+        for (let i = 0; i < info["users"].length; i++) {
             // Add vs. except on first loop through
             if (i != 0) {
                 header += " vs. ";
             }
 
             // Update player array
-            ps[i] = serverInfo["users"][i];
+            ps[i] = info["users"][i];
 
             // Add username to header
-            header += serverInfo["users"][i];
+            header += info["users"][i];
         }
-
-        if (game["player_turn"] === user_id) {
-            if (!soundPlayed) {
-                turnSound.play();
-                soundPlayed = true;
-            }
-        } else {
-            soundPlayed = false;
-        }
-        dataToRender = true;
     }
 
     // this is only called as a consequence of requestGameUpdate, and accesses data that should only be updated by one client, such as user_id
@@ -454,6 +470,54 @@
         }
     });
 
+    // game replay stuff
+    var currentMove: number | undefined;
+    $: {
+        if ((game["move_history"] !== null && game["move_history"] !== undefined) && currentMove === undefined) {
+            currentMove = game["move_history"].length - 1;
+        }
+    }
+    function playback(index: number) {
+        if (game["move_history"] === null || game["move_history"] === undefined) {
+            return;
+        }
+        if (currentMove + 1 === game["move_history"].length) {
+            return;
+        }
+        game = JSON.parse(JSON.stringify(backupServerInfo["gata"]));
+        for (let i = game["move_history"].length - 1; i > index; i--) {
+            for (const [key, value] of Object.entries(game["move_history"][i])) {
+                game[key] = value;
+            }
+        }
+        currentMove = index;
+
+        updateGame(backupServerInfo);
+    }
+    function playback_back() {
+        console.log(currentMove);
+        if (game["move_history"] === null || game["move_history"] === undefined) {
+            return;
+        }
+
+        if (currentMove === -1) {
+            return;
+        }
+
+        for (const [key, value] of Object.entries(game["move_history"][currentMove])) {
+            console.log(key, value);
+            if (key != "timestamp") {
+                game[key] = value;
+            }
+        }
+        currentMove--;
+
+        updateGame(backupServerInfo);
+    }
+    function playback_forward() {
+        playback(currentMove + 1);
+    }
+
 </script>
 
 <svelte:head>
@@ -588,7 +652,7 @@
         {/each}
 
         <div id="actBox">
-            {#if !game["completed"]}
+            {#if !game["completed"] && (currentMove === movesDone - 1 || movesDone === 0)}
                 {#if game["player_turn"] === user_id}
                     {#if game["phase"] === "betting"}
                         <div id="betDiv" class="backBlue brightBlue">
@@ -650,7 +714,7 @@
                         </div>
                     {/if}
                 {/if}
-            {:else if game["player_turn"] === user_id}
+            {:else if game["player_turn"] === user_id && game["completed"] && currentMove === movesDone - 1}
                 <div id="betDiv" class="backBlue brightBlue">
                     <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
                 </div>
@@ -658,6 +722,16 @@
         </div>
         <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>
+
+    {#if game["move_history"] !== undefined}
+        <h5>Game Playback | Move {currentMove + 1 || 0} of {movesDone}</h5>
+        <div class="playback-buttons-container">
+            <!-- Left arrow button -->
+            <button on:click={playback_back} class="playback-button back-playback-arrow"></button>
+            <!-- Right arrow button -->
+            <button on:click={playback_forward} class="playback-button forward-playback-arrow"></button>
+        </div>
+    {/if}
 
     <h5>Game Settings</h5>
     <table class="game-settings-display-table">

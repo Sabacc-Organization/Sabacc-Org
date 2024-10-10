@@ -235,6 +235,9 @@ class TraditionalGame(Game):
         self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
         self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
 
+        # Player turn (not PokerStyleBetting)
+        self.player_turn = self.players[0].id
+
         # Blinds
         if self.settings["PokerStyleBetting"]:
             activePlayers = self.getActivePlayers()
@@ -336,6 +339,11 @@ class TraditionalGame(Game):
             winner = winningPlayers[0]
         
         return winner, bestHand, bombedOutPlayers
+
+    def whoCalledAlderaan(self):
+        for player in self.getActivePlayers():
+            if player.lastAction == "calls Alderaan":
+                return player
         
     @staticmethod
     def calcWinners(players) -> dict:
@@ -496,7 +504,6 @@ class TraditionalGame(Game):
         if nextPlayer == len(players):
             nextPlayer = 0
             if self.phase == "alderaan":
-                self.phase = "card"
                 # Get end of game data
                 winner, bestHand, bombedOutPlayers = self.alderaan()
 
@@ -537,7 +544,15 @@ class TraditionalGame(Game):
 
         # Update game object before db update
         self.player_turn = self.getActivePlayers()[nextPlayer].id
-        self.p_act = player.username + " " + player.lastAction if not winStr else winStr
+        self.p_act = player.username + " " + player.lastAction
+        if winStr:
+            self.p_act += "; " + winStr
+
+
+        # If alderaan was called, add it to the p_act
+        if params["action"] != "alderaan" and self.phase == "alderaan":
+            alderaanCaller = self.whoCalledAlderaan()
+            self.p_act = alderaanCaller.username + " called Alderaan; " + self.p_act
 
         dbList = [
             self.deck.toDb(traditionalCardType),

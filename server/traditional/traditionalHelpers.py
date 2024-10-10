@@ -165,7 +165,7 @@ defaultSettings = {
 }
 
 class TraditionalGame(Game):
-    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings=defaultSettings, created_at=None, move_history=[]):
+    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings=defaultSettings, created_at=None, move_history=None):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed, settings=settings, created_at=created_at, move_history=move_history)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
@@ -383,15 +383,6 @@ class TraditionalGame(Game):
                 if player.calcHandVal() == bestHand:
                     winningPlayers.append(player)
         return winningPlayers, bestHand, bombedOutPlayers
-    
-    # overrides parent method
-    def compare(self, other):
-        selfDict = self.toDict()
-        originalValues = {}
-        for key, value, in other.toDict().items():
-            if value != selfDict[key]:
-                originalValues[key] = value
-        return originalValues
 
     def betPhaseAction(self, params:dict, player, db):
         players = self.getActivePlayers()

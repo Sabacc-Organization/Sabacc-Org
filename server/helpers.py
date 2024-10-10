@@ -261,12 +261,13 @@ class Game:
         return dbHistory
     
     # compare games to see what has changed
-    # should return the columns that have changed, and their original values
-    # should return a dictionary with the column name as the key and the value as the value
-    # should be called like so game.compare(oldGame)
-    @abstractmethod
     def compare(self, other):
-        pass
+        selfDict = self.toDict()
+        originalValues = {}
+        for key, value, in other.toDict().items():
+            if value != selfDict[key]:
+                originalValues[key] = value
+        return originalValues
     
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override

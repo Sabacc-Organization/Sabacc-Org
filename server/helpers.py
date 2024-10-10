@@ -9,6 +9,7 @@ from werkzeug.security import check_password_hash
 import yaml
 from abc import ABC, abstractmethod # allows abstract classes/methods
 import copy
+import json
 
 # Get config.yml data
 config = {}
@@ -184,7 +185,7 @@ class Player:
             self.lastAction = f'checks'
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False, shift=False, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }):
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False, shift=False, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }, created_at=None, move_history=[]):
         self.players = players
         self.id = id
         self.player_turn = player_turn
@@ -195,6 +196,8 @@ class Game:
         self.completed = completed
         self.shift = shift
         self.settings = settings
+        self.created_at = created_at
+        self.move_history = move_history
 
     @staticmethod
     @abstractmethod
@@ -250,6 +253,21 @@ class Game:
     
     def deckToDb(self, card_type):
         return self.deck.toDb(card_type=card_type)
+    
+    def moveHistoryToDb(self):
+        dbHistory = []
+        for move in self.move_history:
+            dbHistory.append(json.dumps(move))
+        return dbHistory
+    
+    # compare games to see what has changed
+    def compare(self, other):
+        selfDict = self.toDict()
+        originalValues = {}
+        for key, value, in other.toDict().items():
+            if value != selfDict[key]:
+                originalValues[key] = value
+        return originalValues
     
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override

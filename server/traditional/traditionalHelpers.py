@@ -3,6 +3,7 @@ from enum import Enum
 from helpers import *
 import copy
 import json
+from datetime import datetime, timezone
 
 traditionalCardType = None
 traditionalPlayerType = None
@@ -164,12 +165,14 @@ defaultSettings = {
 }
 
 class TraditionalGame(Game):
-    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings=defaultSettings):
-        super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed)
+    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings=defaultSettings, created_at=None, move_history=None):
+        super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed, settings=settings, created_at=created_at, move_history=move_history)
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
         self._shift = shift
         self.settings = settings
+        self.created_at = created_at
+        self.move_history = move_history
 
     # create a new game
     @staticmethod
@@ -256,9 +259,9 @@ class TraditionalGame(Game):
 
     def toDb(self, card_type, player_type, includeId=False):
         if includeId:
-            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings)]
+            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.created_at, self.moveHistoryToDb()]
         elif includeId == False:
-            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings)]
+            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.moveHistoryToDb()]
     def playersToDb(self, player_type, card_type):
         return [player.toDb(player_type, card_type) for player in self.players]
     def toDict(self):
@@ -274,16 +277,18 @@ class TraditionalGame(Game):
             'cycle_count': self.cycle_count,
             'shift': self._shift,
             'completed': self.completed,
-            'settings': self.settings
+            'settings': self.settings,
+            'created_at': self.created_at,
+            'move_history': self.move_history
         }
     @staticmethod
     def fromDb(game:object, preSettings=False):
         if preSettings:
             return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings)
-        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=game[11])
+        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=game[11],created_at=game[12],move_history=game[13])
     @staticmethod
     def fromDict(dict:dict):
-        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'])
+        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
 
     def drawFromDeck(self):
         # if deck is empty, reshuffle
@@ -432,17 +437,23 @@ class TraditionalGame(Game):
 
         if nextPlayer == None:
             # add all bets to hand pot
-            for player in players:
-                self.hand_pot += player.getBet()
-                player.bet = None
+            for p in players:
+                self.hand_pot += p.getBet()
+                p.bet = None
+
+        # Update game object before db update
+        self.phase = 'betting' if nextPlayer != None else 'card'
+        self.player_turn = nextPlayer if nextPlayer != None else players[0].id
+        self.p_act = player.username + " " + player.lastAction
+        self.completed = len(players) <= 1
 
         dbList = [
             self.playersToDb(traditionalPlayerType, traditionalCardType),
             self.hand_pot,
-            'betting' if nextPlayer != None else 'card',
-            nextPlayer if nextPlayer != None else players[0].id,
-            player.username + " " + player.lastAction,
-            len(players) <= 1,
+            self.phase,
+            self.player_turn,
+            self.p_act,
+            self.completed,
             self.id
         ]
         db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
@@ -524,15 +535,19 @@ class TraditionalGame(Game):
                 self.phase = "shift"
                 self.cycle_count += 1
 
+        # Update game object before db update
+        self.player_turn = self.getActivePlayers()[nextPlayer].id
+        self.p_act = player.username + " " + player.lastAction if not winStr else winStr
+
         dbList = [
             self.deck.toDb(traditionalCardType),
             self.playersToDb(traditionalPlayerType, traditionalCardType),
             self.hand_pot,
             self.sabacc_pot,
             self.phase,
-            self.getActivePlayers()[nextPlayer].id,
+            self.player_turn,
             self.cycle_count,
-            player.username + " " + player.lastAction if not winStr else winStr,
+            self.p_act,
             self.completed,
             self.id
         ]
@@ -548,7 +563,16 @@ class TraditionalGame(Game):
             response = player.hand.protect(card)
             if isinstance(response, str):
                 return response
-            db.execute("UPDATE traditional_games SET players = %s, p_act = %s WHERE game_id = %s", [self.playersToDb(traditionalPlayerType, traditionalCardType), f"{player.username} protected a {card.val}", self.id])
+
+            # Update game object before db update
+            self.p_act = f"{player.username} protected a {card.val}"
+
+            dbList = [
+                self.playersToDb(traditionalPlayerType, traditionalCardType),
+                self.p_act,
+                self.id
+            ]
+            db.execute("UPDATE traditional_games SET players = %s, p_act = %s WHERE game_id = %s", dbList)
 
         elif params['action'] in ["fold", "check", "bet", "call", "raise"] and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
             self.betPhaseAction(params, player, db)
@@ -565,14 +589,57 @@ class TraditionalGame(Game):
             # Set the Shift message
             shiftStr = "Sabacc shift!" if self._shift else "No shift!"
 
-            db.execute(f"UPDATE traditional_games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", ["betting", self.deck.toDb(traditionalCardType), self.playersToDb(traditionalPlayerType, traditionalCardType), self.getActivePlayers()[0].id, self._shift, shiftStr, self.id])
+            # Update game object before db update
+            self.phase = "betting"
+            self.player_turn = self.getActivePlayers()[0].id
+            self.p_act = shiftStr
+
+            dbList = [
+                self.phase,
+                self.deck.toDb(traditionalCardType),
+                self.playersToDb(traditionalPlayerType, traditionalCardType),
+                self.player_turn,
+                self._shift,
+                self.p_act,
+                self.id
+            ]
+
+            db.execute(f"UPDATE traditional_games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", dbList)
 
         elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
             self.nextRound()
 
-            db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", [self.playersToDb(traditionalPlayerType, traditionalCardType), self.hand_pot, self.sabacc_pot, "betting", self.deck.toDb(traditionalCardType), self.player_turn, 0, "", False, self.id])
+            # Update game object before db update
+            self.phase = "betting"
+            self.cycle_count = 0
+            self.p_act = ""
+            self.completed = False
+
+            dbList = [
+                self.playersToDb(traditionalPlayerType, traditionalCardType),
+                self.hand_pot,
+                self.sabacc_pot,
+                self.phase,
+                self.deck.toDb(traditionalCardType),
+                self.player_turn,
+                self.cycle_count,
+                self.p_act,
+                self.completed,
+                self.id
+            ]
+
+            db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
 
         if self == originalSelf:
             return "invalid user input"
+        
+        originalChangedValues = self.compare(originalSelf)
+        originalChangedValues["timestamp"] = datetime.now(timezone.utc).isoformat()
+        if self.move_history:
+            self.move_history.append(originalChangedValues)
+        else:
+            self.move_history = [originalChangedValues]
+
+        db.execute("UPDATE traditional_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
 
         return self

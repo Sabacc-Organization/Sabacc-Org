@@ -2,6 +2,7 @@
     import { page } from '$app/stores';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
+  import Page from '../+page.svelte';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -55,13 +56,12 @@
         "cycle_count": 0
     };
 
-    let players: any[] = []
     let orderedPlayers: any[] = []
 
     let greatestBet = 0;
     $: {
         greatestBet = 0;
-        for (let player of players) {
+        for (let player of game['players']) {
             if (player['bet'] > greatestBet) {
                 greatestBet = player['bet'];
             }
@@ -73,6 +73,9 @@
 
     // Index of user in list of users
     let u_dex = -1;
+
+    let activePlayers: any[] = []
+    let thisPlayer: any;
 
     let turnSound: HTMLAudioElement;
 
@@ -124,27 +127,55 @@
         socket.emit('getGame', clientInfo);
     }
 
+    let backupServerInfo: any;
+    let movesDone = 0;
+
     // automatically called when server sends update
     function updateClientGame(serverInfo: any) {
+
+        backupServerInfo = serverInfo;
+
+        currentMove = undefined;
 
         // Set game data
         for (let key in serverInfo['gata']){
             game[key] = serverInfo['gata'][key]
         }
 
+        if (game["move_history"] !== undefined && game["move_history"] !== null) {
+            movesDone = game["move_history"].length;
+        }
+
+        updateGame(serverInfo)
+
+        if (game["player_turn"] === user_id) {
+            if (!soundPlayed) {
+                turnSound.play();
+                soundPlayed = true;
+            }
+        } else {
+            soundPlayed = false;
+        }
+        dataToRender = true;
+    }
+
+    function updateGame(info:any) {
         // sets all player specific elements, such as hands and whatnot
-        players = [];
 
-        game['players'].forEach((element : any) => {
-            if (serverInfo["users"].indexOf(element['username']) != -1){
-                players.push(element);
+        let players = game["players"];
+        activePlayers = [];
 
-                //sets u_dex
-                if (user_id === element['id']) {
-                    u_dex = players.indexOf(element);
-                }
+        players.forEach((element : any) => {
+            //sets u_dex
+            if (user_id === element['id']) {
+                u_dex = players.indexOf(element);
+                thisPlayer = element;
+            }
+            if (!element['folded']) {
+                activePlayers.push(element);
             }
         });
+        
 
         //sets players, and sets orderedPlayers to the correct length in case of a fold.
         orderedPlayers = [... players];
@@ -163,28 +194,18 @@
         header = "";
 
         // For every user in users
-        for (let i = 0; i < serverInfo["users"].length; i++) {
+        for (let i = 0; i < players.length; i++) {
             // Add vs. except on first loop through
             if (i != 0) {
                 header += " vs. ";
             }
 
             // Update player array
-            ps[i] = serverInfo["users"][i];
+            ps[i] = players[i]["username"];
 
             // Add username to header
-            header += serverInfo["users"][i];
+            header += players[i]["username"];
         }
-
-        if (game["player_turn"] === user_id) {
-            if (!soundPlayed) {
-                turnSound.play();
-                soundPlayed = true;
-            }
-        } else {
-            soundPlayed = false;
-        }
-        dataToRender = true;
     }
 
     // this is only called as a consequence of requestGameUpdate, and accesses data that should only be updated by one client, such as user_id
@@ -219,6 +240,18 @@
 
     export let onDBClickCard;
 
+    // how many players haven't folded
+    function numOfActivePlayers() {
+        let players = game["players"];
+        let num = 0;
+        for (let i = 0; i < players.length; i++) {
+            if (!players[i]['folded']) {
+                num++;
+            }
+        }
+        return num;
+    }
+
     // Betting Phase
 
     let betCreds: number;
@@ -227,6 +260,8 @@
     let raising = false;
 
     function bet(action: string) {
+
+        let players = game["players"];
         if (potsActive) {
             if ((isNaN(betCreds) || betCreds < 0 || betCreds > players[u_dex]['credits']) && action != "fold") {
                 betErr = "Please input a number of credits you would like to bet(an integer 0 to " + players[u_dex]['credits'] + ")";
@@ -254,7 +289,7 @@
 
     $: {
         if (game["completed"] == 0 && game["player_turn"] === user_id && game["phase"] === "betting"){
-            if (u_dex === 0 && players[u_dex + 1]['bet'] === null){
+            if (activePlayers.indexOf(thisPlayer) === 0 && activePlayers[1]['bet'] === null){
                 if (betCreds == null){
                     betCreds = 0;
                 }
@@ -278,6 +313,7 @@
 
     let potsActive = false;
     $: {
+        let players = game["players"];
         if (game["player_turn"] === user_id && game["phase"] === "betting") {
             potsActive = true;
 
@@ -307,7 +343,7 @@
     }
 
     function raise() {
-        if (betCreds > raiseAmount && betCreds <= players[u_dex]['credits']) {
+        if (betCreds > raiseAmount && betCreds <= game["players"][u_dex]['credits']) {
             bet("raise");
         }
         else {
@@ -380,8 +416,9 @@
     function draw(type: string) {
         if (game_variant === 'corellian_spike') {
             card(type);
+        } else {
+            card("draw");
         }
-        card("draw");
     }
 
     function tradeBtn(type: string) {
@@ -410,7 +447,7 @@
     // Shift Phase
     let shiftActive = false;
     $: {
-        if (game["phase"] === "shift" && user_id === game["player_turn"]) {
+        if (game["phase"] === "shift" && user_id === game["player_turn"] && (currentMove === movesDone - 1 || movesDone === 0)) {
             shiftActive = true;
         }
         else {
@@ -453,6 +490,54 @@
             console.log('Socket disconnected');
         }
     });
+
+    // game replay stuff
+    var currentMove: number | undefined;
+    let playbackInput: number | undefined;
+    $: {
+        if ((game["move_history"] !== null && game["move_history"] !== undefined) && currentMove === undefined) {
+            currentMove = game["move_history"].length - 1;
+        }
+    }
+    function playback(index: number) {
+        console.log("playing back to index: " + index);
+        if (game["move_history"] === null || game["move_history"] === undefined) {
+            return;
+        }
+        if (index >= game["move_history"].length || index < -1) {
+            return;
+        }
+        game = JSON.parse(JSON.stringify(backupServerInfo["gata"]));
+        for (let i = game["move_history"].length - 1; i > index; i--) {
+            for (const [key, value] of Object.entries(game["move_history"][i])) {
+                game[key] = value;
+            }
+        }
+        currentMove = index;
+
+        updateGame(backupServerInfo);
+    }
+    function playback_back() {
+        if (game["move_history"] === null || game["move_history"] === undefined) {
+            return;
+        }
+
+        if (currentMove === -1) {
+            return;
+        }
+
+        for (const [key, value] of Object.entries(game["move_history"][currentMove])) {
+            if (key != "timestamp") {
+                game[key] = value;
+            }
+        }
+        currentMove--;
+
+        updateGame(backupServerInfo);
+    }
+    function playback_forward() {
+        playback(currentMove + 1);
+    }
 
 </script>
 
@@ -506,8 +591,8 @@
             {/if}
         </div>
 
-        {#each players as p, i}
-            <div id="{p['username']}Stuff" class="parent player{orderedPlayers.indexOf(p)} playerStuff" class:playing={p['username'] === username}>
+        {#each game["players"] as p, i}
+            <div id="{p['username']}Stuff" class:folded={p['folded']} class="parent player{orderedPlayers.indexOf(p)} playerStuff" class:playing={p['username'] === username}>
 
                 <!-- Bet boxes -->
                 {#if p['username'] === username}
@@ -518,7 +603,7 @@
 
                 <!-- Cards -->
                 <div class="cardsContainer">
-                    {#each players[i]["hand"] as c, ci}
+                    {#each game["players"][i]["hand"] as c, ci}
                         <div class="cardContainer">
                             {#if p['username'] === username}
                                 {#if !c['prot']}
@@ -543,7 +628,7 @@
                                     <h5 class="protected">{cardDesign === "pescado"? "":c['val']}</h5>
                                 {/if}
                             {:else}
-                                {#if game["completed"] == 0}
+                                {#if game["completed"] == 0 || p['folded'] || numOfActivePlayers() <= 1}
                                     {#if !c['prot']}
                                         <div class="card child" style="{renderBack()}"></div>
                                         <h5>{""}</h5>
@@ -588,17 +673,17 @@
         {/each}
 
         <div id="actBox">
-            {#if !game["completed"]}
+            {#if !game["completed"] && (currentMove === movesDone - 1 || movesDone === 0)}
                 {#if game["player_turn"] === user_id}
                     {#if game["phase"] === "betting"}
                         <div id="betDiv" class="backBlue brightBlue">
-                            {#if u_dex === 0}
-                                {#if players[u_dex + 1]['bet'] === null}
+                            {#if activePlayers.indexOf(thisPlayer) === 0}
+                                {#if game["players"][u_dex + 1]['bet'] === null}
                                     <input bind:value={betCreds} id="betCredits" type="number" class="form-control form-group" placeholder="Credits" required>
                                     <button on:click={() => {bet("bet"); chipInput=false}} id="betBtn" type="button" class="btn btn-primary">Bet</button>
                                     <p class="red">{betErr}</p>
                                 {:else}
-                                    {#if game["settings"]["PokerStyleBetting"] && players[u_dex]['bet'] === greatestBet && !raising}
+                                    {#if game["settings"]["PokerStyleBetting"] && game["players"][u_dex]['bet'] === greatestBet && !raising}
                                         <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
                                         <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                         <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
@@ -613,18 +698,18 @@
                                     {/if}
                                 {/if}
 
-                            {:else if game["settings"]["PokerStyleBetting"] && players[u_dex]['bet'] === greatestBet && !raising}
+                            {:else if game["settings"]["PokerStyleBetting"] && game["players"][u_dex]['bet'] === greatestBet && !raising}
                                 <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
                                 <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                 <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                             {:else}
 
-                                {#if raising === false && players[u_dex - 1 % players.length]['bet'] > 0}
-                                    <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                                {#if raising === false && activePlayers[activePlayers.indexOf(thisPlayer) - 1 % activePlayers.length]['bet'] === 0}
+                                    <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
                                     <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
-                                {:else if raising === false && players[u_dex - 1 % players.length]['bet'] === 0}
-                                    <button on:click={check} type="button" id="checkOpt" class="btn btn-primary">Check</button>
+                                {:else if raising === false}
+                                    <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
                                     <button on:click={() => {raising = true; chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                     <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                                 {:else}
@@ -642,7 +727,7 @@
                             {:else}
                                 <button on:click={() => tradeBtn('deckTrade')} type="button" id="tradeBtn" class="btn btn-primary">Deck Trade</button>
                                 <button on:click={() => tradeBtn('discardTrade')} type="button" id="tradeBtn" class="btn btn-primary">Discard Trade</button>
-                                {#if players[u_dex]["hand"].length > 2}
+                                {#if game["players"][u_dex]["hand"].length > 2}
                                     <button on:click={() => tradeBtn('discard')} type="button" id="tradeBtn" class="btn btn-primary">Discard</button>
                                 {/if}
                             {/if}
@@ -650,7 +735,7 @@
                         </div>
                     {/if}
                 {/if}
-            {:else if game["player_turn"] === user_id}
+            {:else if game["player_turn"] === user_id && game["completed"] && currentMove === movesDone - 1}
                 <div id="betDiv" class="backBlue brightBlue">
                     <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
                 </div>
@@ -658,6 +743,20 @@
         </div>
         <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>
+
+    {#if game["move_history"] !== undefined}
+        <h5>Game Playback | Move {currentMove + 1 || 0} of {movesDone}</h5>
+        <div class="playback-buttons-container">
+            <!-- Left arrow button -->
+            <button on:click={playback_back} class="playback-button back-playback-arrow"></button>
+            <!-- Number enter -->
+            <input bind:value={playbackInput} placeholder=". . ." class="playback-input" type="number" min="0" max={movesDone} on:input={() => playback(playbackInput - 1)}/>
+            <!-- Right arrow button -->
+            <button on:click={playback_forward} class="playback-button forward-playback-arrow"></button>
+        </div>
+    {/if}
+
+    <br>
 
     <h5>Game Settings</h5>
     <table class="game-settings-display-table">

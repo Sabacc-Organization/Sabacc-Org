@@ -10,6 +10,9 @@
     $: cardDesign = data.cardDesign;
     $: theme = data.theme;
     $: gamesData = data.gamesData;
+    $: {
+        console.log(gamesData["traditional_games"])
+    }
 
     // let gamesData: {[id:string] : any} = {
     //     "traditional_games": [],
@@ -30,6 +33,25 @@
             vidX = viewportSize[0] - 120;
         }
     });
+
+    function gameSort(decending: boolean, valueA: {[id: string]: any}, valueB: {[id: string]: any}, reverse: boolean, sortType: string){
+        if (sortType === "id"){
+            if (reverse){
+                return valueA["id"] - valueB["id"]
+            }
+        }
+    }
+
+    let sortReverse = false;
+    let sortType = 'id';
+    let showInactive = true;
+    let showCompleted = false;
+    let showMyTurn = false;
+    let searchValue = '';
+
+    $: {
+        gamesData["traditional_games"].sort((a, b: number) => a - b)
+    }
 
 </script>
 
@@ -60,6 +82,38 @@
     </div>
 
 {:else if loggedIn}
+
+    <div class="sort-search-filter">
+        <div class="searchContainer">
+            <h4>Search</h4>
+            <input bind:value={searchValue} type="text" name="search" id="searchBar" placeholder="Search">
+        </div>
+        <div class="sortContainer">
+            <h4>Sort</h4>
+            <label for="sort">sort by</label>
+            <select bind:value={sortType} name="sort" id="sortDropdown">
+                <option value="id">id</option>
+                <option value="playerTurn">player turn</option>
+                <option value="numOfPlayers">number of players</option>
+                <option value="lastMove">time since last move</option>
+                <option value="created">time since creation</option>
+            </select>
+            <button on:click={() => {sortReverse = !sortReverse}}>{sortReverse? "▼":"▲"}</button>
+        </div>
+        <div class="filterContainer">
+            <h4>Filter</h4>
+            <input bind:checked={showInactive} type="checkbox" name="inactiveGames">
+            <label for="inactiveGames">show inactive</label>
+            <br>
+
+            <input bind:checked={showCompleted} type="checkbox" name="completedGames">
+            <label for="completedGames">show completed</label>
+            <br>
+
+            <input bind:checked={showMyTurn} type="checkbox" name="myTurn">
+            <label for="myTurn">my turn</label>
+        </div>
+    </div>
 
     <h2>Your Active Games</h2>
     <br>

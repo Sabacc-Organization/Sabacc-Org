@@ -118,7 +118,11 @@
         let isSearched = true;
         if (searchValue != ""){
             isSearched = false;
-            if (String(game["id"]).includes(searchValue)){
+            if (
+                String(game["id"]).includes(searchValue) ||
+                game["phase"].includes(searchValue) ||
+                game["p_act"].includes(searchValue)
+            ){
                 isSearched = true;
             }
             for (let i = 0; i < game["players"].length; i++){
@@ -215,20 +219,30 @@
     <br>
     <table>
         <tr>
-            <th>Players</th>
-            <th>Turn</th>
-            <th>Game Link</th>
+            <th style="width: 1%;">ID</th>
+            <th style="width: 8%;">Players</th>
+            <th style="width: 3%;">Turn</th>
+            <th style="width: 2%;">Date Created</th>
+            <th style="width: 5%;">Last Move</th>
+            <th style="width: 1%;">Phase</th>
+            <th style="width: 1%;">Game Link</th>
         </tr>
 
         {#each traditionalGames || [] as game, i}
             {#if canShowGame(game, showOnlyActive, showOnlyIncomplete, showOnlyMyTurn, searchValue)}
                 <tr>
                     <td>
+                        {game["id"]}
+                    </td>
+                    <td>
                         {#each game["players"] as player, j}
                             {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
                         {/each}
                     </td>
                     <td>{game["player_turn"]}'s</td>
+                    <td>{new Date(game["created_at"]).toDateString()}</td>
+                    <td>{game["p_act"]}</td>
+                    <td>{game["phase"]}</td>
                     <td><a href="/game/traditional/{game["id"]}">Play</a></td>
                 </tr>
             {/if}
@@ -241,20 +255,30 @@
     <br>
     <table>
         <tr>
-            <th>Players</th>
-            <th>Turn</th>
-            <th>Game Link</th>
+            <th style="width: 1%;">ID</th>
+            <th style="width: 8%;">Players</th>
+            <th style="width: 3%;">Turn</th>
+            <th style="width: 2%;">Date Created</th>
+            <th style="width: 5%;">Last Move</th>
+            <th style="width: 1%;">Phase</th>
+            <th style="width: 1%;">Game Link</th>
         </tr>
 
         {#each corellianSpikeGames || [] as game, i}
             {#if canShowGame(game, showOnlyActive, showOnlyIncomplete, showOnlyMyTurn, searchValue)}
                 <tr>
                     <td>
+                        {game["id"]}
+                    </td>
+                    <td>
                         {#each game["players"] as player, j}
                             {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
                         {/each}
                     </td>
                     <td>{game["player_turn"]}'s</td>
+                    <td>{new Date(game["created_at"]).toDateString()}</td>
+                    <td>{game["p_act"]}</td>
+                    <td>{game["phase"]}</td>
                     <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
                 </tr>
             {/if}

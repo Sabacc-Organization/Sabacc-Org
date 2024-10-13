@@ -235,7 +235,7 @@
                     </td>
                     <td>
                         {#each game["players"] as player, j}
-                            {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
+                            {player["username"] + (j+1 < game["players"].length? ", ":"")}
                         {/each}
                     </td>
                     <td>{game["player_turn"]}'s</td>
@@ -282,7 +282,7 @@
                     </td>
                     <td>
                         {#each game["players"] as player, j}
-                            {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
+                        {player["username"] + (j+1 < game["players"].length? ", ":"")}
                         {/each}
                     </td>
                     <td>{game["player_turn"]}'s</td>

@@ -232,6 +232,7 @@ td select {
   table {
     border-collapse: collapse;
     width: 100%;
+    table-layout: fixed;
   }
   
   td, th {

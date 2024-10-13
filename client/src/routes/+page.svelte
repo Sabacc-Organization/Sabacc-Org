@@ -55,7 +55,7 @@
         return outputList;
     }
 
-    function gameSortEval(decending: boolean, valueA: {[id: string]: any}, valueB: {[id: string]: any}, sortType: string){
+    function gameSortEval(descending: boolean, valueA: {[id: string]: any}, valueB: {[id: string]: any}, sortType: string){
         let answer = 0;
         if (sortType === "id"){
             answer = valueA["id"] - valueB["id"];
@@ -86,15 +86,15 @@
             answer = lmB.getTime() - lmA.getTime();
         }
 
-        if (decending){
+        if (descending){
             return -1 * answer;
         }
         return answer;
     }
 
-    function canShowGame(game: {[id: string]: any}, showOnlyActive: boolean, showOnlyIncomplete: boolean, showOnlyMyTurn: boolean, searchValue: string){
+    function canShowGame(game: {[id: string]: any}, showOnlyActive: boolean, canShowCompleted: boolean, showOnlyMyTurn: boolean, searchValue: string){
         let answer = true;
-        if (showOnlyIncomplete === true && game["completed"] === true){
+        if (!canShowCompleted && game["completed"] === true){
             answer = false;
         }
 
@@ -119,14 +119,14 @@
         if (searchValue != ""){
             isSearched = false;
             if (
-                String(game["id"]).includes(searchValue) ||
-                game["phase"].includes(searchValue) ||
-                game["p_act"].includes(searchValue)
+                String(game["id"]).toLowerCase().includes(searchValue.toLowerCase()) ||
+                game["phase"].toLowerCase().includes(searchValue.toLowerCase()) ||
+                game["p_act"].toLowerCase().includes(searchValue.toLowerCase())
             ){
                 isSearched = true;
             }
             for (let i = 0; i < game["players"].length; i++){
-                if (game["players"][i]["username"].includes(searchValue)){
+                if (game["players"][i]["username"].toLowerCase().includes(searchValue.toLowerCase())){
                     isSearched = true
                     break
                 }
@@ -139,7 +139,7 @@
     let sortReverse = false;
     let sortType = 'id';
     let showOnlyActive = false;
-    let showOnlyIncomplete = false;
+    let showCompleted = false;
     let showOnlyMyTurn = false;
     let searchValue = '';
 
@@ -204,8 +204,8 @@
             <label for="inactiveGames">only show active games</label>
             <br>
 
-            <input bind:checked={showOnlyIncomplete} type="checkbox" name="completedGames">
-            <label for="completedGames">only show incomplete games</label>
+            <input bind:checked={showCompleted} type="checkbox" name="completedGames">
+            <label for="completedGames">show completed games</label>
             <br>
 
             <input bind:checked={showOnlyMyTurn} type="checkbox" name="myTurn">
@@ -213,7 +213,7 @@
         </div>
     </div>
 
-    <h2>Your Active Games</h2>
+    <h2>Your Games</h2>
     <br>
     <h3>Traditional Games</h3>
     <br>
@@ -223,13 +223,12 @@
             <th style="width: 8%;">Players</th>
             <th style="width: 3%;">Turn</th>
             <th style="width: 2%;">Date Created</th>
-            <th style="width: 5%;">Last Move</th>
-            <th style="width: 1%;">Phase</th>
+            <th style="width: 11%;">Last Move</th>
             <th style="width: 1%;">Game Link</th>
         </tr>
 
         {#each traditionalGames || [] as game, i}
-            {#if canShowGame(game, showOnlyActive, showOnlyIncomplete, showOnlyMyTurn, searchValue)}
+            {#if canShowGame(game, showOnlyActive, showCompleted, showOnlyMyTurn, searchValue)}
                 <tr>
                     <td>
                         {game["id"]}
@@ -240,9 +239,21 @@
                         {/each}
                     </td>
                     <td>{game["player_turn"]}'s</td>
-                    <td>{new Date(game["created_at"]).toDateString()}</td>
-                    <td>{game["p_act"]}</td>
-                    <td>{game["phase"]}</td>
+                    <td>
+                        {#if game["created_at"] != null}
+                            {new Date(game["created_at"]).toDateString()}
+                        {:else}
+                            N/A
+                        {/if}
+                    </td>
+                    <td>{game["p_act"]}
+                        {#if game["move_history"] !== null}
+                            {#if game["p_act"] === ""}
+                                new round
+                            {/if}
+                            on {new Date(game["move_history"].at(-1)["timestamp"]).toDateString()}
+                        {/if}
+                    </td>
                     <td><a href="/game/traditional/{game["id"]}">Play</a></td>
                 </tr>
             {/if}
@@ -259,13 +270,12 @@
             <th style="width: 8%;">Players</th>
             <th style="width: 3%;">Turn</th>
             <th style="width: 2%;">Date Created</th>
-            <th style="width: 5%;">Last Move</th>
-            <th style="width: 1%;">Phase</th>
+            <th style="width: 11%;">Last Move</th>
             <th style="width: 1%;">Game Link</th>
         </tr>
 
         {#each corellianSpikeGames || [] as game, i}
-            {#if canShowGame(game, showOnlyActive, showOnlyIncomplete, showOnlyMyTurn, searchValue)}
+            {#if canShowGame(game, showOnlyActive, showCompleted, showOnlyMyTurn, searchValue)}
                 <tr>
                     <td>
                         {game["id"]}
@@ -276,9 +286,18 @@
                         {/each}
                     </td>
                     <td>{game["player_turn"]}'s</td>
-                    <td>{new Date(game["created_at"]).toDateString()}</td>
-                    <td>{game["p_act"]}</td>
-                    <td>{game["phase"]}</td>
+                    <td>
+                        {#if game["created_at"] != null}
+                            {new Date(game["created_at"]).toDateString()}
+                        {:else}
+                            N/A
+                        {/if}
+                    </td>
+                    <td>{game["p_act"]}
+                        {#if game["move_history"] !== null}
+                            on {new Date(game["move_history"].at(-1)["timestamp"]).toDateString()}
+                        {/if}
+                    </td>
                     <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
                 </tr>
             {/if}

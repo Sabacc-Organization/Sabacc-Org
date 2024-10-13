@@ -744,8 +744,15 @@
         <div class="mobileActBox" class:playing={u_dex != -1}></div>
     </div>
 
-    {#if game["move_history"] !== undefined}
+    {#if game["move_history"] !== undefined && game["move_history"] !== null}
         <h5>Game Playback | Move {currentMove + 1 || 0} of {movesDone}</h5>
+        <h5>
+            {#if currentMove === -1}
+                {new Date(game["created_at"]).toUTCString()}
+            {:else}
+                {new Date(game["move_history"].at(currentMove)["timestamp"]).toUTCString()}
+            {/if}
+        </h5>
         <div class="playback-buttons-container">
             <!-- Left arrow button -->
             <button on:click={playback_back} class="playback-button back-playback-arrow"></button>

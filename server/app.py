@@ -371,8 +371,6 @@ def returnGameInfo(clientInfo):
     # Return game data
     temp = game.toDict()
     temp.pop('deck')
-    if temp["created_at"]:
-        temp["created_at"] = temp["created_at"].isoformat()
 
     return {"message": "Good luck!", "gata": temp, "user_id": int(user_id), "username": username}
 

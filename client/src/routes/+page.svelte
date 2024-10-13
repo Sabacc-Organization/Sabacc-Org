@@ -10,8 +10,19 @@
     $: cardDesign = data.cardDesign;
     $: theme = data.theme;
     $: gamesData = data.gamesData;
+
+    let traditionalGames: {[id: string]: any}[] = [];
+    let corellianSpikeGames: {[id: string]: any}[] = [];
+
     $: {
-        console.log(gamesData["traditional_games"])
+        if (gamesData != undefined){
+            traditionalGames = gamesZip(gamesData["traditional_games"], gamesData["traditional_player_turn_usernames"]);
+            corellianSpikeGames = gamesZip(gamesData["corellian_spike_games"], gamesData["corellian_spike_player_turn_usernames"]);
+        }
+    }
+
+    $: {
+        console.log(traditionalGames);
     }
 
     // let gamesData: {[id:string] : any} = {
@@ -34,23 +45,106 @@
         }
     });
 
-    function gameSort(decending: boolean, valueA: {[id: string]: any}, valueB: {[id: string]: any}, reverse: boolean, sortType: string){
+    function gamesZip(listA: {[id: string]: any}[], listB: any[]){
+        let minListLen = Math.min(listA.length, listB.length);
+        let outputList = [... listA];
+
+        for (let i = 0; i < minListLen; i++){
+            outputList[i]["player_turn"] = listB[i];
+        }
+        return outputList;
+    }
+
+    function gameSortEval(decending: boolean, valueA: {[id: string]: any}, valueB: {[id: string]: any}, sortType: string){
+        let answer = 0;
         if (sortType === "id"){
-            if (reverse){
-                return valueA["id"] - valueB["id"]
+            answer = valueA["id"] - valueB["id"];
+        } else if (sortType === "numOfPlayers"){
+            answer = valueA["players"].length - valueB["players"].length;
+        } else if (sortType === "playerTurn"){
+            answer = valueA["player_turn"].localeCompare(valueB["player_turn"]);
+        } else if (sortType === "created"){
+            let crA = new Date(valueA["created_at"]);
+            let crB = new Date(valueB["created_at"]);
+            answer = crB.getTime() - crA.getTime();
+        } else if (sortType === "lastMove"){
+            let lmA: Date;
+            let lmB: Date;
+
+            if (valueA["move_history"] != null){
+                lmA = new Date(valueA["move_history"].at(-1)["timestamp"]);
+            } else {
+                lmA = new Date(valueA["created_at"]);
+            }
+
+            if (valueB["move_history"] != null){
+                lmB = new Date(valueB["move_history"].at(-1)["timestamp"]);
+            } else {
+                lmB = new Date(valueB["created_at"]);
+            }
+
+            answer = lmB.getTime() - lmA.getTime();
+        }
+
+        if (decending){
+            return -1 * answer;
+        }
+        return answer;
+    }
+
+    function canShowGame(game: {[id: string]: any}, showOnlyActive: boolean, showOnlyIncomplete: boolean, showOnlyMyTurn: boolean, searchValue: string){
+        let answer = true;
+        if (showOnlyIncomplete === true && game["completed"] === true){
+            answer = false;
+        }
+
+        if (showOnlyActive === true){
+            let gameLM: Date;
+            if (game["move_history"] != null){
+                gameLM = new Date(game["move_history"][-1])
+            } else {
+                gameLM = new Date(Date.now())
+            }
+
+            if (Date.now() - gameLM.getTime() > 1.728e+8){
+                answer = false
             }
         }
+
+        if (showOnlyMyTurn === true && game["player_turn"] != username){
+            answer = false
+        }
+
+        let isSearched = true;
+        if (searchValue != ""){
+            isSearched = false;
+            if (String(game["id"]).includes(searchValue)){
+                isSearched = true;
+            }
+            for (let i = 0; i < game["players"].length; i++){
+                if (game["players"][i]["username"].includes(searchValue)){
+                    isSearched = true
+                    break
+                }
+            }
+        }
+
+        return (answer && isSearched);
     }
 
     let sortReverse = false;
     let sortType = 'id';
-    let showInactive = true;
-    let showCompleted = false;
-    let showMyTurn = false;
+    let showOnlyActive = false;
+    let showOnlyIncomplete = false;
+    let showOnlyMyTurn = false;
     let searchValue = '';
 
     $: {
-        gamesData["traditional_games"].sort((a, b: number) => a - b)
+        traditionalGames = traditionalGames.sort((a: {[id: string]: any}, b: {[id: string]: any}) => gameSortEval(false, a, b, "id"));
+        corellianSpikeGames = corellianSpikeGames.sort((a: {[id: string]: any}, b: {[id: string]: any}) => gameSortEval(false, a, b, "id"));
+
+        traditionalGames = traditionalGames.sort((a: {[id: string]: any}, b: {[id: string]: any}) => gameSortEval(sortReverse, a, b, sortType));
+        corellianSpikeGames = corellianSpikeGames.sort((a: {[id: string]: any}, b: {[id: string]: any}) => gameSortEval(sortReverse, a, b, sortType));
     }
 
 </script>
@@ -102,16 +196,16 @@
         </div>
         <div class="filterContainer">
             <h4>Filter</h4>
-            <input bind:checked={showInactive} type="checkbox" name="inactiveGames">
-            <label for="inactiveGames">show inactive</label>
+            <input bind:checked={showOnlyActive} type="checkbox" name="inactiveGames">
+            <label for="inactiveGames">only show active games</label>
             <br>
 
-            <input bind:checked={showCompleted} type="checkbox" name="completedGames">
-            <label for="completedGames">show completed</label>
+            <input bind:checked={showOnlyIncomplete} type="checkbox" name="completedGames">
+            <label for="completedGames">only show incomplete games</label>
             <br>
 
-            <input bind:checked={showMyTurn} type="checkbox" name="myTurn">
-            <label for="myTurn">my turn</label>
+            <input bind:checked={showOnlyMyTurn} type="checkbox" name="myTurn">
+            <label for="myTurn">only show games where its my turn</label>
         </div>
     </div>
 
@@ -126,18 +220,18 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["traditional_games"] || [] as game, i}
-
-            <tr>
-                <td>
-                    {#each game["players"] as player, j}
-                        {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
-                    {/each}
-                </td>
-                <td>{gamesData["traditional_player_turn_usernames"][i]}'s</td>
-                <td><a href="/game/traditional/{game["id"]}">Play</a></td>
-            </tr>
-
+        {#each traditionalGames || [] as game, i}
+            {#if canShowGame(game, showOnlyActive, showOnlyIncomplete, showOnlyMyTurn, searchValue)}
+                <tr>
+                    <td>
+                        {#each game["players"] as player, j}
+                            {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
+                        {/each}
+                    </td>
+                    <td>{game["player_turn"]}'s</td>
+                    <td><a href="/game/traditional/{game["id"]}">Play</a></td>
+                </tr>
+            {/if}
         {/each}
 
     </table>
@@ -152,18 +246,18 @@
             <th>Game Link</th>
         </tr>
 
-        {#each gamesData["corellian_spike_games"] || [] as game, i}
-
-            <tr>
-                <td>
-                    {#each game["players"] as player, j}
-                        {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
-                    {/each}
-                </td>
-                <td>{gamesData["corellian_spike_player_turn_usernames"][i]}'s</td>
-                <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
-            </tr>
-
+        {#each corellianSpikeGames || [] as game, i}
+            {#if canShowGame(game, showOnlyActive, showOnlyIncomplete, showOnlyMyTurn, searchValue)}
+                <tr>
+                    <td>
+                        {#each game["players"] as player, j}
+                            {player["username"]}{#if j+1 < game["players"].length},&nbsp;{/if}
+                        {/each}
+                    </td>
+                    <td>{game["player_turn"]}'s</td>
+                    <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
+                </tr>
+            {/if}
         {/each}
 
     </table>

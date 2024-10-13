@@ -1,3 +1,39 @@
+.sort-search-filter{
+  background-color: lightgray;
+  width: 30%;
+  margin: auto;
+  margin-bottom: 50px;
+  display: grid;
+  grid-auto-flow: row;
+  padding: 30px;
+  gap: 5px;
+
+  border-radius: 40px;
+}
+
+.searchContainer{
+  background-color: gray;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.sortContainer{
+  background-color: gray;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.sortContainer > button, .sortContainer > button:focus{
+  background-color: rgba(0, 0, 0, 0);
+  border: none rgba(0, 0, 0, 0);
+}
+
+.filterContainer{
+  background-color: gray;
+  padding: 10px;
+  border-radius: 10px;
+}
+
 nav .navbar-brand
 {
     /* size for brand */

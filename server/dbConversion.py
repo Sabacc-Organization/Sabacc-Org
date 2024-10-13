@@ -5,6 +5,7 @@ from dataHelpers import *
 from traditional.traditionalHelpers import *
 from corellian_spike.corellianHelpers import *
 from colorama import Fore
+from datetime import datetime, timezone
 import json
 
 
@@ -209,3 +210,21 @@ def convertPreSettingsToPostSettings(db, traditional_card_type, traditional_play
     print(f"Converted {numCorellianSpikeGamesCopied} out of {len(allCorellianSpikeGames)} Corellian Spike Games")
     print(f"Converted {numTraditionalGamesCopied + numCorellianSpikeGamesCopied} out of {len(allTraditionalGames) + len(allCorellianSpikeGames)} Games")
     print(f"{Fore.GREEN}Done!{Fore.WHITE}")
+
+# converting games tables created_at from TIMESTAMP to TIMESTAMPTZ
+def convertDBToTimestamptz(db, alterTables=True):
+    if alterTables:
+        db.execute("ALTER TABLE traditional_games ALTER COLUMN created_at TYPE TIMESTAMPTZ;")
+        db.execute("ALTER TABLE traditional_games ALTER COLUMN created_at SET DEFAULT NOW();")
+        db.execute("ALTER TABLE corellian_spike_games ALTER COLUMN created_at TYPE TIMESTAMPTZ;")
+        db.execute("ALTER TABLE corellian_spike_games ALTER COLUMN created_at SET DEFAULT NOW();")
+
+    traditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games WHERE created_at IS NOT NULL;").fetchall()]
+
+    for game in traditionalGames:
+        db.execute("UPDATE traditional_games SET created_at = %s WHERE game_id = %s;", (datetime(game.created_at.year, game.created_at.month, game.created_at.day, game.created_at.hour, game.created_at.minute, game.created_at.second, game.created_at.microsecond, tzinfo=timezone.utc), game.id))
+
+    corellianSpikeGames = [CorellianSpikeGame.fromDb(game) for game in db.execute("SELECT * FROM corellian_spike_games WHERE created_at IS NOT NULL;").fetchall()]
+
+    for game in corellianSpikeGames:
+        db.execute("UPDATE corellian_spike_games SET created_at = %s WHERE game_id = %s;", (datetime(game.created_at.year, game.created_at.month, game.created_at.day, game.created_at.hour, game.created_at.minute, game.created_at.second, game.created_at.microsecond, tzinfo=timezone.utc), game.id))

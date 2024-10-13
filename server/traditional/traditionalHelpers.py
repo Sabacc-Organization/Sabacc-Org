@@ -281,7 +281,7 @@ class TraditionalGame(Game):
             'shift': self._shift,
             'completed': self.completed,
             'settings': self.settings,
-            'created_at': self.created_at,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
             'move_history': self.move_history
         }
     @staticmethod

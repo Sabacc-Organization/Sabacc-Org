@@ -1,0 +1,192 @@
+/* Base button styling */
+.playback-button {
+    width: 60px;
+    height: 60px;
+    background-color: #007bff; /* Button background color */
+    border: none;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px; /* Rounded corners */
+    transition: background-color 0.3s ease;
+}
+
+/* Change button color on hover */
+.playback-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+/* Left arrow styling */
+.back-playback-arrow::before {
+    content: "";
+    width: 0;
+    height: 0;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-right: 18px solid white; /* Triangle color */
+    position: absolute;
+}
+
+/* Right arrow styling */
+.forward-playback-arrow::before {
+    content: "";
+    width: 0;
+    height: 0;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-left: 18px solid white; /* Triangle color */
+    position: absolute;
+}
+
+.own:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#deck.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#discard {
+    background-image: none;
+    background-color: rgb(226, 182, 24);
+}
+
+#discard.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+.dieContainer{
+    display: contents;
+}
+
+.imperial-credits-logo{
+    display: inline-block;
+    width: 20px;
+    aspect-ratio: 1 / 1;
+    background-image: url("/images/imperial-credit.svg");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.alderaan {
+    background-image: url("/images/alderaan.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    width: 200px;
+    height: 200px;
+    border-radius: 100px;
+    margin: 1%;
+}
+
+#alderaan.active:hover {
+    box-shadow:
+    inset 0 0 50px #ff9f10,
+    0 0 50px #ff9f10
+}
+
+#pots.active:hover {
+    box-shadow:
+    inset 0 0 50px #fff,
+    0 0 50px #fff
+}
+
+#alderaan.alderaanBlown {
+    background-image: url("/images/alderaanExplode.webp");
+}
+
+/* styles will ignore cardContainer unless they choose to usi */
+.cardsContainer{
+    display: contents;
+}
+
+.cardContainer{
+    display: grid;
+    grid-auto-flow: row;
+    text-shadow: 1px 1px 0px #FFF,  -1px 1px 0px #FFF,  1px -1px 0px #FFF,  -1px -1px 0px #FFF;
+}
+
+/* Credits stuff */
+.backBlue{
+    background-color: rgb(14, 91, 121);
+}
+
+.backBlue.turnGlow{
+    background-color: rgb(14, 148, 201);
+    box-shadow: 0px 0px 2px 2px rgba(255,255,0,1);
+}
+
+.backBlue.brightBlue{
+    background-color: rgb(14, 148, 201);
+}
+
+.backRed{
+    background-color: #8d2727;
+}
+
+.backRed.turnGlow{
+    background-color: #ed3b3b;
+    box-shadow: 0px 0px 2px 2px rgba(255,255,0,1);
+}
+
+.chip
+{
+    width: 20px;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    margin: 0;
+    padding: 0;
+}
+
+.bigChip
+{
+    background-color: #ffee00;
+}
+
+.midChip
+{
+    background-color: #ccc;
+}
+
+.lowChip
+{
+    background-color: #ff9f10;
+}
+
+.betPile
+{
+    padding: 20px;
+}
+
+.draggable {
+    padding: 1rem;
+    background-color: white;
+    border: 1px solid black;
+    cursor: move;
+}
+
+.draggable.dragging {
+    opacity: .5;
+}
+
+.shiftActive {
+    background-color: #2196F3;
+    border-radius: 10%;
+}
+
+.shiftActive:hover {
+    box-shadow:
+    inset 0 0 7px #fff,
+    0 0 7px #fff;
+}
+
+.mobileActBox{
+    display: none;
+}

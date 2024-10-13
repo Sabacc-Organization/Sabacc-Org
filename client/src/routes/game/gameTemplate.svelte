@@ -2,7 +2,7 @@
     import { page } from '$app/stores';
     import { onDestroy, onMount } from 'svelte';
     import { io } from 'socket.io-client';
-  import Page from '../+page.svelte';
+    import Page from '../+page.svelte';
 
     // URLs for Requests and Redirects
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -27,7 +27,7 @@
     export let game_variant: string;
     export let username: string;
     export let password: string;
-    export let dark: string;
+    export let dark: boolean;
     export let cardDesign: string;
     export let theme: string;
 
@@ -492,7 +492,7 @@
     });
 
     // game replay stuff
-    var currentMove: number | undefined;
+    let currentMove: number | undefined;
     let playbackInput: number | undefined;
     $: {
         if ((game["move_history"] !== null && game["move_history"] !== undefined) && currentMove === undefined) {
@@ -544,6 +544,12 @@
 <svelte:head>
   <title>Sabacc: Game {game_id}</title>
 </svelte:head>
+
+<link rel="stylesheet" href="/styles/main/styles-game.css">
+{#if theme === "modern"}
+    <link rel="stylesheet" href="/styles/modern/modern-game.css">
+    <link rel="stylesheet" href="/styles/modern/modern-players.css">
+{/if}
 
 {#if dataToRender}
     <h1 class="header">{header}</h1>

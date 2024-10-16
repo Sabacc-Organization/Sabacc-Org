@@ -6,23 +6,8 @@
         socket,
         turnSound,
         game,
-        thisPlayer,
-        betCreds,
-        user_id,
-        activePlayers,
-        chipInput,
-        raising,
-        raiseAmount,
-        potsActive,
-        followAmount,
         u_dex,
         game_variant,
-        tradeCard,
-        alderaanActive,
-        cardBool,
-        movesDone,
-        currentMove,
-        shiftActive,
         game_id,
         dataToRender,
         header,
@@ -45,7 +30,6 @@
     import ActionBox from "./actionBox.svelte";
     import GamePlayback from "./gamePlayback.svelte";
 
-    
     // Data passed from +page.svelte
     export let _game_variant: string;
     export let _username: string;
@@ -110,7 +94,6 @@
             resetGameStores();
         }
     });
-    $: console.log($dataToRender);
 </script>
 
 <svelte:head>
@@ -177,10 +160,3 @@
         <div class="mobileActSpacer"></div>
     {/if}
 {/if}
-
-
-<style>
-    .shift1 {
-        background-color: #0cc23c;
-    }
-</style>

@@ -1,6 +1,6 @@
 <script lang="ts">
 
-    import {  
+    import {
         potsActive,
         game,
         u_dex,

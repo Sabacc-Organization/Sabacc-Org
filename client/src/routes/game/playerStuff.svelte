@@ -1,6 +1,6 @@
 <script lang="ts">
 
-    import {  
+    import {
         orderedPlayers,
         username,
         game,
@@ -11,7 +11,7 @@
         game_id,
     } from "./sharedValues";
 
-    import { 
+    import {
         trade,
         handleChipPress,
         clickOrDblclick,
@@ -33,10 +33,9 @@
                 "action": "protect",
                 "protect": card
             }
-            $socket.emit('gameAction', clientInfo)
+            $socket!.emit('gameAction', clientInfo)
         }
     }
-    $: console.log($orderedPlayers);
 </script>
 
 <div id="{p['username']}Stuff" class:folded={p['folded']} class="parent player{$orderedPlayers.indexOf(p)} playerStuff" class:playing={p['username'] === $username}>
@@ -92,10 +91,10 @@
         {/each}
     </div>
 
-     <!-- Player boxes -->
-     {#if p['username'] === $username}
-     <!-- svelte-ignore a11y-click-events-have-key-events -->
-     <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- Player boxes -->
+    {#if p['username'] === $username}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div id="{p['username']}Box" class="backBlue {$game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox">
         <h5>{p['username']}</h5> 
         <div class="parent">

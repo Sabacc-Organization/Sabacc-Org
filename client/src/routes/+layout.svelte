@@ -12,8 +12,6 @@
     $: cardDesign = data.cardDesign;
     $: theme = data.theme;
 
-    
-
     function initializeDropdown() {
         if (window.jQuery && window.jQuery.fn.dropdown) {
             window.jQuery(document).ready(() => {
@@ -57,6 +55,7 @@
 
         <!-- General CSS -->
         <link href="/styles/main/styles.css" rel="stylesheet">
+        <link rel="stylesheet" href="/styles/main/styles-homepage.css">
 
         {#if loggedIn === true}
             {#if dark === "true"}

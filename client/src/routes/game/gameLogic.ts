@@ -32,7 +32,6 @@ import {
     shiftActive,
     greatestBet
 } from './sharedValues';
-import { data } from 'jquery';
 
 export function requestGameUpdate() {
     // client info to send to server so it knows who its sending this info back to.
@@ -57,7 +56,10 @@ export function updateClientGame(serverInfo: any) {
 
     // Set game data
     for (let key in serverInfo['gata']){
-        get(game)[key] = serverInfo['gata'][key]
+        game.update((value) => {
+            value[key] = serverInfo['gata'][key];
+            return value;
+        });
     }
 
     if (get(game)["move_history"] !== undefined && get(game)["move_history"] !== null) {
@@ -163,9 +165,7 @@ export function numOfActivePlayers() {
 
 export function bet(action: string) {
     let players = get(game)["players"];
-    console.log("aa")
     if (get(potsActive) === true) {
-        console.log("sss")
         if ((isNaN(get(betCreds)!) || get(betCreds)! < 0 || get(betCreds)! > players[get(u_dex)]['credits']) && action != "fold") {
             betErr.set("Please input a number of credits you would like to bet(an integer 0 to " + players[get(u_dex)]['credits'] + ")");
         } else {

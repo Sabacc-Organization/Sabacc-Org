@@ -24,6 +24,10 @@
         border-radius: 10px;
     }
 
+    .sortContainer button{
+        color: inherit;
+    }
+
     .sortContainer > button, .sortContainer > button:focus{
         background-color: rgba(0, 0, 0, 0);
         border: none rgba(0, 0, 0, 0);

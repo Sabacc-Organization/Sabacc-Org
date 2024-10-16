@@ -1,6 +1,6 @@
 <script lang="ts">
 
-    import {  
+    import {
         game,
         currentMove,
         movesDone,

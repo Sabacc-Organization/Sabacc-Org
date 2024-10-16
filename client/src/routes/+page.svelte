@@ -153,8 +153,6 @@
   <title>Sabacc: Home</title>
 </svelte:head>
 
-<link rel="stylesheet" href="/styles/main/styles-homepage.css">
-
 {#if loggedIn === false}
 
     <h2>Sabacc</h2>
@@ -300,11 +298,7 @@
                 </tr>
             {/if}
         {/each}
-
     </table>
-
-    
-
 {/if}
 
 <div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->

@@ -21,10 +21,6 @@
         }
     }
 
-    $: {
-        console.log(traditionalGames);
-    }
-
     // let gamesData: {[id:string] : any} = {
     //     "traditional_games": [],
     //     "traditional_player_turn_usernames": [],
@@ -39,7 +35,7 @@
     onMount( async () => {
         viewportProbe = document.getElementById('viewportProbe')!;
         let viewportSize = [viewportProbe?.clientWidth, viewportProbe?.clientHeight];
-        console.log(viewportSize);
+        // console.log(viewportSize);
         if (viewportSize[0] < 560){
             vidX = viewportSize[0] - 120;
         }
@@ -156,6 +152,8 @@
 <svelte:head>
   <title>Sabacc: Home</title>
 </svelte:head>
+
+<link rel="stylesheet" href="/styles/main/styles-homepage.css">
 
 {#if loggedIn === false}
 

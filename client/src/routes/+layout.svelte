@@ -27,7 +27,6 @@
         initializeDropdown();
     });
 
-
 </script>
 
 <svelte:head>
@@ -58,21 +57,12 @@
 
         <!-- General CSS -->
         <link href="/styles/main/styles.css" rel="stylesheet">
-        <link rel="stylesheet" href="/styles/main/styles-homepage.css">
 
         {#if loggedIn === true}
             {#if dark === "true"}
                 <!-- Light/Dark mode -->
                 <link href="/styles/main/dark.css" rel="stylesheet">
             {/if}
-
-            {#if theme != undefined}
-                <!-- Theme -->
-                <link href="/styles/{theme}/{theme}.css" rel="stylesheet">
-                <link href="/styles/{theme}/{theme}-mobile.css" rel="stylesheet">
-            {/if}
-        {:else}
-            <link href="/rebels.css" rel="stylesheet">
         {/if}
 
 

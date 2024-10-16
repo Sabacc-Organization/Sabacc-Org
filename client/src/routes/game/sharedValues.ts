@@ -2,10 +2,6 @@ import { Socket, io } from "socket.io-client";
 import { writable, derived, type Writable } from "svelte/store";
 import { page } from '$app/stores';
 
-// URLs for Requests and Redirects
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
-
 //socket.io
 export const socket: Writable<Socket|null> = writable(null);
 
@@ -73,3 +69,64 @@ export const shiftActive = writable(false);
 // playback
 export const currentMove: Writable<number|null> = writable(null);
 export const playbackInput: Writable<number|null> = writable(null);
+
+export function resetGameStores() {
+  socket.set(null);
+  game_variant.set(null);
+  username.set(null);
+  password.set(null);
+  dark.set(null);
+  theme.set(null);
+  cardDesign.set(null);
+
+//   game_id.set(null);
+  dataToRender.set(false);
+  header.set("");
+
+  game.set({
+    "p_act": "",
+    "players": [],
+    "hand_pot": 0,
+    "sabacc_pot": 0,
+    "phase": "",
+    "shift": 0,
+    "player_turn": -1,
+    "completed": 0,
+    "cycle_count": 0
+  });
+
+  orderedPlayers.set([]);
+  greatestBet.set(0);
+
+  user_id.set(-1);
+  u_dex.set(-1);
+
+  activePlayers.set([]);
+  thisPlayer.set(null);
+
+  turnSound.set(null);
+
+  isWaitingOnClick.set(false);
+  backupServerInfo.set(null);
+  movesDone.set(0);
+
+  betCreds.set(null);
+  betErr.set("");
+  raising.set(false);
+
+  chipInput.set(false);
+  raiseAmount.set(0);
+  followAmount.set(0);
+  potsActive.set(false);
+
+  cardBool.set(false);
+  alderaanActive.set(false);
+
+  tradeType.set("none");
+  tradeCard.set({});
+
+  shiftActive.set(false);
+
+  currentMove.set(null);
+  playbackInput.set(null);
+}

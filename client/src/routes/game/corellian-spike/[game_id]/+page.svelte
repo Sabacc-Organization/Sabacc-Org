@@ -1,5 +1,5 @@
 <script lang="ts">
-    import GameTemplate, { BACKEND_URL, FRONTEND_URL, socket } from "../../gameTemplate.svelte";
+    import GameTemplate from "../../gameTemplate.svelte";
     import { page } from '$app/stores'
 
     /** @type {import('./$types').PageData} */
@@ -47,4 +47,4 @@
     }
 </script>
 
-<GameTemplate {game_variant} {username} {password} {dark} {cardDesign} {theme} {renderBack} {renderCard} onDBClickCard={() => {}}/>
+<GameTemplate _game_variant={game_variant} _username={username} _password={password} _dark={dark} _cardDesign={cardDesign} _theme={theme} {renderCard} {renderBack}/>

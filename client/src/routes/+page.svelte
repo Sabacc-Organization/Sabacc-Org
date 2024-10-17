@@ -21,10 +21,6 @@
         }
     }
 
-    $: {
-        console.log(traditionalGames);
-    }
-
     // let gamesData: {[id:string] : any} = {
     //     "traditional_games": [],
     //     "traditional_player_turn_usernames": [],
@@ -39,7 +35,7 @@
     onMount( async () => {
         viewportProbe = document.getElementById('viewportProbe')!;
         let viewportSize = [viewportProbe?.clientWidth, viewportProbe?.clientHeight];
-        console.log(viewportSize);
+        // console.log(viewportSize);
         if (viewportSize[0] < 560){
             vidX = viewportSize[0] - 120;
         }
@@ -302,11 +298,7 @@
                 </tr>
             {/if}
         {/each}
-
     </table>
-
-    
-
 {/if}
 
 <div id="viewportProbe" style="z-index: -1; position: absolute; top: 0px; left: 0px; height: 100%; width: 100%;"></div> <!-- it will always be the same size as the viewport -->

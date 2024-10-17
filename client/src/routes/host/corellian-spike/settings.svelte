@@ -44,9 +44,6 @@
 
 <table class="game-settings-table">
     <tr>
-        <th colspan="2" class="text-center">Game Settings</th>
-    </tr>
-    <tr>
         <td>Hand Ranking</td>
         <td>
             <select bind:value={handRanking} name="handRanking" class="form-control-sm" required>

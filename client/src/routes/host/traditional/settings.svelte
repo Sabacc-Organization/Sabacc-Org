@@ -32,9 +32,6 @@
 
 <table class="game-settings-table">
     <tr>
-        <th colspan="2" class="text-center">Game Settings</th>
-    </tr>
-    <tr>
         <th colspan="2" class="text-center">Credits & Antes</th>
     </tr>
     <tr>

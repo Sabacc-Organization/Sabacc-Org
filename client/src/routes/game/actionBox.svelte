@@ -37,6 +37,16 @@
     // actBox reacitivity
 
     // Betting Phase
+
+    $: {
+        $greatestBet = 0;
+        for (let player of $game['players']) {
+            if (player['bet'] > $greatestBet) {
+                $greatestBet = player['bet'];
+            }
+        }
+    }
+
     $: {
         if ($game["completed"] == 0 && $game["player_turn"] === $user_id && $game["phase"] === "betting"){
             if ($activePlayers.indexOf($thisPlayer) === 0 && $activePlayers[1]['bet'] === null){

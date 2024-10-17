@@ -90,7 +90,7 @@ export function updateGame(info:any) {
         if (!element['folded']) {
             activePlayers.update((value) => [...value, element]);
         }
-        if (element['bet'] > greatestBet) {
+        if (element['bet'] > get(greatestBet)) {
             greatestBet.set(element['bet']);
         }
     });

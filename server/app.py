@@ -23,6 +23,7 @@ import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
 import signal
+from datetime import datetime
 
 # Get config.yml data
 config = {}
@@ -120,7 +121,7 @@ register_composite(traditional.traditionalHelpers.traditionalPlayerType, db)
 print("Registered Traditional custom types")
 
 # create Traditional tables
-db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\" : 1000 }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
 print("Created Traditional table")
 conn.commit()
 
@@ -173,19 +174,11 @@ register_composite(corellian_spike.corellianHelpers.corellianSpikePlayerType, db
 print("Registered CorellianSpike custom types")
 
 # create CorellianSpike tables
-db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false)")
+db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\": 1000, \"HandRanking\": \"Wayne\", \"DeckDrawCost\": 5, \"DiscardDrawCost\": 10, \"DeckTradeCost\": 10, \"DiscardTradeCost\": 15, \"DiscardCosts\": [15, 20, 25] }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
 print("Created CorellianSpike table")
 conn.commit()
 
-# # create test game
-# if len(db.execute("SELECT game_id FROM games").fetchall()) == 0:
-#     deck = [Card(val=n, suit=Suit.COINS) for n in range(1,11)]
-#     hand = [Card(-2, Suit.NEGATIVE_NEUTRAL)] * 2
-#     players = [Player(id=1,username='thrawn',credits=1000,hand=hand,lastAction='bet')]
-#     game = Game(id=1,players=players,deck=deck,player_turn=1,p_act='trade',hand_pot=5,sabacc_pot=10)
-#     dbGame = game.toDb(card_type, player_type)
-#     db.execute("INSERT INTO games VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", dbGame)
-#     conn.commit()
+""" DB Conversions: """
 
 """ copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
 # dbConversion.convertSqliteToPsql(db=db, card_type=traditional.traditionalHelpers.traditionalCardType, player_type=traditional.traditionalHelpers.traditionalPlayerType)
@@ -196,7 +189,13 @@ conn.commit()
 # dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
 # conn.commit()
 
+""" transfer old games which did not have settings or timestamps to new tables """ # Uncomment to run - DO NOT DELETE
+# dbConversion.convertPreSettingsToPostSettings(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType, corellian_spike.corellianHelpers.corellianSpikeCardType, corellian_spike.corellianHelpers.corellianSpikePlayerType)
+# conn.commit()
 
+""" convert games created_at columns from TIMESTAMP to TIMESTAMPTZ """ # Uncomment to run - DO NOT DELETE
+# dbConversion.convertDBToTimestamptz(db, alterTables=True)
+# conn.commit()
 
 """ REST APIs """
 
@@ -269,7 +268,7 @@ def index():
 
     # Remove games that have been completed and that are not relevant to the player
     for game in allTraditionalGames:
-        if game.containsPlayer(id=user_id) and not game.completed:
+        if game.containsPlayer(id=user_id):
             traditionalGames.append(game)
             traditionalPlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
@@ -281,7 +280,7 @@ def index():
 
     # Remove games that have been completed and that are not relevant to the player
     for game in allCorellianSpikeGames:
-        if game.containsPlayer(id=user_id) and not game.completed:
+        if game.containsPlayer(id=user_id):
             corellianSpikeGames.append(game)
             corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
@@ -381,19 +380,11 @@ def getGameClientInfo(clientInfo):
 #         db.execute("SELECT id FROM users WHERE username = %s", [username])
 #         user_id = getDictsForDB(db)[0]["id"]
 
-#     # Get list of usernames of players in game
-#     users = []
-#     for u in game.players:
-#         if not u.folded:
-#             db.execute("SELECT id, username FROM users WHERE id = %s", [int(u.id)])
-#             users.append(getDictsForDB(db)[0]["username"])
+    # Return game data
+    temp = game.toDict()
+    temp.pop('deck')
 
-#     print(users)
-
-#     # Return game data
-#     temp = game.toDict()
-#     temp.pop('deck')
-#     return {"message": "Good luck!", "gata": temp, "users": users, "user_id": int(user_id), "username": username}
+    return {"message": "Good luck!", "gata": temp, "user_id": int(user_id), "username": username}
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
@@ -441,11 +432,11 @@ def host():
     if game_variant != "traditional" and game_variant != "corellian_spike":
         return jsonify({"message": "Invalid game variant"}), 401
 
+    # Create new game
     if game_variant == "traditional":
-        # create game
-        game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
+        game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
     elif game_variant == "corellian_spike":
-        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, startingCredits=1000, db=db)
+        game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
 
     if not game:
         return jsonify({"message": "Invalid game variant"}), 401

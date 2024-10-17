@@ -1,0 +1,189 @@
+/* head */
+    #psHeader{
+        color: #ffffff;
+    }
+
+    #phase{
+        color: #ffffff;
+    }
+/* head */
+
+#table {
+    position: relative;
+    background-image: url("/images/modern-theme-images/tables/SabaccTableFixedAlpha.png");
+    background-repeat: no-repeat, no-repeat;
+    background-size: cover;
+    margin: auto auto;
+    z-index: 1;
+    width: 100%;
+    aspect-ratio: 256 / 159;
+}
+
+/* table content */
+    #tableCont{
+        position: relative;
+        z-index: 1;
+        width: 72%;
+        margin: 10% auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #pAction{
+        color: white;
+        position: absolute;
+        z-index: 4;
+        top: 30%;
+        margin: 0 auto;
+    }
+
+    #gameInfo > .cardsContainer{
+        grid-area: 1/3/2/4;
+    }
+
+    #gameInfo{
+        position: absolute;
+        top: 50%;
+        translate: 0px -50%;
+        z-index: 4;
+        width: 30%;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 2fr 2fr 2fr;
+        grid-template-rows: 3fr 1fr;
+        justify-items: center;
+        align-items: center;
+    }
+
+    .alderaan{
+        padding: 0;
+        background-image: url("/images/alderaan.png");
+        background-repeat: no-repeat, no-repeat;
+        background-size: cover;
+        width: 75%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        grid-area: 1/2/3/3;
+    }
+
+    #actBox{
+        position: absolute;
+        z-index: 4;
+        top: 65%;
+        margin: 0 auto;
+        width: 15%;
+    }
+
+    /* dice */
+        .dieContainer{
+            display: block;
+            width: 100%;
+            grid-area: 2/3/3/4;
+        }
+
+        .die{
+            width: min(25px, calc(50% - 9px));
+            aspect-ratio: 1 / 1;
+            border-radius: 3px;
+            padding: 0;
+            margin: 3px;
+        }
+
+        #dieOne {
+            background-color: #0cc23c;
+        }
+
+        #dieTwo.shiftfalse {
+            background-color: #ed3b3b;
+        }
+
+        #dieTwo.shifttrue {
+            background-color: #0cc23c;
+        }
+    /* dice */
+
+    /* pots */
+        #pots{
+            padding: 1%;
+            margin: 1%;
+            background-color: #787777;
+            background-image: url("/images/rebels_pot.jpeg");
+            background-repeat: no-repeat, no-repeat;
+            background-size: cover;
+            background-blend-mode: multiply;
+            color: #ffffff;
+            grid-area: 1/1/3/2;
+            font-size: 1rem;
+        }
+
+        #pots.active:hover{
+            box-shadow:
+            inset 0 0 50px #fff,
+            0 0 50px #fff
+        }
+
+        #pots h5{
+            font-size: 1.25em;
+        }
+    /* pots */
+
+    /* betBox */
+        #betCredits{
+            width: 80%;
+        }
+
+        #betBtn{
+            width: 50%;
+        }
+
+        #betDiv{
+            padding: 1%;
+        }
+
+        #betDiv > form > input{
+            margin: 0;
+            padding: 0;
+        }
+
+        #betDiv > input > button{
+            margin: 0;
+            padding: 0;
+        }
+
+        #betDiv > p{
+            margin: 0;
+            padding: 0;
+        }
+    /* betBox */
+/* table content */
+
+/* credit attribution */
+    .credit-attribution-container{
+        width: 100%;
+        display: flex;
+        justify-content: right;
+    }
+
+    .credit-attribution{
+        display: grid;
+        width: 520px;
+        grid-template-columns: 1fr 4fr;
+        justify-items: right;
+    }
+
+    .credit-attribution a{
+        display: contents;
+    }
+
+    #jacob-densford-credit-attribution{
+        background-image: url("/images/modern-theme-images/attribution-image.png");
+        background-size: contain;
+        background-repeat: no-repeat;
+        width: 100px;
+    }
+/* credit attribution */
+
+.smol{
+    padding: 1%;
+}

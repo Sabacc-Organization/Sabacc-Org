@@ -9,6 +9,7 @@ from werkzeug.security import check_password_hash
 import yaml
 from abc import ABC, abstractmethod # allows abstract classes/methods
 import copy
+import json
 
 # Get config.yml data
 config = {}
@@ -160,8 +161,9 @@ class Player:
     def getBet(self) -> int:
         return self.bet if self.bet != None else 0
         
-    def fold(self):
-        self.credits += self.getBet()
+    def fold(self, pokerStyle=False):
+        if not pokerStyle:
+            self.credits += self.getBet()
         self.bet = None
         self.folded = True
         self.lastAction = "folded"
@@ -183,7 +185,7 @@ class Player:
             self.lastAction = f'checks'
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False):
+    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False, shift=False, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }, created_at=None, move_history=[]):
         self.players = players
         self.id = id
         self.player_turn = player_turn
@@ -192,7 +194,10 @@ class Game:
         self.phase = phase
         self.cycle_count = cycle_count
         self.completed = completed
-        self.shift = False
+        self.shift = shift
+        self.settings = settings
+        self.created_at = created_at
+        self.move_history = move_history
 
     @staticmethod
     @abstractmethod
@@ -227,6 +232,16 @@ class Game:
             if not player.folded:
                 activePlayers.append(player)
         return activePlayers
+    
+    def getPreviousPlayer(self, player):
+        for player in (self.players[:self.players.index(player)] + self.players[self.players.index(player) + 1:]).reversed():
+            if not player.folded:
+                return player
+    
+    def getNextPlayer(self, player):
+        for player in self.players[self.players.index(player) + 1:] + self.players[:self.players.index(player)]:
+            if not player.folded:
+                return player
 
     def getPlayerDex(self, username:str=None, id:int=None):
         for i in range(len(self.players)):
@@ -240,8 +255,30 @@ class Game:
     def containsPlayer(self, username:str=None, id:int=None) -> bool:
         return self.getPlayer(username=username, id=id) != None
     
+    def getGreatestBet(self):
+        maxBet = 0
+        for player in self.getActivePlayers():
+            if player.getBet() > maxBet:
+                maxBet = player.getBet()
+        return maxBet
+    
     def deckToDb(self, card_type):
         return self.deck.toDb(card_type=card_type)
+    
+    def moveHistoryToDb(self):
+        dbHistory = []
+        for move in self.move_history:
+            dbHistory.append(json.dumps(move))
+        return dbHistory
+    
+    # compare games to see what has changed
+    def compare(self, other):
+        selfDict = self.toDict()
+        originalValues = {}
+        for key, value, in other.toDict().items():
+            if value != selfDict[key]:
+                originalValues[key] = value
+        return originalValues
     
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override

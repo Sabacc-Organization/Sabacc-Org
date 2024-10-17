@@ -55,9 +55,6 @@
 
     <select bind:value={theme} name="theme" id="theme">
         <option value="modern">Modern</option>
-        <option value="rebels">Rebels</option>
-        <option value="solo">Solo</option>
-        <option value="classic">Classic</option>
     </select>
     <br>
 

@@ -1,0 +1,29 @@
+.sort-search-filter{
+    background-color: #434242;
+}
+
+.searchContainer{
+    background-color: #212121;
+}
+
+.sortContainer{
+    background-color: #212121;
+}
+
+.filterContainer{
+    background-color: #212121;
+}
+
+body {
+    background-color: #212121;
+    color: #ffffff;
+}
+
+.cardContainer{
+    text-shadow: none;
+}
+
+tr:nth-child(even)
+{
+    background-color: #434242;
+}

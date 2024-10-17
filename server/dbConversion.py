@@ -5,6 +5,8 @@ from dataHelpers import *
 from traditional.traditionalHelpers import *
 from corellian_spike.corellianHelpers import *
 from colorama import Fore
+from datetime import datetime, timezone
+import json
 
 
 # function to clean up deck data from completed games
@@ -159,3 +161,70 @@ def transferTraditionalGames(db, traditional_card_type, traditional_player_type)
         print("DROP TYPE Player;")
         print("DROP TYPE Card;")
         print("DROP TYPE Suit;")
+
+
+defaultTraditionalSettings = { 
+    "PokerStyleBetting": False, 
+    "SmallBlind": 1, 
+    "BigBlind": 2, 
+    "HandPotAnte": 5, 
+    "SabaccPotAnte": 10, 
+    "StartingCredits": 1000 
+}
+
+defaultCorellianSpikeSettings = { 
+    "PokerStyleBetting": False,
+    "DeckDrawCost": 0,
+    "DiscardDrawCost": 0,
+    "DeckTradeCost": 0,
+    "DiscardTradeCost": 0,
+    "DiscardCosts": [0, 0, 0], 
+    "SmallBlind": 1, 
+    "BigBlind": 2, 
+    "HandPotAnte": 5, 
+    "SabaccPotAnte": 10, 
+    "StartingCredits": 1000 
+}
+
+# Accounts for settings that are not in the original psql database and adds poker style betting
+def convertPreSettingsToPostSettings(db, traditional_card_type, traditional_player_type, corellian_spike_card_type, corellian_spike_player_type):
+    allTraditionalGames = [TraditionalGame.fromDb(game, preSettings=True) for game in db.execute("SELECT * FROM traditional_games ORDER BY game_id ASC;").fetchall()]
+    db.execute("DROP TABLE traditional_games;")
+    db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\" : 1000 }', created_at TIMESTAMP DEFAULT NOW());")
+    numTraditionalGamesCopied = 0
+
+    for game in allTraditionalGames:
+        db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed, settings, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(traditional_card_type, traditional_player_type) + [None])
+        numTraditionalGamesCopied += 1
+
+    allCorellianSpikeGames = [CorellianSpikeGame.fromDb(game, preSettings=True) for game in db.execute("SELECT * FROM corellian_spike_games ORDER BY game_id ASC").fetchall()]
+    db.execute("DROP TABLE corellian_spike_games;")
+    db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\": 1000, \"HandRanking\": \"Wayne\", \"DeckDrawCost\": 5, \"DiscardDrawCost\": 10, \"DeckTradeCost\": 10, \"DiscardTradeCost\": 15, \"DiscardCosts\": [15, 20, 25] }', created_at TIMESTAMP DEFAULT NOW());")
+    numCorellianSpikeGamesCopied = 0
+
+    for game in allCorellianSpikeGames:
+        db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, phase, deck, discard_pile, player_turn, p_act, cycle_count, shift, completed, settings, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", game.toDb(corellian_spike_card_type, corellian_spike_player_type) + [None])
+        numCorellianSpikeGamesCopied += 1
+
+    print(f"Converted {numTraditionalGamesCopied} out of {len(allTraditionalGames)} Traditional Games")
+    print(f"Converted {numCorellianSpikeGamesCopied} out of {len(allCorellianSpikeGames)} Corellian Spike Games")
+    print(f"Converted {numTraditionalGamesCopied + numCorellianSpikeGamesCopied} out of {len(allTraditionalGames) + len(allCorellianSpikeGames)} Games")
+    print(f"{Fore.GREEN}Done!{Fore.WHITE}")
+
+# converting games tables created_at from TIMESTAMP to TIMESTAMPTZ
+def convertDBToTimestamptz(db, alterTables=True):
+    if alterTables:
+        db.execute("ALTER TABLE traditional_games ALTER COLUMN created_at TYPE TIMESTAMPTZ;")
+        db.execute("ALTER TABLE traditional_games ALTER COLUMN created_at SET DEFAULT NOW();")
+        db.execute("ALTER TABLE corellian_spike_games ALTER COLUMN created_at TYPE TIMESTAMPTZ;")
+        db.execute("ALTER TABLE corellian_spike_games ALTER COLUMN created_at SET DEFAULT NOW();")
+
+    traditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games WHERE created_at IS NOT NULL;").fetchall()]
+
+    for game in traditionalGames:
+        db.execute("UPDATE traditional_games SET created_at = %s WHERE game_id = %s;", (datetime(game.created_at.year, game.created_at.month, game.created_at.day, game.created_at.hour, game.created_at.minute, game.created_at.second, game.created_at.microsecond, tzinfo=timezone.utc), game.id))
+
+    corellianSpikeGames = [CorellianSpikeGame.fromDb(game) for game in db.execute("SELECT * FROM corellian_spike_games WHERE created_at IS NOT NULL;").fetchall()]
+
+    for game in corellianSpikeGames:
+        db.execute("UPDATE corellian_spike_games SET created_at = %s WHERE game_id = %s;", (datetime(game.created_at.year, game.created_at.month, game.created_at.day, game.created_at.hour, game.created_at.minute, game.created_at.second, game.created_at.microsecond, tzinfo=timezone.utc), game.id))

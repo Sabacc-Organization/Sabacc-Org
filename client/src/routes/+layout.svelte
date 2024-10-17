@@ -12,8 +12,6 @@
     $: cardDesign = data.cardDesign;
     $: theme = data.theme;
 
-    
-
     function initializeDropdown() {
         if (window.jQuery && window.jQuery.fn.dropdown) {
             window.jQuery(document).ready(() => {
@@ -26,7 +24,6 @@
     onMount( async () => {
         initializeDropdown();
     });
-
 
 </script>
 
@@ -57,20 +54,14 @@
         <link href="favicon.png" rel="icon">
 
         <!-- General CSS -->
-        <link href="/styles.css" rel="stylesheet">
+        <link href="/styles/main/styles.css" rel="stylesheet">
+        <link rel="stylesheet" href="/styles/main/styles-homepage.css">
 
         {#if loggedIn === true}
             {#if dark === "true"}
                 <!-- Light/Dark mode -->
-                <link href="/dark.css" rel="stylesheet">
+                <link href="/styles/main/dark.css" rel="stylesheet">
             {/if}
-
-            {#if theme != undefined}
-                <!-- Theme -->
-                <link href="/{theme}.css" rel="stylesheet">
-            {/if}
-        {:else}
-            <link href="/rebels.css" rel="stylesheet">
         {/if}
 
 

@@ -185,7 +185,24 @@ class Player:
             self.lastAction = f'checks'
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False, shift=False, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }, created_at=None, move_history=[]):
+    def __init__(self,
+        players:list,
+        id:int=None,
+        player_turn:int=None,
+        p_act='',
+        deck:Deck=None,
+        phase='betting',
+        cycle_count=0,
+        completed=False,
+        shift=False,
+        settings={
+            "PokerStyleBetting": False,
+            "SmallBlind": 1,
+            "BigBlind": 2
+        }, created_at = None,
+        move_history = []):
+
+
         self.players = players
         self.id = id
         self.player_turn = player_turn

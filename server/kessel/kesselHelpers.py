@@ -110,6 +110,10 @@ class KesselPlayer(Player):
     def fromDict(dict:dict):
         return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=dict['positiveCard'], negativeCard=dict['negativeCard'], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=[KesselShiftToken(i) for i in dict['shiftTokens']], outOfGame=dict['outOfGame'])
 
+defaultSettings = {
+    "startingChips": 8
+}
+
 class KesselGame(Game):
     def __init__(self,
         players: list[KesselPlayer],
@@ -123,9 +127,13 @@ class KesselGame(Game):
         positiveDiscard: list[Card] = None,
         negativeDiscard: list[Card] = None,
         cycle_count=0,
-        completed=False):
+        completed=False,
+        settings = defaultSettings,
+        created_at = None,
+        move_history = None):
 
-        super().__init__(players, id, player_turn, p_act, Deck(), phase, cycle_count, completed)
+        super().__init__(players, id, player_turn, p_act, None, phase, cycle_count, completed, settings = settings, created_at = created_at, move_history = move_history)
+        del self.shift
         del self.deck
 
         self.dice = dice
@@ -135,7 +143,7 @@ class KesselGame(Game):
         self.negativeDiscard = negativeDiscard
 
     @staticmethod
-    def newGame(playerIds: list, playerUsernames: list, startingChips=8, db=None):
+    def newGame(playerIds: list, playerUsernames: list, settings=defaultSettings, db=None):
         if len(playerIds) != len(playerUsernames):
             return "Uneqal amount of ids and usernames"
 
@@ -151,7 +159,7 @@ class KesselGame(Game):
 
         players = []
         for i in range(len(playerIds)):
-            players.append(KesselPlayer(playerIds[i], playerUsernames[i], '', positive.draw(), negative.draw(), startingChips, 0, []))
+            players.append(KesselPlayer(playerIds[i], playerUsernames[i], '', positive.draw(), negative.draw(), settings["startingChips"], 0, []))
 
         game = KesselGame(players=players, player_turn=players[0].id, p_act='', phase='shiftTokenSelect', positiveDeck=positive, negativeDeck=negative, positiveDiscard=[positive.draw()], negativeDiscard=[negative.draw()], cycle_count=0, completed=False)
         game.rollDice()

@@ -19,6 +19,8 @@ import traditional.traditionalHelpers
 from traditional.traditionalHelpers import TraditionalGame
 import corellian_spike.corellianHelpers
 from corellian_spike.corellianHelpers import CorellianSpikeGame
+import kessel.kesselHelpers
+from kessel.kesselHelpers import KesselGame
 import yaml
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
@@ -176,6 +178,71 @@ print("Registered CorellianSpike custom types")
 # create CorellianSpike tables
 db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\": 1000, \"HandRanking\": \"Wayne\", \"DeckDrawCost\": 5, \"DiscardDrawCost\": 10, \"DeckTradeCost\": 10, \"DiscardTradeCost\": 15, \"DiscardCosts\": [15, 20, 25] }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
 print("Created CorellianSpike table")
+conn.commit()
+
+# Create custom Kessel types
+
+# Create custom KesselShiftToken type
+try:
+    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo');")
+    conn.commit()
+    print("Created custom PostgreSQL type KesselShiftToken")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type KesselShiftToken already exists")
+    conn.rollback()
+
+# Create custom KesselSuit type
+try:
+    db.execute("CREATE TYPE KesselSuit AS ENUM('imposter', 'basic', 'sylop');")
+    conn.commit()
+    print("Created custom PostgreSQL type KesselSuit")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type KesselSuit already exists")
+    conn.rollback()
+
+# Create custom KesselCard type
+try:
+    db.execute("CREATE TYPE KesselCard AS (val INTEGER, suit KesselSuit);")
+    conn.commit()
+    print("Created custom PostgreSQL type KesselCard")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type KesselCard already exists")
+    conn.rollback()
+
+# Create custom KesselPlayer type
+try:
+    db.execute("""
+        CREATE TYPE KesselPlayer AS (
+        id INTEGER,
+        username TEXT,
+        chips INTEGER,
+        usedChips INTEGER,
+        positiveCard KesselCard,
+        negativeCard KesselCard,
+        shiftTokens KesselShiftToken[],
+        outOfGame BOOL,
+        lastAction TEXT);
+    """)
+    conn.commit()
+    print("Created custom PostgreSQL type KesselPlayer")
+except psycopg.errors.DuplicateObject:
+    print("Custom PostgreSQL type KesselPlayer already exists")
+    conn.rollback()
+
+
+# register Kessel custom types
+kessel.kesselHelpers.kesselShiftTokenType = CompositeInfo.fetch(conn, 'kesselshifttoken')
+kessel.kesselHelpers.kesselCardType = CompositeInfo.fetch(conn, 'kesselcard')
+kessel.kesselHelpers.kesselPlayerType = CompositeInfo.fetch(conn, 'kesselplayer')
+register_composite(kessel.kesselHelpers.kesselShiftTokenType, db)
+register_composite(kessel.kesselHelpers.kesselCardType, db)
+register_composite(kessel.kesselHelpers.kesselPlayerType, db)
+
+print("Registered Kessel custom types")
+
+# create Kessel tables
+db.execute("CREATE TABLE IF NOT EXISTS kessel_games (game_id SERIAL PRIMARY KEY, players KesselPlayer[], phase TEXT NOT NULL DEFAULT 'shiftTokenSelect', dice INTEGER[2] NOT NULL DEFAULT '{ 1, 1 }', positiveDeck KesselCard[], negativeDeck KesselCard[], positiveDiscard KesselCard[], negativeDiscard KesselCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"startingChips\" : 8 }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
+print("Created Kessel table")
 conn.commit()
 
 """ DB Conversions: """
@@ -340,6 +407,8 @@ def getGameFromDb(game_variant, game_id):
         return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
     elif game_variant == 'corellian_spike':
         return CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+    elif game_variant == 'kessel':
+        return KesselGame.fromDb(db.execute("SELECT * FROM kessel_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
     else:
         return None
 
@@ -359,38 +428,13 @@ def getGameClientInfo(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     # print(game.getClientData(user_id, clientInfo["username"]))
 
-    emit('clientUpdate', game.getClientData(user_id, clientInfo["username"]))#
-
-# uses the game_id to find the game, and returns the gmae information. used by protect, bet, card, shift, and cont.
-# def returnGameInfo(clientInfo):
-#     """ Get game info for game <game_id> """
-
-#     # Get username (if any, guests will not have usernames)
-#     username = clientInfo["username"]
-
-#     # Get game
-#     game_id = clientInfo["game_id"]
-#     game_variant = clientInfo["game_variant"]
-
-#     game = getGameFromDb(game_variant, game_id)
-
-#     # Get the user's id if the user is in the game
-#     user_id = -1
-#     if username != "":
-#         db.execute("SELECT id FROM users WHERE username = %s", [username])
-#         user_id = getDictsForDB(db)[0]["id"]
-
-    # Return game data
-    temp = game.toDict()
-    temp.pop('deck')
-
-    return {"message": "Good luck!", "gata": temp, "user_id": int(user_id), "username": username}
+    emit('clientUpdate', game.getClientData(user_id, clientInfo["username"]))
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
 def host():
     """ Make a new game of Sabacc """
-    
+
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
@@ -429,7 +473,7 @@ def host():
 
     game = None
 
-    if game_variant != "traditional" and game_variant != "corellian_spike":
+    if not game_variant in ('traditional', 'corellian_spike', 'kessel'):
         return jsonify({"message": "Invalid game variant"}), 401
 
     # Create new game
@@ -437,10 +481,12 @@ def host():
         game = TraditionalGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
     elif game_variant == "corellian_spike":
         game = CorellianSpikeGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
+    elif game_variant == "kessel":
+        game = KesselGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
 
     if not game:
         return jsonify({"message": "Invalid game variant"}), 401
-    
+
     if type(game) == str:
         return jsonify({"message": game}), 401
 

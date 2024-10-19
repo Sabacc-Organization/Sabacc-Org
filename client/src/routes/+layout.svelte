@@ -83,6 +83,7 @@
                                 <div class="dropdown-menu">
                                   <a class="dropdown-item" href="/host/traditional">Traditional Sabacc</a>
                                   <a class="dropdown-item" href="/host/corellian-spike">Corellian Spike Sabacc</a>
+                                  <a class="dropdown-item" href="/host/kessel">Kessel Sabacc</a>
                                 </div>
                             </div>
                         </li>

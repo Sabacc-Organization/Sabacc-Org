@@ -7,7 +7,6 @@ import json
 import random
 import sys
 import os
-import copy
 from typing import Optional, List
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -177,18 +176,18 @@ class CorellianSpikePlayer(Player):
     def fromDb(player:object):
         return CorellianSpikePlayer(player.id, player.username, player.credits, player.bet, CorellianSpikeHand.fromDb(player.hand), player.folded, player.lastaction)
 
-defaultSettings = { 
+defaultSettings = {
     "PokerStyleBetting": False,
     "DeckDrawCost": 5,
     "DiscardDrawCost": 10,
     "DeckTradeCost": 10,
     "DiscardTradeCost": 15,
-    "DiscardCosts": [15, 20, 25], 
-    "SmallBlind": 1, 
-    "BigBlind": 2, 
-    "HandPotAnte": 5, 
-    "SabaccPotAnte": 10, 
-    "StartingCredits": 1000 
+    "DiscardCosts": [15, 20, 25],
+    "SmallBlind": 1,
+    "BigBlind": 2,
+    "HandPotAnte": 5,
+    "SabaccPotAnte": 10,
+    "StartingCredits": 1000
 }
 
 class CorellianSpikeGame(Game):
@@ -203,7 +202,6 @@ class CorellianSpikeGame(Game):
         self.settings = settings
         self.created_at = created_at
         self.move_history = move_history
-        
     # for testing purposes
     def __str__(self) -> str:
         ret = f'\ndeck ({len(self.deck.cards)}): {self.deck}\ndiscard pile ({len(self.discardPile)}): [{listToStr(self.discardPile)}]\nhand pot: {self.handPot}\tsabacc pot: {self.sabaccPot}\n\n'
@@ -211,14 +209,14 @@ class CorellianSpikeGame(Game):
             ret += player.toString(self.settings["HandRanking"])
         #ret += '\n' + self.determineWinner()
         return ret
-    
+
     # create a new game
     @staticmethod
     def newGame(playerIds:list, playerUsernames:list, db, settings=defaultSettings):
 
         if len(playerIds) != len(playerUsernames):
             return "Uneqal amount of ids and usernames"
-        
+
         if len(playerIds) > 8:
             "Too many players. Max of 8 players."
 
@@ -245,7 +243,16 @@ class CorellianSpikeGame(Game):
         # the 1st player is the 1st dealer
 
         if db:
-            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=corellianSpikePlayerType,card_type=corellianSpikeCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(corellianSpikeCardType), game.discardPileToDb(corellianSpikeCardType), game.player_turn, game.p_act, json.dumps(game.settings)])
+            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", [
+                game.playersToDb(player_type = corellianSpikePlayerType, card_type = corellianSpikeCardType),
+                game.hand_pot,
+                game.sabacc_pot,
+                game.deckToDb(corellianSpikeCardType),
+                game.discardPileToDb(corellianSpikeCardType),
+                game.player_turn,
+                game.p_act,
+                json.dumps(game.settings)
+            ])
 
         # return Game object
         return game
@@ -260,7 +267,7 @@ class CorellianSpikeGame(Game):
             player.bet = None # reset bets
             player.folded = False # reset folded
             player.lastAction = '' # reset last action
-        
+
         # Antes (Pots)
         self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
         self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
@@ -271,11 +278,11 @@ class CorellianSpikeGame(Game):
 
         # deal hands
         self.dealHands()
-  
+
     def dealHands(self):
         for player in self.players:
             player.hand.cards = self.deck.draw(2).copy()
-    
+
     def determineWinner(self) -> str:
         if self.settings["HandRanking"] == "Wayne":
             ret = ''
@@ -285,11 +292,11 @@ class CorellianSpikeGame(Game):
             for player in self.getActivePlayers():
                 if player.hand.getRanking(self.settings["HandRanking"]) == winningHand:
                     winningPlayers.append(player)
-            
+
             if len(winningPlayers) == 1:
                 return {"winStr": f'{winningPlayers[0].username} won with a hand of {CorellianSpikeHand.WAYNE_HANDS[winningHand]} (#{winningHand})', "winner": winningPlayers[0], "0": winningHand < 18}
             ret += f"{bothOrAll(len(winningPlayers)) + ' players' if len(winningPlayers) == len(self.players) else f'players {listToStr(winningPlayers)}'} tied with a hand of {CorellianSpikeHand.WAYNE_HANDS[winningHand]} (#{winningHand})\n"
-            
+
             ''' tie breakers '''
             # if winning hand is something other than nulrhek, tiebreaker is lowest positive value card
             if winningHand == 18: # nulrhek
@@ -302,7 +309,7 @@ class CorellianSpikeGame(Game):
                 if len(winningPlayers) == 1:
                     return {"winStr":ret + f'{winningPlayers[0].username} won with a total of {addPlusBeforeNumber(winningPlayers[0].hand.getTotal())}', "winner": winningPlayers[0], "0": closestTo0 == 0}
                 ret += f'players {listToStr(winningPlayers)} tied with a total of {addPlusBeforeNumber(closestTo0)}\n'
-            
+
                 # 18b. Positive Score
                 handTotals = [player.hand.getTotal() for player in winningPlayers]
                 atLeast1Pos = max(handTotals) > 0 # at least 1 person has a positive score
@@ -377,15 +384,15 @@ class CorellianSpikeGame(Game):
                     ret += f'{winningPlayers[0].username} won with a {closestTo0}'
 
             return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
-        
+
         return
-    
+
     def discardPileToDb(self, cardType):
         return [card.toDb(cardType) for card in self.discardPile]
-    
+
     def discardPileToDict(self):
         return [card.toDict() for card in self.discardPile]
-    
+
     def toDict(self):
         return {
             'id': self.id,
@@ -404,7 +411,7 @@ class CorellianSpikeGame(Game):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'move_history': self.move_history
         }
-    
+
     def toDb(self, card_type, player_type, includeId=False):
         if includeId:
             return [self.id, self.playersToDb(player_type, card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.discardPileToDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.created_at, self.moveHistoryToDb()]
@@ -422,7 +429,7 @@ class CorellianSpikeGame(Game):
         if(len(self.deck.cards) < numCards):
             self._reshuffle()
         return self.deck.draw(numCards)
-    
+
     # draw top discard
     def _drawDiscard(self):
         if len(self.discardPile) == 0:
@@ -447,11 +454,11 @@ class CorellianSpikeGame(Game):
         drawnCard = self._drawDiscard()
         player.addToHand(drawnCard)
         return drawnCard
-    
+
     # player discards
     def _playerDiscard(self, player:CorellianSpikePlayer, discardCardIndex:int):
         self._discard(player.discard(discardCardIndex))
-    
+
     ''' player actions '''
     # player buys from the deck for 5 credits
     def buyFromDeck(self, player:CorellianSpikePlayer):
@@ -459,7 +466,7 @@ class CorellianSpikeGame(Game):
         self.hand_pot += self.settings["DeckDrawCost"]
         player.lastAction = "buys from deck"
         return self._playerDrawFromDeck(player)
-    
+
     # player buys top discard for 10 creds
     def buyFromDiscard(self, player:CorellianSpikePlayer):
         player.credits -= self.settings["DiscardDrawCost"]
@@ -487,7 +494,7 @@ class CorellianSpikeGame(Game):
         drawnCard = self._playerDrawDiscard(player)
         self._playerDiscard(player, tradeCardIndex)
         return drawnCard
-    
+
     # player discards for increasing price
     def playerDiscardAction(self, player:CorellianSpikePlayer, discardCardIndex:int):
         player.credits -= self.settings["DiscardCosts"][self.cycle_count]
@@ -689,7 +696,7 @@ class CorellianSpikeGame(Game):
                     self.sabacc_pot = 0
 
                 shiftStr = f"{winData['winStr']}"
-                
+
             else:
                 self.cycle_count += 1
 
@@ -746,7 +753,7 @@ class CorellianSpikeGame(Game):
         if originalChangedValues == {}:
             print("invalid user input")
             return "invalid user input"
-        
+
         originalChangedValues["timestamp"] = datetime.now(timezone.utc).isoformat()
         if self.move_history:
             self.move_history.append(originalChangedValues)

@@ -13,11 +13,13 @@
 
     let traditionalGames: {[id: string]: any}[] = [];
     let corellianSpikeGames: {[id: string]: any}[] = [];
+    let kesselGames: {[id: string]: any}[] = [];
 
     $: {
         if (gamesData != undefined){
             traditionalGames = gamesZip(gamesData["traditional_games"], gamesData["traditional_player_turn_usernames"]);
             corellianSpikeGames = gamesZip(gamesData["corellian_spike_games"], gamesData["corellian_spike_player_turn_usernames"]);
+            kesselGames = gamesZip(gamesData["kessel_games"], gamesData["kessel_player_turn_usernames"])
         }
     }
 
@@ -295,6 +297,49 @@
                         {/if}
                     </td>
                     <td><a href="/game/corellian-spike/{game["id"]}">Play</a></td>
+                </tr>
+            {/if}
+        {/each}
+    </table>
+
+    <br>
+    <h3>Kessel Games</h3>
+    <br>
+    <table>
+        <tr>
+            <th style="width: 1%;">ID</th>
+            <th style="width: 8%;">Players</th>
+            <th style="width: 3%;">Turn</th>
+            <th style="width: 2%;">Date Created</th>
+            <th style="width: 11%;">Last Move</th>
+            <th style="width: 1%;">Game Link</th>
+        </tr>
+
+        {#each kesselGames || [] as game, i}
+            {#if canShowGame(game, showOnlyActive, showCompleted, showOnlyMyTurn, searchValue)}
+                <tr>
+                    <td>
+                        {game["id"]}
+                    </td>
+                    <td>
+                        {#each game["players"] as player, j}
+                        {player["username"] + (j+1 < game["players"].length? ", ":"")}
+                        {/each}
+                    </td>
+                    <td>{game["player_turn"]}'s</td>
+                    <td>
+                        {#if game["created_at"] != null}
+                            {new Date(game["created_at"]).toDateString()}
+                        {:else}
+                            N/A
+                        {/if}
+                    </td>
+                    <td>{game["p_act"]}
+                        {#if game["move_history"] !== null}
+                            on {new Date(game["move_history"].at(-1)["timestamp"]).toDateString()}
+                        {/if}
+                    </td>
+                    <td><a href="/game/kessel/{game["id"]}">Play</a></td>
                 </tr>
             {/if}
         {/each}

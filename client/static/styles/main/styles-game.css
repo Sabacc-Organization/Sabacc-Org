@@ -67,6 +67,10 @@
     display: contents;
 }
 
+.die{
+    background-size: contain;
+}
+
 .imperial-credits-logo{
     display: inline-block;
     width: 20px;

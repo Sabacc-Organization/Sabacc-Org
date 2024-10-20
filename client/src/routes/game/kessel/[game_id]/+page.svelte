@@ -14,35 +14,32 @@
 
     let game_variant = 'kessel';
 
-    function renderCard(cardValue: {'suit': string, 'val':number}){
+    function renderCard(cardValue: {'suit': string, 'val':number} | string, negative: boolean = false){
         let returnText: string = "background-image:url(";
 
-        // if (cardDesign === "pescado"){
-        //     returnText += '/images/cards/corellian/pescado/';
-        // } else {
-        //     returnText += '/images/cards/corellian/jacob-densford/';
-        // }
+        returnText += '/images/cards/kessel/pescado/';
+        if (typeof cardValue === 'string'){
+            returnText += 'shiftTokens/' + cardValue;
+        } else {
+            returnText += 'cards/'
+            if (cardValue["suit"] === "basic"){
+                returnText += cardValue['val'];
+            } else {
+                returnText += cardValue['suit'];
+            }
+            returnText += negative? '_blood' : '_sand';
+        }
 
-        // if (cardValue['val'] > 0){
-        //     returnText += '+';
-        // }
-
-        // returnText += cardValue['val'].toString();
-
-        // returnText += {'circle':'_Circle', 'square':'_Square', 'triangle':'_Triangle', 'sylop':'_Sylop'}[cardValue['suit']]
-
-        // returnText += ".png);background-color:transparent;border:transparent;";
+        returnText += ".png);background-color:transparent;border:transparent;";
         return returnText;
     }
 
-    function renderBack(){
-        let returnText = 'background-image:url(/images/cards/corellian/';
-        if (cardDesign === 'pescado'){
-            returnText += 'pescado';
-        } else {
-            returnText += 'jacob-densford';
-        }
-        returnText += '/Back.png);background-color:transparent;border:transparent;';
+    function renderBack(negative: boolean){
+        let returnText = 'background-image:url(/images/cards/kessel/pescado/cards/';
+
+        returnText += negative? 'back_blood' : 'back_sand'
+
+        returnText += '.png);background-color:transparent;border:transparent;';
         return returnText
     }
 </script>

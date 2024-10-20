@@ -105,6 +105,9 @@
     <link rel="stylesheet" href="/styles/modern/modern-game.css">
     <link rel="stylesheet" href="/styles/modern/modern-players.css">
     <link rel="stylesheet" href="/styles/modern/modern-mobile.css">
+    {#if $game_variant === "kessel"}
+        <link rel="stylesheet" href="/styles/modern/modern-kessel.css">
+    {/if}
 {:else}
     <h3 style:color="red">You are using a theme that is no longer supported!</h3>
     <h3>Please go to <a href="/settings">Settings</a> to change your theme</h3>
@@ -125,7 +128,7 @@
             <PlayerStuff {p} {i} {renderCard} {renderBack}/>
         {/each}
 
-        <ActionBox />
+        <ActionBox {renderCard}/>
     </div>
 
     {#if $game["move_history"] !== undefined && $game["move_history"] !== null}

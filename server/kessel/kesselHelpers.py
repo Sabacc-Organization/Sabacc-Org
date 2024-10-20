@@ -7,7 +7,7 @@ kesselPlayerType = None
 kesselShiftTokenType = None
 
 class KesselShiftToken():
-    shiftTokenTypes = {
+    shiftTokenTypes = [
         "freeDraw",
         "refund",
         "extraRefund",
@@ -16,11 +16,15 @@ class KesselShiftToken():
         "generalTariff",
         "targetTariff",
         "generalAudit",
+        "targetAudit",
         "immunity",
         "exhaustion",
         "directTransaction",
-        "embargo"
-    }
+        "embargo",
+        "markdown",
+        "cookTheBooks",
+        "primeSabacc"
+    ]
     def __init__(self, shiftTokenType: str = None) -> None:
         self.shiftTokenType = shiftTokenType
 
@@ -46,7 +50,7 @@ class KesselDeck(Deck):
 
         for i in range(3):
             for j in range(6):
-                self.cards.append(Card(j, 'basic'))
+                self.cards.append(Card(j+1, 'basic'))
             self.cards.append(Card(0, 'imposter'))
         self.cards.append(Card(0, 'sylop'))
 
@@ -189,6 +193,9 @@ class KesselGame(Game):
         gameDict = self.toDict()
         users = [i.username for i in self.getActivePlayers()]
 
+        gameDict.pop("positiveDeck")
+        gameDict.pop("negativeDeck")
+
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
 
     @staticmethod
@@ -245,6 +252,7 @@ class KesselGame(Game):
 
     def toDict(self):
         return {
+            "id": self.id,
             "players": [i.toDict() for i in self.players],
             "phase": self.phase,
             "dice": list(self.dice),

@@ -184,7 +184,7 @@ conn.commit()
 
 # Create custom KesselShiftToken type
 try:
-    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo');")
+    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'targetAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo', 'markdown', 'targetAudit', 'cookTheBooks');")
     conn.commit()
     print("Created custom PostgreSQL type KesselShiftToken")
 except psycopg.errors.DuplicateObject:
@@ -309,7 +309,6 @@ def login():
     # User has logged in successfully!
     return jsonify({"message": "Logged in!"}), 200
 
-    
 @app.route("/", methods=["POST"])
 @cross_origin()
 def index():
@@ -322,7 +321,7 @@ def index():
     check = checkLogin(username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
-    
+
     # Get the user's id for later use
     db.execute("SELECT id FROM users WHERE username = %s", [username])
     user_id = getDictsForDB(db)[0]["id"]
@@ -333,7 +332,7 @@ def index():
     allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM traditional_games").fetchall()]
     traditionalGames = []
 
-    # Remove games that have been completed and that are not relevant to the player
+    # Remove games that are not relevant to the player
     for game in allTraditionalGames:
         if game.containsPlayer(id=user_id):
             traditionalGames.append(game)
@@ -345,19 +344,32 @@ def index():
     allCorellianSpikeGames = [CorellianSpikeGame.fromDb(game) for game in db.execute("SELECT * FROM corellian_spike_games").fetchall()]
     corellianSpikeGames = []
 
-    # Remove games that have been completed and that are not relevant to the player
+    # Remove games that are not relevant to the player
     for game in allCorellianSpikeGames:
         if game.containsPlayer(id=user_id):
             corellianSpikeGames.append(game)
             corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
+    kesselPlayerTurnUsernames = []
+
+    # Query the database for all the Kessel games
+    allKesselGames = [KesselGame.fromDb(game) for game in db.execute("SELECT * FROM kessel_games").fetchall()]
+    kesselGames = []
+
+    # Remove games that are not relevant to the player
+    for game in allKesselGames:
+        if game.containsPlayer(id=user_id):
+            kesselGames.append(game)
+            kesselPlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
     # Return data
     return jsonify({
         "traditional_games": [game.toDict() for game in traditionalGames],
         "traditional_player_turn_usernames": traditionalPlayerTurnUsernames,
         "corellian_spike_games": [game.toDict() for game in corellianSpikeGames],
-        "corellian_spike_player_turn_usernames": corellianSpikePlayerTurnUsernames
+        "corellian_spike_player_turn_usernames": corellianSpikePlayerTurnUsernames,
+        "kessel_games": [game.toDict() for game in kesselGames],
+        "kessel_player_turn_usernames": kesselPlayerTurnUsernames
         }), 200
 
 @app.route("/register", methods=["POST"])
@@ -390,7 +402,7 @@ def register():
 
     if confirmation != password:
         return jsonify({"message": "Confirmation and password do not match"}), 401
-    
+
     if " " in password:
         return jsonify({"message": "Please do not put spaces in your password"}), 401
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 
-    import {  
+    import {
         game,
         currentMove,
         movesDone,
@@ -23,7 +23,7 @@
         tradeCard
     } from "./sharedValues";
 
-    import { 
+    import {
         bet,
         check,
         fold,
@@ -33,6 +33,26 @@
         stand,
         playAgain
     } from "./gameLogic";
+
+    const SHIFT_TOKENS = [
+        "freeDraw",
+        "refund",
+        "extraRefund",
+        "embezzlement",
+        "majorFraud",
+        "generalTariff",
+        "targetTariff",
+        "generalAudit",
+        "targetAudit",
+        "immunity",
+        "exhaustion",
+        "directTransaction",
+        "embargo",
+        "markdown",
+        "cookTheBooks",
+        "primeSabacc"
+    ]
+    export let renderCard
 
     // actBox reacitivity
 
@@ -182,6 +202,22 @@
                         {/if}
                     {/if}
                     <button on:click={stand} type="button" id="standBtn" class="btn btn-primary">Stand</button>
+                </div>
+            {:else if $game["phase"] === "draw"}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button>Stand</button>
+                </div>
+            {:else if $game["phase"] === "confirmDraw"}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button>Stand</button>
+                </div>
+            {:else if $game["phase"] === "shiftTokenSelect"}
+                <div id="betDiv" class="backBlue brightBlue grid">
+                    {#each SHIFT_TOKENS as shiftToken}
+                        <div class="cardContainer">
+                            <div class="card child shiftToken" style="{renderCard(shiftToken)}"></div>
+                        </div>
+                    {/each}
                 </div>
             {/if}
         {/if}

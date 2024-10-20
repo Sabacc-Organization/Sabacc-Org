@@ -44,39 +44,71 @@
 </script>
 <div id="gameInfo" class="parent" class:playing={$u_dex != -1}>
 
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div on:dblclick={check} class:active={$potsActive} id="pots" class="child {$potsActive}">
-        <h5>Sabacc: <span id="sabacc_pot">{$game["sabacc_pot"]}</span></h5>
-        <h5>Hand: <span id="hand_pot">{$game["hand_pot"]}</span></h5>
-    </div>
-
-    <div class="cardsContainer">
-        <div class="cardContainer">
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click={() => draw('deckDraw')} class:active={$cardBool} id="deck" class="card child" style="{renderBack($cardDesign)}"></div>
+    {#if $game_variant !== "kessel"}
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div on:dblclick={check} class:active={$potsActive} id="pots" class="child {$potsActive}">
+            <h5>Sabacc: <span id="sabacc_pot">{$game["sabacc_pot"]}</span></h5>
+            <h5>Hand: <span id="hand_pot">{$game["hand_pot"]}</span></h5>
         </div>
+    {/if}
 
-        {#if $game_variant === "corellian_spike"}
+    {#if $game_variant !== "kessel"}
+        <div class="cardsContainer">
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('discardDraw')} class:active={$cardBool} id="discard" class="card child" style={renderCard($game['discard_pile'][$game['discard_pile'].length - 1])}></div>
-                <h5>{$cardDesign === "pescado"? "":$game['discard_pile'][$game['discard_pile'].length - 1]['val']}</h5>
+                <div on:click={() => draw('deckDraw')} class:active={$cardBool} id="deck" class="card child" style="{renderBack($cardDesign)}"></div>
             </div>
-        {/if}
-    </div>
+
+            {#if $game_variant === "corellian_spike"}
+                <div class="cardContainer">
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div on:click={() => draw('discardDraw')} class:active={$cardBool} id="discard" class="card child" style={renderCard($game['discard_pile'][$game['discard_pile'].length - 1])}></div>
+                    <h5>{$cardDesign === "pescado"? "":$game['discard_pile'][$game['discard_pile'].length - 1]['val']}</h5>
+                </div>
+            {/if}
+        </div>
+    {:else}
+        <div class="cardsContainer">
+            <div class="cardContainer">
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div on:click={() => draw('negativeDiscardDraw')} class:active={$cardBool} id="negatvieDiscard" class="card child" style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"></div>
+            </div>
+            <div class="cardContainer">
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div on:click={() => draw('negativeDeckDraw')} class:active={$cardBool} id="negativeDeck" class="card child" style="{renderBack(true)}"></div>
+            </div>
+            <div class="cardContainer">
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div on:click={() => draw('positiveDeckDraw')} class:active={$cardBool} id="positiveDeck" class="card child" style="{renderBack(false)}"></div>
+            </div>
+            <div class="cardContainer">
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div on:click={() => draw('positiveDiscardDraw')} class:active={$cardBool} id="positiveDiscard" class="card child" style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"></div>
+            </div>
+        </div>
+    {/if}
 
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span on:click={shift} class:shiftActive={$shiftActive} class="dieContainer">
-        <div id="dieOne" class="child die"></div>
-        <div id="dieTwo" class="child die shift{$game["shift"]}"></div>
+        {#if $game_variant !== "kessel"}
+            <div id="dieOne" class="child die"></div>
+            <div id="dieTwo" class="child die shift{$game["shift"]}"></div>
+        {:else}
+            <div id="dieOne" class="child die" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][0]}.png);"></div>
+            <div id="dieTwo" class="child die" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][1]}.png);"></div>
+        {/if}
     </span>
 
     {#if $game_variant === 'traditional'}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div on:click={alderaan} class:active={alderaanActive} id="alderaan" class="child alderaan {$game["phase"]}Blown"></div>
+        <div on:click={alderaan} class:active={$alderaanActive} id="alderaan" class="child alderaan {$game["phase"]}Blown"></div>
     {/if}
 </div>

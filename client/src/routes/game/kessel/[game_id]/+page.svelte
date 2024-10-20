@@ -15,6 +15,9 @@
     let game_variant = 'kessel';
 
     function renderCard(cardValue: {'suit': string, 'val':number} | string, negative: boolean = false){
+        if (cardValue === undefined){
+            return renderBack(negative)
+        }
         let returnText: string = "background-image:url(";
 
         returnText += '/images/cards/kessel/pescado/';

@@ -75,7 +75,7 @@
 
         .card{
             padding: 0;
-            background-image: url("/images/rebels-card-back.png");
+            background-image: url("/images/cards/traditional/rebels-card-back.png");
             background-repeat: no-repeat, no-repeat;
             background-size: cover;
             margin: 3px;

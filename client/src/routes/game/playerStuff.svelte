@@ -17,7 +17,6 @@
         clickOrDblclick,
         numOfActivePlayers
     } from "./gameLogic";
-    import { each } from "jquery";
 
     export let p;
     export let i;

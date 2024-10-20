@@ -4,45 +4,25 @@ from datetime import datetime, timezone
 
 kesselCardType = None
 kesselPlayerType = None
-kesselShiftTokenType = None
 
-class KesselShiftToken():
-    shiftTokenTypes = [
-        "freeDraw",
-        "refund",
-        "extraRefund",
-        "embezzlement",
-        "majorFraud",
-        "generalTariff",
-        "targetTariff",
-        "generalAudit",
-        "targetAudit",
-        "immunity",
-        "exhaustion",
-        "directTransaction",
-        "embargo",
-        "markdown",
-        "cookTheBooks",
-        "primeSabacc"
-    ]
-    def __init__(self, shiftTokenType: str = None) -> None:
-        self.shiftTokenType = shiftTokenType
-
-    def toDict(self) -> dict:
-        return {
-            'type': self.shiftTokenType
-        }
-
-    @staticmethod
-    def fromDict(card:dict) -> object:
-        return KesselShiftToken(card['type'])
-
-    def toDb(self, token_type):
-        return token_type.python_type(self.shiftTokenType)
-
-    @staticmethod
-    def fromDb(token):
-        return KesselShiftToken(token.type)
+shiftTokenTypes = [
+    "freeDraw",
+    "refund",
+    "extraRefund",
+    "embezzlement",
+    "majorFraud",
+    "generalTariff",
+    "targetTariff",
+    "generalAudit",
+    "targetAudit",
+    "immunity",
+    "exhaustion",
+    "directTransaction",
+    "embargo",
+    "markdown",
+    "cookTheBooks",
+    "primeSabacc"
+]
 
 class KesselDeck(Deck):
     def __init__(self, cardsToExclude: list = []):
@@ -63,12 +43,14 @@ class KesselDeck(Deck):
         return KesselDeck([Card.fromDb(card) for card in deck])
 
 class KesselPlayer(Player):
-    def __init__(self, id: int, username: str, lastAction: str, positiveCard: Card, negativeCard: Card, chips: int = 8, usedChips: int = 0, shiftTokens: list[KesselShiftToken] = [], outOfGame: bool = False):
+    def __init__(self, id: int, username: str, lastAction: str, positiveCard: Card, negativeCard: Card, extraCard: Card = None, extraCardIsNegative: bool = False, chips: int = 8, usedChips: int = 0, shiftTokens: list[str] = [], outOfGame: bool = False):
         self.id = id
         self.username = username
         self.lastAction = lastAction
         self.positiveCard = positiveCard
         self.negativeCard = negativeCard
+        self.extraCard = extraCard
+        self.extraCardIsNegative = extraCardIsNegative
         self.chips = chips
         self.usedChips = usedChips
         self.shiftTokens = shiftTokens
@@ -90,12 +72,32 @@ class KesselPlayer(Player):
         else:
             return ((abs(self.positiveCard.val - self.negativeCard.val), min(self.positiveCard.val, self.negativeCard.val)))
 
-    def toDb(self, player_type, card_type, token_type):
-        print('\n\n\n')
-        for i in [self.id, self.username, self.lastAction, self.positiveCard.toDb(card_type), self.negativeCard.toDb(card_type), self.chips, self.usedChips, [i.toDb(token_type) for i in self.shiftTokens], self.outOfGame]:
-            print(type(i))
+    def extraCardToDb(self, card_type):
+        if self.extraCard is None:
+            return None
+        else:
+            return self.extraCard.toDb(cardType=card_type)
+    
+    def extraCardToDict(self):
+        if self.extraCard is None:
+            return None
+        else:
+            return self.extraCard.toDict()
 
-        return player_type.python_type(self.id, self.username, self.chips, self.usedChips, self.positiveCard.toDb(card_type), self.negativeCard.toDb(card_type), [i.toDb(token_type) for i in self.shiftTokens], self.outOfGame, self.lastAction)
+    def toDb(self, player_type, card_type):
+        return player_type.python_type(
+            self.id,
+            self.username,
+            self.chips,
+            self.usedChips,
+            self.positiveCard.toDb(card_type),
+            self.negativeCard.toDb(card_type),
+            self.extraCardToDb(card_type),
+            self.extraCardIsNegative,
+            self.shiftTokens,
+            self.outOfGame,
+            self.lastAction
+        )
 
     def toDict(self):
         return {
@@ -104,22 +106,44 @@ class KesselPlayer(Player):
             'lastAction': self.lastAction,
             'positiveCard': self.positiveCard.toDict(),
             'negativeCard': self.negativeCard.toDict(),
+            'extraCard': self.extraCardToDict(),
+            'extraCardIsNegative': self.extraCardIsNegative,
             'chips': self.chips,
             'usedChips': self.usedChips,
-            'shiftTokens': [i.toDict() for i in self.shiftTokens],
+            'shiftTokens': self.shiftTokens,
             'outOfGame': self.outOfGame
         }
 
+    @abstractmethod
+    def extraCardFromDb(fromDb):
+        if fromDb is None:
+            return None
+        else:
+            return Card.fromDb(fromDb)
+
     @staticmethod
     def fromDb(player:object):
-        return KesselPlayer(player.id, player.username, player.lastaction, Card.fromDb(player.positivecard), Card.fromDb(player.negativecard), player.chips, player.usedchips, [KesselShiftToken.fromDb(i) for i in player.shifttokens], player.outofgame)
+        return KesselPlayer(
+            player.id,
+            player.username,
+            player.lastaction,
+            Card.fromDb(player.positivecard),
+            Card.fromDb(player.negativecard),
+            KesselPlayer.extraCardFromDb(player.extracard),
+            player.extracardisnegative,
+            player.chips,
+            player.usedchips,
+            player.shifttokens.strip('}{').split(','),
+            player.outofgame
+        )
 
     @staticmethod
     def fromDict(dict:dict):
-        return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=dict['positiveCard'], negativeCard=dict['negativeCard'], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=[KesselShiftToken(i) for i in dict['shiftTokens']], outOfGame=dict['outOfGame'])
+        return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=dict['positiveCard'], negativeCard=dict['negativeCard'], extraCard=dict["extraCard"], extraCardIsNegative=dict["extraCardIsNegative"], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=dict["shiftTokens"], outOfGame=dict['outOfGame'])
 
 defaultSettings = {
-    "startingChips": 8
+    "startingChips": 8,
+    "playersChooseShiftTokens": False
 }
 
 class KesselGame(Game):
@@ -128,12 +152,13 @@ class KesselGame(Game):
         id: int = None,
         player_turn: int = None,
         p_act = '',
-        phase = 'normal',
+        phase = 'draw',
         dice = (1, 1),
         positiveDeck: KesselDeck = None,
         negativeDeck: KesselDeck = None,
         positiveDiscard: list[Card] = None,
         negativeDiscard: list[Card] = None,
+        activeShiftTokens: list[list[str, str]] = [],
         cycle_count=0,
         completed=False,
         settings = defaultSettings,
@@ -149,6 +174,7 @@ class KesselGame(Game):
         self.negativeDeck = negativeDeck
         self.positiveDiscard = positiveDiscard
         self.negativeDiscard = negativeDiscard
+        self.activeShiftTokens = activeShiftTokens
 
     @staticmethod
     def newGame(playerIds: list, playerUsernames: list, settings=defaultSettings, db=None):
@@ -166,20 +192,37 @@ class KesselGame(Game):
 
         players = []
         for i in range(len(playerIds)):
-            players.append(KesselPlayer(playerIds[i], playerUsernames[i], '', positive.draw(), negative.draw(), settings["startingChips"], 0, []))
+            shiftTokens = []
+            if settings["playersChooseShiftTokens"] is False:
+                shiftTokens = [random.choice(shiftTokenTypes) for _ in range(3)]
+            players.append(KesselPlayer(playerIds[i], playerUsernames[i], '', positive.draw(), negative.draw(), None, False, settings["startingChips"], 0, shiftTokens))
 
-        game = KesselGame(players=players, player_turn=players[0].id, p_act='', phase='shiftTokenSelect', positiveDeck=positive, negativeDeck=negative, positiveDiscard=[positive.draw()], negativeDiscard=[negative.draw()], cycle_count=0, completed=False, settings=settings)
+        game = KesselGame(
+            players = players,
+            player_turn=players[0].id,
+            p_act = '',
+            phase = 'shiftTokenSelect' if settings["playersChooseShiftTokens"] else 'draw',
+            positiveDeck = positive,
+            negativeDeck = negative,
+            positiveDiscard = [positive.draw()],
+            negativeDiscard = [negative.draw()],
+            activeShiftTokens = [],
+            cycle_count = 0,
+            completed = False,
+            settings = settings
+        )
         game.rollDice()
 
         if db:
-            db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", [
-                game.playersToDb(player_type=kesselPlayerType, card_type=kesselCardType, shift_token_type=kesselShiftTokenType),
+            db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, activeShiftTokens, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", [
+                game.playersToDb(player_type=kesselPlayerType, card_type=kesselCardType),
                 game.phase,
                 list(game.dice),
                 game.positiveDeck.toDb(kesselCardType),
                 game.negativeDeck.toDb(kesselCardType),
                 [card.toDb(kesselCardType) for card in game.positiveDiscard],
                 [card.toDb(kesselCardType) for card in game.negativeDiscard],
+                game.activeShiftTokens,
                 game.player_turn,
                 game.p_act,
                 json.dumps(game.settings)
@@ -208,40 +251,45 @@ class KesselGame(Game):
             negativeDeck = KesselDeck.fromDb(game[5]),
             positiveDiscard = [Card.fromDb(i) for i in game[6]],
             negativeDiscard = [Card.fromDb(i) for i in game[7]],
-            player_turn = game[8],
-            p_act = game[9],
-            cycle_count = game[10],
-            completed = game[11],
-            settings = game[12],
-            created_at = game[13],
-            move_history = game[14]
+            activeShiftTokens = game[8],
+            player_turn = game[9],
+            p_act = game[10],
+            cycle_count = game[11],
+            completed = game[12],
+            settings = game[13],
+            created_at = game[14],
+            move_history = game[15]
         )
 
-    def toDb(self, player_type, card_type, shift_token_type, includeId=False):
+    def toDb(self, player_type, card_type, includeId=False):
         if includeId:
             return [
                 self.id,
-                self.playersToDb(player_type, card_type, shift_token_type),
+                self.playersToDb(player_type, card_type),
                 self.phase,
                 list(self.dice),
                 self.positiveDeck.toDb(card_type),
                 self.negativeDeck.toDb(card_type),
                 self.positiveDiscard.toDb(card_type),
                 self.negativeDiscard.toDb(card_type),
-                self.player_turn, self.cycle_count,
+                self.activeShiftTokens,
+                self.player_turn,
+                self.cycle_count,
                 self.completed,
                 json.dumps(self.settings),
                 self.created_at,
-                self.moveHistoryToDb()]
+                self.moveHistoryToDb()
+            ]
         else:
             return [
-                self.playersToDb(player_type, card_type, shift_token_type),
+                self.playersToDb(player_type, card_type),
                 self.phase,
                 list(self.dice),
                 self.positiveDeck.toDb(card_type),
                 self.negativeDeck.toDb(card_type),
                 self.positiveDiscard.toDb(card_type),
                 self.negativeDiscard.toDb(card_type),
+                self.activeShiftTokens,
                 self.player_turn,
                 self.cycle_count,
                 self.completed,
@@ -260,6 +308,7 @@ class KesselGame(Game):
             "negativeDeck": self.negativeDeck.toDict(),
             "positiveDiscard": [i.toDict() for i in self.positiveDiscard],
             "negativeDiscard": [i.toDict() for i in self.negativeDiscard],
+            "activeShiftTokens": self.activeShiftTokens,
             "player_turn": self.player_turn,
             "p_act": self.p_act,
             "cycle_count": self.cycle_count,
@@ -269,8 +318,8 @@ class KesselGame(Game):
             "move_history": self.move_history
         }
 
-    def playersToDb(self, player_type, card_type, shift_token_type):
-        return [i.toDb(player_type, card_type, shift_token_type) for i in self.players]
+    def playersToDb(self, player_type, card_type):
+        return [i.toDb(player_type, card_type) for i in self.players]
 
     def getActivePlayers(self) -> list[KesselPlayer]:
         activePlayers = []
@@ -321,13 +370,6 @@ class KesselGame(Game):
         # determine winners of the hand
         handWinners = []
         winningHand = (6, 6) # distance between cards, lowest card
-        for i in self.getActivePlayers():
-            cond1 = i.positiveCard.suit == "sylop" and i.positiveCard.val == 0
-            cond2 = i.negativeCard.suit == "sylop" and i.negativeCard.val == 0
-            if cond1 or cond2:
-                self.player_turn = i.id
-                self.phase = "imposterRoll"
-                return
 
         for i in self.getActivePlayers():
             tempHand = i.getHandValue()
@@ -344,11 +386,14 @@ class KesselGame(Game):
         for i in self.getActivePlayers():
             if i in handWinners:
                 i.chips += i.usedChips
+            else:
+                i.chips -= min(i.getHandValue()[0], 1)
             i.usedChips = 0
 
         # remove players who have no chips.
         for i in self.getActivePlayers():
-            if i.chips == 0:
+            if i.chips <= 0:
+                i.chips = 0
                 i.outOfGame = True
 
         # if someone has won the game, game over.
@@ -356,8 +401,7 @@ class KesselGame(Game):
             self.completed = True
 
         # otherwise, distribute chips to winners, delete chips from losers, reshuffle cards, and deal
-        else:
-            self.nextHand()
+        self.phase = "reveal"
 
     def nextHand(self):
         self.positiveDeck = KesselDeck()
@@ -369,9 +413,23 @@ class KesselGame(Game):
         for i in self.getActivePlayers():
             i.positiveCard = self.positiveDeck.draw()
             i.negativeCard = self.negativeDeck.draw()
+            i.extraCard = None
+            i.usedChips = 0
 
         self.player_turn = self.getActivePlayers()[0].id
         self.cycle_count = 0
+
+    def unRolledImposters(self):
+        nextPlayer = 0
+        otherImposter = False
+        while nextPlayer < len(self.getActivePlayers()):
+            cond1 = (self.getActivePlayers()[nextPlayer].positiveCard.suit == "imposter") and (self.getActivePlayers()[nextPlayer].positiveCard.val == 0)
+            cond2 = (self.getActivePlayers()[nextPlayer].negativeCard.suit == "imposter") and (self.getActivePlayers()[nextPlayer].negativeCard.val == 0)
+            if cond1 or cond2:
+                otherImposter = True
+                self.phase = "imposterRoll"
+
+        return nextPlayer if otherImposter else None
 
     def action(self, params: dict, db):
         originalSelf = copy.deepcopy(self)
@@ -418,40 +476,120 @@ class KesselGame(Game):
             db.execute("UPDATE kessel_games SET players = %s, player_turn = %s, p_act = %s positiveDeck = %s, negativeDeck = %s, positiveDiscard = %s, negativeDiscard = %s, cycle_count = %s, completed = %s  WHERE game_id = %s", dbList)
 
         elif (params["action"] == "shiftTokenSelect") and (self.player_turn == player.id) and (self.phase == "shiftTokenSelect") and (self.completed == False):
-            if len(params["tokens"]) != 3:
-                return "wrong number of tokens"
+            if len(player.shiftTokens) >= 3:
+                return "too many shift tokens"
 
-            for i in params["tokens"]:
-                if not (i in KesselShiftToken.shiftTokenTypes):
-                    return "invalid shift token type"
-                if len(player.shiftTokens < 3):
-                    player.shiftTokens.append(i)
+            player.shiftTokens.append(params["shiftToken"])
 
-        elif (params["action"] == "imposterChoice") and (self.player_turn == player.id) and (self.phase == "imposterRoll") and (self.completed == False):
-            if player.positiveCard.suit == "imposter" and player.positiveCard.val == 0 and params["value"] in self.dice:
-                player.positiveCard.val = params["value"]
-            elif player.negativeCard.suit == "imposter" and player.negativeCard.val == 0 and params["value"] in self.dice:
-                player.negativeCard.val = params["value"]
+            if len(player.shiftTokens) >= 3:
+                uDex = self.getActivePlayers().index(player)
+                nextPlayer = uDex + 1
+                if nextPlayer >= len(self.getActivePlayers()):
+                    nextPlayer = 0
+                    self.phase = "draw"
 
-            self.handOver()
+                self.player_turn = self.getActivePlayers()[nextPlayer].id
 
-        elif (params["action"] == "playAgain") and (self.player_turn == player.id) and (self.completed):
+        elif (params["action"] == "imposterRoll") and (self.player_turn == player.id) and (self.phase == "imposterRoll") and (self.completed == False):
+            self.rollDice()
+            self.phase = "imposterChoice"
+
+        elif (params["action"] in ("positiveDeckDraw", "negativeDeckDraw", "positiveDiscardDraw", "negativeDiscardDraw")) and (self.player_turn == player.id) and (self.phase == "draw") and (self.completed == False):
+            print(f'aery {params["action"]}')
+            if player.extraCard is not None:
+                print(player.extraCard)
+                print("player already has extra card")
+                return "player already has extra card"
+
+            if player.chips == 0:
+                print("not enough chips to draw")
+                return "not enough chips to draw"
+
+            player.chips -= 1
+            player.usedChips += 1
+
+            if params["action"] == "positiveDeckDraw":
+                player.extraCard = self.positiveDeck.draw()
+                player.extraCardIsNegative = False
+            elif params["action"] == "negativeDeckDraw":
+                player.extraCard = self.negativeDeck.draw()
+                player.extraCardIsNegative = True
+            elif params["action"] == "positiveDiscardDraw":
+                player.extraCard = self.positiveDiscard.pop()
+                player.extraCardIsNegative = False
+            elif params["action"] == "negativeDiscardDraw":
+                player.extraCard = self.negativeDiscard.pop()
+                player.extraCardIsNegative = True
+
+            self.phase = "discard"
+
+        elif (params["action"] == "discard") and (self.player_turn == player.id) and (self.phase == "discard") and (self.completed == False):
+            if player.extraCard is None:
+                return "player doesnt have an extra card to discard"
+            if params["keep"] is True:
+                if player.extraCardIsNegative:
+                    self.negativeDiscard.append(player.negativeCard)
+                    player.negativeCard = player.extraCard
+                    player.extraCard = None
+                else:
+                    self.positiveDiscard.append(player.positiveCard)
+                    player.positiveCard = player.extraCard
+                    player.extraCard = None
+            else:
+                if player.extraCardIsNegative:
+                    self.negativeDiscard.append(player.extraCard)
+                    player.extraCard = None
+                else:
+                    self.positiveDiscard.append(player.extraCard)
+                    player.extraCard = None
+
+            uDex = self.getActivePlayers().index(player)
+            nextPlayer = uDex + 1
+            if nextPlayer >= len(self.getActivePlayers()):
+                nextPlayer = 0
+                if self.cycle_count >= 2:
+                    otherImposter = self.unRolledImposters()
+                    if otherImposter is None:
+                        self.phase = "reveal"
+
+        elif (params["action"] == "imposterChoice") and (self.player_turn == player.id) and (self.phase == "imposterChoice") and (self.completed == False):
+            rollingCard = player.negativeCard if params["negatvie"] else player.positiveCard
+            if rollingCard.suit == "imposter" and rollingCard.val == 0:
+                rollingCard.val == self.dice[params["die"]]
+
+            otherImposter = self.unRolledImposters()
+
+            if otherImposter is None:
+                self.phase = "reveal"
+                nextPlayer = 0
+            else:
+                nextPlayer = otherImposter
+
+            self.player_turn = self.getActivePlayers()[nextPlayer].id
+
+        elif (params["action"] == "nextHand") and (self.player_turn == player.id) and (self.phase == "reveal") and (self.completed == False):
+            self.nextHand()
+
+        elif (params["action"] == "playAgain") and (self.player_turn == player.id) and (self.phase == "reveal") and (self.completed):
             self.nextRound()
 
-            dbList = [
-                self.playersToDb(kesselPlayerType, kesselCardType),
-                self.players[0].id,
-                0,
-                "",
-                KesselDeck(),
-                KesselDeck(),
-                [],
-                [],
-                False,
-                self.id
-            ]
+        dbList = [
+            self.playersToDb(kesselPlayerType, kesselCardType),
+            self.phase,
+            self.dice,
+            self.positiveDeck.toDb(kesselCardType),
+            self.negativeDeck.toDb(kesselCardType),
+            [i.toDb(kesselCardType) for i in self.positiveDiscard],
+            [i.toDb(kesselCardType) for i in self.negativeDiscard],
+            self.activeShiftTokens,
+            self.player_turn,
+            self.p_act,
+            self.cycle_count,
+            self.completed,
+            self.id
+        ]
 
-            db.execute("UPDATE kessel_games SET players = %s, player_turn = %s, cycle_count = %s, p_act = %s, positiveDeck = %s, negativeDeck = %s, positiveDiscard = %s, negativeDiscard = %s, completed = %s WHERE game_id = %s", dbList)
+        db.execute("UPDATE kessel_games SET players = %s, phase = %s, dice = %s, positiveDeck = %s, negativeDeck = %s, positiveDiscard = %s, negativeDiscard = %s, activeShiftTokens = %s, player_turn = %s, p_act = %s, cycle_count = %s, completed = %s WHERE game_id = %s", dbList)
 
         originalChangedValues = self.compare(originalSelf)
         if originalChangedValues == {}:
@@ -464,6 +602,6 @@ class KesselGame(Game):
         else:
             self.move_history = [originalChangedValues]
 
-        db.execute("UPDATE corellian_spike_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
+        db.execute("UPDATE kessel_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
 
         return self

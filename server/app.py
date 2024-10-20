@@ -181,10 +181,18 @@ print("Created CorellianSpike table")
 conn.commit()
 
 # Create custom Kessel types
+# db.execute("DROP TABLE kessel_games")
+# conn.commit()
+# db.execute("DROP TYPE IF EXISTS KesselPlayer CASCADE")
+# conn.commit()
+# db.execute("DROP TYPE  IF EXISTS KesselCard CASCADE")
+# conn.commit()
+# db.execute("DROP TYPE  IF EXISTS KesselShiftToken CASCADE")
+# conn.commit()
 
 # Create custom KesselShiftToken type
 try:
-    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'targetAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo', 'markdown', 'targetAudit', 'cookTheBooks');")
+    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'targetAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo', 'markdown', 'cookTheBooks', 'primeSabacc');")
     conn.commit()
     print("Created custom PostgreSQL type KesselShiftToken")
 except psycopg.errors.DuplicateObject:
@@ -219,6 +227,8 @@ try:
         usedChips INTEGER,
         positiveCard KesselCard,
         negativeCard KesselCard,
+        extraCard KesselCard,
+        extraCardIsNegative BOOL,
         shiftTokens KesselShiftToken[],
         outOfGame BOOL,
         lastAction TEXT);
@@ -231,17 +241,32 @@ except psycopg.errors.DuplicateObject:
 
 
 # register Kessel custom types
-kessel.kesselHelpers.kesselShiftTokenType = CompositeInfo.fetch(conn, 'kesselshifttoken')
 kessel.kesselHelpers.kesselCardType = CompositeInfo.fetch(conn, 'kesselcard')
 kessel.kesselHelpers.kesselPlayerType = CompositeInfo.fetch(conn, 'kesselplayer')
-register_composite(kessel.kesselHelpers.kesselShiftTokenType, db)
 register_composite(kessel.kesselHelpers.kesselCardType, db)
 register_composite(kessel.kesselHelpers.kesselPlayerType, db)
 
 print("Registered Kessel custom types")
 
 # create Kessel tables
-db.execute("CREATE TABLE IF NOT EXISTS kessel_games (game_id SERIAL PRIMARY KEY, players KesselPlayer[], phase TEXT NOT NULL DEFAULT 'shiftTokenSelect', dice INTEGER[2] NOT NULL DEFAULT '{ 1, 1 }', positiveDeck KesselCard[], negativeDeck KesselCard[], positiveDiscard KesselCard[], negativeDiscard KesselCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"startingChips\" : 8 }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
+db.execute('''CREATE TABLE IF NOT EXISTS kessel_games (
+    game_id SERIAL PRIMARY KEY,
+    players KesselPlayer[],
+    phase TEXT NOT NULL DEFAULT 'draw',
+    dice INTEGER[2] NOT NULL DEFAULT '{ 1, 1 }',
+    positiveDeck KesselCard[],
+    negativeDeck KesselCard[],
+    positiveDiscard KesselCard[],
+    negativeDiscard KesselCard[],
+    activeShiftTokens TEXT[][] NOT NULL DEFAULT '{}',
+    player_turn INTEGER,
+    p_act TEXT,
+    cycle_count INTEGER NOT NULL DEFAULT 0,
+    completed BOOL NOT NULL DEFAULT false,
+    settings JSONB NOT NULL DEFAULT '{ \"startingChips\" : 8, \"playersChooseShiftTokens\" : false }',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    move_history JSONB[]);
+''')
 print("Created Kessel table")
 conn.commit()
 
@@ -550,6 +575,7 @@ def gameAction(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')
     for i in clients:
+        print(game.getClientData(clientUserMap[i[0]][0]))
         emit('gameUpdate', game.getClientData(clientUserMap[i[0]][0]), to=i[0])
 
 """ Old Socket Stuff - May be brought back in the future"""

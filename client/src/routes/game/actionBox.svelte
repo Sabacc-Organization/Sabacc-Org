@@ -31,6 +31,7 @@
         raise,
         tradeBtn,
         stand,
+        shiftTokenSelect,
         playAgain
     } from "./gameLogic";
 
@@ -207,7 +208,7 @@
                 <div id="betDiv" class="backBlue brightBlue">
                     <button>Stand</button>
                 </div>
-            {:else if $game["phase"] === "confirmDraw"}
+            {:else if $game["phase"] === "discard"}
                 <div id="betDiv" class="backBlue brightBlue">
                     <button>Stand</button>
                 </div>
@@ -215,7 +216,11 @@
                 <div id="betDiv" class="backBlue brightBlue grid">
                     {#each SHIFT_TOKENS as shiftToken}
                         <div class="cardContainer">
-                            <div class="card child shiftToken" style="{renderCard(shiftToken)}"></div>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div on:click={() => shiftTokenSelect(shiftToken)}
+                            class="card child shiftToken"
+                            style="{renderCard(shiftToken)}"></div>
                         </div>
                     {/each}
                 </div>

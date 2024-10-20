@@ -16,6 +16,7 @@ export const actions = {
         const player7 = formData.get('player7')?.toString();
         const player8 = formData.get('player8')?.toString();
         let startingChips: string | number | undefined = formData.get('startingChips')?.toString();
+        let playersChooseShiftTokens: string | boolean | undefined = formData.get('startingChips')?.toString();
 
         const username = cookies.get("username");
         const password = cookies.get("password");
@@ -55,6 +56,12 @@ export const actions = {
             return;
         }
 
+        if (playersChooseShiftTokens === "on"){
+            playersChooseShiftTokens = true;
+        } else {
+            playersChooseShiftTokens = false;
+        }
+
         // Standard player vailidity checks
         if (players.length < 1) {
             return {error: "You cannot play alone"}
@@ -81,6 +88,7 @@ export const actions = {
                 "game_variant": "kessel",
                 "settings": {
                     "startingChips": startingChips,
+                    "playersChooseShiftTokens": playersChooseShiftTokens
                 }
             }
 

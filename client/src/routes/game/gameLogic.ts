@@ -216,6 +216,7 @@ export function fold() {
 
 // card phase
 export function card(action: string) {
+    console.log('ewehwherhewhwiiii')
     if (get(cardBool) === true) {
 
         let clientInfo = {
@@ -233,7 +234,7 @@ export function card(action: string) {
 }
 
 export function draw(type: string) {
-    if (get(game_variant) === 'corellian_spike') {
+    if (get(game_variant) !== 'traditional') {
         card(type);
     } else {
         card("draw");
@@ -272,6 +273,22 @@ export function shift() {
             "game_id": get(game_id),
             "game_variant": get(game_variant),
             "action": "shift"
+        }
+
+        get(socket)!.emit('gameAction', clientInfo);
+    }
+}
+
+export function shiftTokenSelect(shiftToken: string){
+    if (get(shiftActive) === true) {
+
+        let clientInfo = {
+            "username": get(username),
+            "password": get(password),
+            "game_id": get(game_id),
+            "game_variant": get(game_variant),
+            "shiftToken": shiftToken,
+            "action": "shiftTokenSelect"
         }
 
         get(socket)!.emit('gameAction', clientInfo);

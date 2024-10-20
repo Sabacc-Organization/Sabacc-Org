@@ -30,7 +30,10 @@ class Card:
     def __str__(self) -> str:
         return f'{addPlusBeforeNumber(self.val)} {self.suit}'
     def __eq__(self, other:object) -> bool:
-        return self.val == other.val and self.suit == other.suit
+        try:
+            return self.val == other.val and self.suit == other.suit
+        except AttributeError:
+            return False
     def toDict(self) -> dict:
         return {
             'val': self.val,

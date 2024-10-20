@@ -22,6 +22,10 @@
     $: {
         if ($game["player_turn"] === $user_id) {
 
+            if ($game["phase"] === "draw"){
+                $cardBool = true;
+            }
+
             if ($game["phase"] === "card") {
                 $cardBool = true;
                 if ($game["cycle_count"] != 0) {
@@ -74,22 +78,22 @@
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('negativeDiscardDraw')} class:active={$cardBool} id="negatvieDiscard" class="card child" style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"></div>
+                <div on:click={() => draw('negativeDiscardDraw')} id="negativeDiscard" class="card child" style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('negativeDeckDraw')} class:active={$cardBool} id="negativeDeck" class="card child" style="{renderBack(true)}"></div>
+                <div on:click={() => draw('negativeDeckDraw')} id="negativeDeck" class="card child" style="{renderBack(true)}"></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('positiveDeckDraw')} class:active={$cardBool} id="positiveDeck" class="card child" style="{renderBack(false)}"></div>
+                <div on:click={() => draw('positiveDeckDraw')} id="positiveDeck" class="card child" style="{renderBack(false)}"></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('positiveDiscardDraw')} class:active={$cardBool} id="positiveDiscard" class="card child" style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"></div>
+                <div on:click={() => draw('positiveDiscardDraw')} id="positiveDiscard" class="card child" style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"></div>
             </div>
         </div>
     {/if}

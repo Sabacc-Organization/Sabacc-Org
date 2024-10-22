@@ -78,6 +78,7 @@ class Deck:
             return None
 
         if numCards == 1:
+            print(f"removing only {self.cards[-1]}")
             return self.cards.pop()
         else:
             drawnCards = []

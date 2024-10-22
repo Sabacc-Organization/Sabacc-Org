@@ -141,9 +141,17 @@
             $shiftActive = false;
         }
     }
+
+    // Shift tokens
+    let shiftTokenBool = false;
+    $: {
+        if ($game["phase"] === "shiftTokenSelect" && $game["playerTurn"] === $user_id){
+            shiftTokenBool = true;
+        }
+    }
 </script>
 
-<div id="actBox">
+<div id="actBox" class="{shiftTokenBool? "shiftToken":""}">
     {#if !$game["completed"] && ($currentMove === $movesDone - 1 || $movesDone === 0)}
         {#if $game["player_turn"] === $user_id}
             {#if $game["phase"] === "betting"}
@@ -206,11 +214,7 @@
                 </div>
             {:else if $game["phase"] === "draw"}
                 <div id="betDiv" class="backBlue brightBlue">
-                    <button>Stand</button>
-                </div>
-            {:else if $game["phase"] === "discard"}
-                <div id="betDiv" class="backBlue brightBlue">
-                    <button>Stand</button>
+                    <button on:click={stand} class="btn btn-primary">Stand</button>
                 </div>
             {:else if $game["phase"] === "shiftTokenSelect"}
                 <div id="betDiv" class="backBlue brightBlue grid">

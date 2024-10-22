@@ -16,7 +16,9 @@
         check,
         draw,
         alderaan,
-        shift
+        shift,
+        imposterRoll,
+        imposterChoice
     } from "./gameLogic";
 
     $: {
@@ -78,35 +80,39 @@
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('negativeDiscardDraw')} id="negativeDiscard" class="card child" style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"></div>
+                <div on:click={() => draw('negativeDiscardDraw')} id="negativeDiscard" class="card child {$cardBool? "active":""}" style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('negativeDeckDraw')} id="negativeDeck" class="card child" style="{renderBack(true)}"></div>
+                <div on:click={() => draw('negativeDeckDraw')} id="negativeDeck" class="card child {$cardBool? "active":""}" style="{renderBack(true)}"></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('positiveDeckDraw')} id="positiveDeck" class="card child" style="{renderBack(false)}"></div>
+                <div on:click={() => draw('positiveDeckDraw')} id="positiveDeck" class="card child {$cardBool? "active":""}" style="{renderBack(false)}"></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('positiveDiscardDraw')} id="positiveDiscard" class="card child" style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"></div>
+                <div on:click={() => draw('positiveDiscardDraw')} id="positiveDiscard" class="card child {$cardBool? "active":""}" style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"></div>
             </div>
         </div>
     {/if}
 
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span on:click={shift} class:shiftActive={$shiftActive} class="dieContainer">
+    <span on:click={$game_variant !== "kessel"? shift : imposterRoll} class:shiftActive={$shiftActive || ($game["phase"] === "imposterRoll" && $game["player_turn"] === $user_id)} class="dieContainer">
         {#if $game_variant !== "kessel"}
             <div id="dieOne" class="child die"></div>
             <div id="dieTwo" class="child die shift{$game["shift"]}"></div>
         {:else}
-            <div id="dieOne" class="child die" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][0]}.png);"></div>
-            <div id="dieTwo" class="child die" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][1]}.png);"></div>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <div on:click = {() => imposterChoice(0)} id="dieOne" class="child die {$game["phase"] === "imposterChoice"? "active" : ""}" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][0]}.png);"></div>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <div on:click = {() => imposterChoice(1)} id="dieTwo" class="child die {$game["phase"] === "imposterChoice"? "active" : ""}" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][1]}.png);"></div>
         {/if}
     </span>
 

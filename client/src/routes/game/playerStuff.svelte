@@ -9,13 +9,15 @@
         socket,
         password,
         game_id,
+        user_id
     } from "./sharedValues";
 
     import {
         trade,
         handleChipPress,
         clickOrDblclick,
-        numOfActivePlayers
+        numOfActivePlayers,
+        kesselDiscard
     } from "./gameLogic";
 
     export let p;
@@ -115,9 +117,9 @@
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                     <div
-                    on:click={() => clickOrDblclick(() => trade(p["negativeCard"]), () => onDoubleClickCard(p["negativeCard"]))}
+                    on:click={() => clickOrDblclick(() => kesselDiscard(true), () => onDoubleClickCard(p["negativeCard"]))}
                     id="cardNegative"
-                    class="card child own"
+                    class="card child own{($game["phase"] === "discard" && p["extraCard"] && p["extraCardIsNegative"])? " active":""}"
                     style="{renderCard(p["negativeCard"], true)}">
                     </div>
                     <h5>{""}</h5>
@@ -127,9 +129,9 @@
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <div
-                        on:click={() => clickOrDblclick(() => trade(p["extraCard"]), () => onDoubleClickCard(p["extraCard"]))}
+                        on:click={() => clickOrDblclick(() => kesselDiscard(false), () => onDoubleClickCard(p["extraCard"]))}
                         id="cardExtra"
-                        class="card child own"
+                        class="card child own{($game["phase"] === "discard")? " active":""}"
                         style="{renderCard(p["extraCard"], p["extraCardIsNegative"])}">
                         </div>
                         <h5>{""}</h5>
@@ -139,26 +141,26 @@
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                     <div
-                    on:click={() => clickOrDblclick(() => trade(p["positiveCard"]), () => onDoubleClickCard(p["positiveCard"]))}
+                    on:click={() => clickOrDblclick(() => kesselDiscard(true), () => onDoubleClickCard(p["positiveCard"]))}
                     id="cardPositive"
-                    class="card child own"
+                    class="card child own{($game["phase"] === "discard" && p["extraCard"] && !p["extraCardIsNegative"])? " active":""}"
                     style="{renderCard(p["positiveCard"], false)}">
                     </div>
                     <h5>{""}</h5>
                 </div>
             {:else}
                 <div class="cardContainer">
-                    <div class="card child" style="{renderBack(true)}"></div>
+                    <div class="card child" style="{$game["phase"] !== "reveal"? renderBack(true) : renderCard(p["negativeCard"], true)}"></div>
                     <h5>{""}</h5>
                 </div>
                 {#if p["extraCard"]}
                     <div class="cardContainer">
-                        <div class="card child" style="{renderBack(p["extraCardIsNegative"])}"></div>
+                        <div class="card child" style="{$game["phase"] !== "reveal"? renderBack(p["extraCardIsNegative"]) : renderCard(p["extraCard"], p["extraCardIsNegative"])}"></div>
                         <h5>{""}</h5>
                     </div>
                 {/if}
                 <div class="cardContainer">
-                    <div class="card child" style="{renderBack(false)}"></div>
+                    <div class="card child" style="{$game["phase"] !== "reveal"? renderBack(false) : renderCard(p["positiveCard"], false)}"></div>
                     <h5>{""}</h5>
                 </div>
             {/if}
@@ -187,7 +189,7 @@
                 <div class="cardsContainer">
                     {#each p["shiftTokens"] as shiftToken}
                         <div class="cardContainer">
-                            <div class="card child shiftToken" style="{renderCard(shiftToken)}"></div>
+                            <div class="card own child shiftToken {(["draw", "discard"].includes($game["phase"]) && $game["player_turn"] === $user_id)}" style="{renderCard(shiftToken)}"></div>
                         </div>
                     {/each}
                 </div>
@@ -208,6 +210,14 @@
                     <div class="chip bigChip child"></div>
                     <div class="chip midChip child"></div>
                     <div class="chip lowChip child"></div>
+                </div>
+            {:else}
+                <div class="cardsContainer">
+                    {#each p["shiftTokens"] as shiftToken}
+                        <div class="cardContainer">
+                            <div class="card child shiftToken" style="{renderCard(shiftToken)}"></div>
+                        </div>
+                    {/each}
                 </div>
             {/if}
             <h5>

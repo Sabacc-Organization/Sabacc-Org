@@ -30,7 +30,7 @@ import {
     tradeType,
     alderaanActive,
     shiftActive,
-    greatestBet
+    greatestBet,
 } from './sharedValues';
 
 export function requestGameUpdate() {
@@ -215,6 +215,19 @@ export function fold() {
 }
 
 // card phase
+export function kesselDiscard(keep: boolean){
+    let clientInfo = {
+        "username": get(username),
+        "password": get(password),
+        "game_id": get(game_id),
+        "game_variant": get(game_variant),
+        "action": "discard",
+        "keep": keep
+    }
+
+    get(socket)!.emit('gameAction', clientInfo);
+}
+
 export function card(action: string) {
     console.log('ewehwherhewhwiiii')
     if (get(cardBool) === true) {
@@ -273,6 +286,37 @@ export function shift() {
             "game_id": get(game_id),
             "game_variant": get(game_variant),
             "action": "shift"
+        }
+
+        get(socket)!.emit('gameAction', clientInfo);
+    }
+}
+
+export function imposterRoll() {
+    if (get(game)["phase"] === "imposterRoll" && get(game)["player_turn"] === get(user_id)) {
+
+        let clientInfo = {
+            "username": get(username),
+            "password": get(password),
+            "game_id": get(game_id),
+            "game_variant": get(game_variant),
+            "action": "imposterRoll"
+        }
+
+        get(socket)!.emit('gameAction', clientInfo);
+    }
+}
+
+export function imposterChoice(index: number) {
+    if (get(game)["phase"] === "imposterChoice" && get(game)["player_turn"] === get(user_id)) {
+
+        let clientInfo = {
+            "username": get(username),
+            "password": get(password),
+            "game_id": get(game_id),
+            "game_variant": get(game_variant),
+            "action": "imposterChoice",
+            "die": index
         }
 
         get(socket)!.emit('gameAction', clientInfo);

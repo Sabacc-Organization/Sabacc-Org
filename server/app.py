@@ -575,7 +575,6 @@ def gameAction(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')
     for i in clients:
-        print(game.getClientData(clientUserMap[i[0]][0]))
         emit('gameUpdate', game.getClientData(clientUserMap[i[0]][0]), to=i[0])
 
 """ Old Socket Stuff - May be brought back in the future"""

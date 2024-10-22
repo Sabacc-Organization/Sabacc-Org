@@ -25,17 +25,19 @@ shiftTokenTypes = [
 ]
 
 class KesselDeck(Deck):
-    def __init__(self, cardsToExclude: list = []):
+    def __init__(self, cards: list = None):
         super().__init__()
 
-        for i in range(3):
-            for j in range(6):
-                self.cards.append(Card(j+1, 'basic'))
-            self.cards.append(Card(0, 'imposter'))
-        self.cards.append(Card(0, 'sylop'))
+        if cards is None:
+            for i in range(3):
+                for j in range(6):
+                    self.cards.append(Card(j+1, 'basic'))
+                self.cards.append(Card(0, 'imposter'))
+            self.cards.append(Card(0, 'sylop'))
 
-        for card in cardsToExclude:
-            self.cards.remove(card)
+        else:
+            self.cards.extend(cards)
+
         self.shuffle()
 
     @staticmethod
@@ -114,7 +116,7 @@ class KesselPlayer(Player):
             'outOfGame': self.outOfGame
         }
 
-    @abstractmethod
+    @staticmethod
     def extraCardFromDb(fromDb):
         if fromDb is None:
             return None
@@ -246,7 +248,7 @@ class KesselGame(Game):
         return KesselGame( id = game[0],
             players = [KesselPlayer.fromDb(player) for player in game[1]],
             phase = game[2],
-            dice = game[3],
+            dice = tuple(game[3]),
             positiveDeck = KesselDeck.fromDb(game[4]),
             negativeDeck = KesselDeck.fromDb(game[5]),
             positiveDiscard = [Card.fromDb(i) for i in game[6]],
@@ -331,6 +333,48 @@ class KesselGame(Game):
     def rollDice(self):
         self.dice = (random.randint(1, 6), random.randint(1, 6))
 
+    @staticmethod
+    def cardToString(card, negative):
+        retStr = 'negative ' if negative else 'positive '
+        if card.suit == "sylop":
+            retStr += 'sylop'
+        elif card.suit == 'imposter':
+            if card.val == 0:
+                retStr += 'imposter'
+            else:
+                retStr += f'imposter ({card.val})'
+        else:
+            retStr += card.val
+        return retStr
+
+    @staticmethod
+    def namesToString(names):
+        if len(names) == 0:
+            return ''
+        if len(names) == 1:
+            return names[0]
+
+        retStr = ''
+        if len(names) == 2:
+            retStr = f'{names[0]} and {names[1]}'
+
+        else:
+            for i in names[0:-1]:
+                retStr += f'{i}, '
+            retStr += f'and {names[-1]}'
+
+        return retStr
+
+    @staticmethod
+    def camelToNatural(string: str):
+        retStr = ''
+        for i in string:
+            if i.isupper():
+                retStr += ' ' + i.lower()
+            else:
+                retStr += i
+        return retStr
+
     def trade(self, tradeType: str, player: KesselPlayer, playerKeeps: bool):
         if player.chips == 0:
             return "not enough chips to trade"
@@ -367,6 +411,7 @@ class KesselGame(Game):
                 pass
 
     def handOver(self):
+        self.player_turn = self.getActivePlayers()[0].id
         # determine winners of the hand
         handWinners = []
         winningHand = (6, 6) # distance between cards, lowest card
@@ -383,6 +428,20 @@ class KesselGame(Game):
             if tempHand == winningHand:
                 handWinners.append(i)
 
+        if len(handWinners) == 1:
+            winner = handWinners[0]
+            if winningHand == (0, 0):
+                self.p_act = f'{winner.username} got a pure sabacc and won the hand!'
+            elif winningHand[0] == 0:
+                self.p_act = f'{winner.username} got a {winningHand[1]} sabacc and won the hand!'
+            else:
+                self.p_act = f'{winner.username} won the hand with a {KesselGame.cardToString(winner.negativeCard, True)} and a {KesselGame.cardToString(winner.positiveCard, False)}'
+        else:
+            if winningHand[0] == 0:
+                self.p_act = f'players {KesselGame.namesToString([i.username for i in handWinners])} got a {winningHand[1]} sabacc and won the hand!'
+            else:
+                self.p_act = f'players {KesselGame.namesToString([i.username for i in handWinners])} won the hand with a card difference of {winningHand[0]}'
+
         for i in self.getActivePlayers():
             if i in handWinners:
                 i.chips += i.usedChips
@@ -397,10 +456,9 @@ class KesselGame(Game):
                 i.outOfGame = True
 
         # if someone has won the game, game over.
-        if len(self.getActivePlayers() <= 1):
+        if len(self.getActivePlayers()) <= 1:
             self.completed = True
 
-        # otherwise, distribute chips to winners, delete chips from losers, reshuffle cards, and deal
         self.phase = "reveal"
 
     def nextHand(self):
@@ -427,55 +485,36 @@ class KesselGame(Game):
             cond2 = (self.getActivePlayers()[nextPlayer].negativeCard.suit == "imposter") and (self.getActivePlayers()[nextPlayer].negativeCard.val == 0)
             if cond1 or cond2:
                 otherImposter = True
-                self.phase = "imposterRoll"
+                break
+            nextPlayer += 1
 
         return nextPlayer if otherImposter else None
+
+    def playerTurnOver(self, player):
+        uDex = self.getActivePlayers().index(player)
+        nextPlayer = uDex + 1
+        if nextPlayer >= len(self.getActivePlayers()):
+            nextPlayer = 0
+            if self.cycle_count >= 2:
+                otherImposter = self.unRolledImposters()
+                if otherImposter is None:
+                    self.handOver()
+                else:
+                    nextPlayer = otherImposter
+                    self.phase = "imposterRoll"
+            else:
+                self.phase = "draw"
+            self.cycle_count += 1
+        else:
+            self.phase = "draw"
+        self.player_turn = self.getActivePlayers()[nextPlayer].id
 
     def action(self, params: dict, db):
         originalSelf = copy.deepcopy(self)
 
         player: KesselPlayer = self.getPlayer(username=params["username"])
 
-        if (params["action"] in ["positiveDeckTrade", "negativeDeckTrade", "positiveDiscardTrade", "negativeDiscardTrade", "stand"]) and (self.player_turn == player.id) and (self.phase == "normal") and (self.completed == False):
-
-            if params["action"] != "stand":
-                naturalActionWords = {
-                    "positiveDeckTrade": "positive deck",
-                    "negativeDeckTrade": "negative deck",
-                    "positiveDiscardTrade": "positive discard pile",
-                    "negativeDiscardTrade": "negative discard pile"
-                }
-                self.trade(params["action"], player, params["playerKeeps"])
-                self.p_act = f'{player.username} trades with {naturalActionWords[params["action"]]}'
-
-            else:
-                self.p_act = f'{player.username} stands'
-
-            uDex = self.getPlayerDex(id=player.id)
-            nextPlayer = uDex + 1
-
-            if nextPlayer >= len(self.getActivePlayers()):
-                nextPlayer = 0
-                if self.cycle_count >= 2:
-                    self.handOver()
-                else:
-                    self.cycle_count += 1
-
-            dbList = [
-                self.playersToDb(kesselPlayerType, kesselCardType),
-                self.player_turn,
-                self.p_act,
-                self.positiveDeck,
-                self.negativeDeck,
-                self.positiveDiscard,
-                self.negativeDiscard,
-                self.cycle_count,
-                self.completed,
-                self.id
-            ]
-            db.execute("UPDATE kessel_games SET players = %s, player_turn = %s, p_act = %s positiveDeck = %s, negativeDeck = %s, positiveDiscard = %s, negativeDiscard = %s, cycle_count = %s, completed = %s  WHERE game_id = %s", dbList)
-
-        elif (params["action"] == "shiftTokenSelect") and (self.player_turn == player.id) and (self.phase == "shiftTokenSelect") and (self.completed == False):
+        if (params["action"] == "shiftTokenSelect") and (self.player_turn == player.id) and (self.phase == "shiftTokenSelect") and (self.completed == False):
             if len(player.shiftTokens) >= 3:
                 return "too many shift tokens"
 
@@ -490,42 +529,53 @@ class KesselGame(Game):
 
                 self.player_turn = self.getActivePlayers()[nextPlayer].id
 
-        elif (params["action"] == "imposterRoll") and (self.player_turn == player.id) and (self.phase == "imposterRoll") and (self.completed == False):
-            self.rollDice()
-            self.phase = "imposterChoice"
+            self.p_act = f'{player.username} chooses new shift token: {KesselGame.camelToNatural(params["shiftToken"])}'
+            player.lastAction = f'chooses shift token {params["shiftToken"]}'
 
-        elif (params["action"] in ("positiveDeckDraw", "negativeDeckDraw", "positiveDiscardDraw", "negativeDiscardDraw")) and (self.player_turn == player.id) and (self.phase == "draw") and (self.completed == False):
-            print(f'aery {params["action"]}')
+        elif (params["action"] in ("positiveDeckDraw", "negativeDeckDraw", "positiveDiscardDraw", "negativeDiscardDraw", "stand")) and (self.player_turn == player.id) and (self.phase == "draw") and (self.completed == False):
             if player.extraCard is not None:
-                print(player.extraCard)
-                print("player already has extra card")
                 return "player already has extra card"
 
-            if player.chips == 0:
-                print("not enough chips to draw")
-                return "not enough chips to draw"
+            if params["action"] == "stand":
+                self.playerTurnOver(player)
+                self.p_act = f'{player.username} stands'
+                player.lastAction = "stands"
 
-            player.chips -= 1
-            player.usedChips += 1
+            else:
+                if player.chips == 0:
+                    return "not enough chips to draw"
 
-            if params["action"] == "positiveDeckDraw":
-                player.extraCard = self.positiveDeck.draw()
-                player.extraCardIsNegative = False
-            elif params["action"] == "negativeDeckDraw":
-                player.extraCard = self.negativeDeck.draw()
-                player.extraCardIsNegative = True
-            elif params["action"] == "positiveDiscardDraw":
-                player.extraCard = self.positiveDiscard.pop()
-                player.extraCardIsNegative = False
-            elif params["action"] == "negativeDiscardDraw":
-                player.extraCard = self.negativeDiscard.pop()
-                player.extraCardIsNegative = True
+                player.chips -= 1
+                player.usedChips += 1
 
-            self.phase = "discard"
+                if params["action"] == "positiveDeckDraw":
+                    player.extraCard = self.positiveDeck.draw()
+                    player.extraCardIsNegative = False
+                elif params["action"] == "negativeDeckDraw":
+                    player.extraCard = self.negativeDeck.draw()
+                    player.extraCardIsNegative = True
+                elif params["action"] == "positiveDiscardDraw":
+                    player.extraCard = self.positiveDiscard.pop()
+                    player.extraCardIsNegative = False
+                elif params["action"] == "negativeDiscardDraw":
+                    player.extraCard = self.negativeDiscard.pop()
+                    player.extraCardIsNegative = True
+
+                naturalWordDict = {
+                    "positiveDeckDraw":"positive deck",
+                    "negativeDeckDraw":"negative deck",
+                    "positiveDiscardDraw":"positive discard pile",
+                    "negativeDiscardDraw":"negative discard pile"
+                }
+                self.p_act = f'{player.username} draws a card from the {naturalWordDict[params["action"]]}'
+                player.lastAction = f'draws from {naturalWordDict[params["action"]]}'
+
+                self.phase = "discard"
 
         elif (params["action"] == "discard") and (self.player_turn == player.id) and (self.phase == "discard") and (self.completed == False):
             if player.extraCard is None:
                 return "player doesnt have an extra card to discard"
+
             if params["keep"] is True:
                 if player.extraCardIsNegative:
                     self.negativeDiscard.append(player.negativeCard)
@@ -543,29 +593,34 @@ class KesselGame(Game):
                     self.positiveDiscard.append(player.extraCard)
                     player.extraCard = None
 
-            uDex = self.getActivePlayers().index(player)
-            nextPlayer = uDex + 1
-            if nextPlayer >= len(self.getActivePlayers()):
-                nextPlayer = 0
-                if self.cycle_count >= 2:
-                    otherImposter = self.unRolledImposters()
-                    if otherImposter is None:
-                        self.phase = "reveal"
+            self.p_act = f'{player.username} discards {'their new card' if params["keep"] else 'their origional card'}'
+            player.lastAction = f'discards {'their new card' if params["keep"] else 'their origional card'}'
+
+            self.playerTurnOver(player)
+
+        elif (params["action"] == "imposterRoll") and (self.player_turn == player.id) and (self.phase == "imposterRoll") and (self.completed == False):
+            self.rollDice()
+            self.phase = "imposterChoice"
 
         elif (params["action"] == "imposterChoice") and (self.player_turn == player.id) and (self.phase == "imposterChoice") and (self.completed == False):
-            rollingCard = player.negativeCard if params["negatvie"] else player.positiveCard
-            if rollingCard.suit == "imposter" and rollingCard.val == 0:
-                rollingCard.val == self.dice[params["die"]]
+            if player.negativeCard.suit == "imposter" and player.negativeCard.val == 0:
+                player.negativeCard.val = self.dice[params["die"]]
+            elif player.positiveCard.suit == "imposter" and player.positiveCard.val == 0:
+                player.positiveCard.val = self.dice[params["die"]]
 
             otherImposter = self.unRolledImposters()
 
-            if otherImposter is None:
-                self.phase = "reveal"
-                nextPlayer = 0
-            else:
-                nextPlayer = otherImposter
+            self.p_act = f'{player.username} rolls for imposter and gets a {self.dice[params["die"]]}'
+            player.lastAction = f'rolls {self.dice[params["die"]]} for imposter'
 
-            self.player_turn = self.getActivePlayers()[nextPlayer].id
+            if otherImposter is None:
+                self.handOver()
+            else:
+                self.phase = "imposterRoll"
+                nextPlayer = otherImposter
+                self.player_turn = self.getActivePlayers()[nextPlayer].id
+
+
 
         elif (params["action"] == "nextHand") and (self.player_turn == player.id) and (self.phase == "reveal") and (self.completed == False):
             self.nextHand()
@@ -576,7 +631,7 @@ class KesselGame(Game):
         dbList = [
             self.playersToDb(kesselPlayerType, kesselCardType),
             self.phase,
-            self.dice,
+            list(self.dice),
             self.positiveDeck.toDb(kesselCardType),
             self.negativeDeck.toDb(kesselCardType),
             [i.toDb(kesselCardType) for i in self.positiveDiscard],

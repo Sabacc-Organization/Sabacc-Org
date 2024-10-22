@@ -90,7 +90,7 @@
     onDestroy(() => {
         if ($socket) {
             $socket.disconnect();
-            console.log('Socket disconnected');
+            console.log('Chewie removed your connection from its socket');
             resetGameStores();
         }
     });

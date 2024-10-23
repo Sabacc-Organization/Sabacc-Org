@@ -27,27 +27,32 @@ class TraditionalCard(Card):
     def __init__(self, val:int, suit:TraditionalSuit, protected=False):
         super().__init__(val=val, suit=suit)
         self.protected = protected
+
     def __eq__(self, other) -> bool:
         return other != None and (self.val == other.val and self.suit == other.suit)
+
     def __str__(self) -> str:
         return f"{self.val} of {str(self.suit)}{' (protected)' if self.protected else ''}"
 
     def toDb(self, cardType):
         return cardType.python_type(self.val, self.suit, self.protected)
-    
+
     def toDict(self) -> dict:
         return {
             'val': self.val,
             'suit': self.suit,
             'prot': self.protected
         }
+
     @staticmethod
     def fromDb(card):
         a = TraditionalCard(card.val, card.suit, card.protected)
         return a
+
     @staticmethod
     def fromDict(dict):
         return TraditionalCard(dict['val'],dict['suit'],dict['prot'])
+
     @staticmethod
     def randCardNotInList(val:int, protected=False, unallowedCards=[]):
         card = None
@@ -55,16 +60,20 @@ class TraditionalCard(Card):
             card = TraditionalCard(val=val, suit=TraditionalSuit.NEGATIVE_NEUTRAL, protected=protected)
             if unallowedCards.count(card) > 1:
                 print(f"WARNING: more than 2 {val}'s exist")
+
         else: # positive val
             allowedSuits = [TraditionalSuit.COINS, TraditionalSuit.FLASKS, TraditionalSuit.SABERS, TraditionalSuit.STAVES]
             for c in unallowedCards:
                 if c.val == val and c.suit in allowedSuits:
                     allowedSuits.remove(c.suit)
+
             if len(allowedSuits) == 0:
                 print(f"WARNING: more than 4 {val}'s exist")
                 card = TraditionalCard(val=val,suit=random.choice([TraditionalSuit.COINS, TraditionalSuit.FLASKS, TraditionalSuit.SABERS, TraditionalSuit.STAVES]),protected=protected)
+
             else:
                 card = TraditionalCard(val=val,suit=random.choice(allowedSuits), protected=protected)
+
         return card
 
 class TraditionalDeck(Deck):
@@ -80,13 +89,16 @@ class TraditionalDeck(Deck):
             TraditionalCard(-13,TraditionalSuit.NEGATIVE_NEUTRAL),
             TraditionalCard(-17,TraditionalSuit.NEGATIVE_NEUTRAL)
         ]
+
         for suit in [TraditionalSuit.COINS,TraditionalSuit.FLASKS,TraditionalSuit.SABERS,TraditionalSuit.STAVES]:
             for val in range(1,16):
                 self.cards.append(TraditionalCard(val=val,suit=suit))
+
         for card in cardsToExclude:
             self.cards.remove(card)
+
         self.shuffle()
-    
+
     @staticmethod
     def fromDb(deck) -> object:
         return TraditionalDeck([TraditionalCard.fromDb(card) for card in deck])
@@ -105,10 +117,11 @@ class TraditionalHand(Hand):
             print("ERROR: invalid index for protected card")
             return "non matching user input"
         return card
-    
+
     @staticmethod
     def fromDb(hand) -> object:
         return TraditionalHand([TraditionalCard.fromDb(card) for card in hand])
+
     @staticmethod
     def fromDict(hand) -> object:
         return TraditionalHand([TraditionalCard.fromDict(card) for card in hand])
@@ -116,7 +129,7 @@ class TraditionalHand(Hand):
 class TraditionalPlayer(Player):
     def __init__(self, id:int, username:str, credits=0, bet:int = None, hand:Hand=Hand(), folded=False, lastAction=""):
         super().__init__(id, username, credits, bet, hand, folded, lastAction)
-    
+
     def protect(self, card:TraditionalCard):
         self.hand.protect(card)
         self.lastAction = f"protected a {card.val}"
@@ -125,6 +138,7 @@ class TraditionalPlayer(Player):
         # for i in range(len(self.hand.cards)):
         #     self.hand.cards[i] = self.hand.cards[i].toDb(cardType)
         return playerType.python_type(self.id, self.username, self.credits, self.bet, [card.toDb(cardType) for card in self.hand.cards], self.folded, self.lastAction)
+
     def toDict(self):
         return {
             'id': self.id,
@@ -135,13 +149,15 @@ class TraditionalPlayer(Player):
             'folded': self.folded,
             'lastAction': self.lastAction
         }
+
     @staticmethod
     def fromDb(player:object):
         return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastaction)
+
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalPlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=TraditionalHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])
-    
+
     def calcHandVal(self):
         cardVals = self.hand.getListOfVals()
         cardVals.sort()
@@ -150,29 +166,54 @@ class TraditionalPlayer(Player):
         # idiot's array (best)
         if cardVals == [0, 2, 3]:
             return SpecialHands.IDIOTS_ARRAY
+
         elif cardVals == [-2, -2]:
             return SpecialHands.FAIRY_EMPRESS
-        
+
         return sum(cardVals)
-    
-defaultSettings = { 
-    "PokerStyleBetting": False, 
-    "SmallBlind": 1, 
-    "BigBlind": 2, 
-    "HandPotAnte": 5, 
-    "SabaccPotAnte": 10, 
-    "StartingCredits": 1000 
+
+defaultSettings = {
+    "PokerStyleBetting": False,
+    "SmallBlind": 1,
+    "BigBlind": 2,
+    "HandPotAnte": 5,
+    "SabaccPotAnte": 10,
+    "StartingCredits": 1000
 }
 
 class TraditionalGame(Game):
-    def __init__(self, players:list, id:int=None, deck=TraditionalDeck(), player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, phase='betting', cycle_count=0, shift=False, completed=False, settings=defaultSettings, created_at=None, move_history=None):
-        super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=cycle_count, completed=completed, settings=settings, created_at=created_at, move_history=move_history)
+    def __init__(self,
+        players: list,
+        id: int = None,
+        deck = TraditionalDeck(),
+        player_turn: int = None,
+        p_act = '',
+        hand_pot = 0,
+        sabacc_pot = 0,
+        phase = 'betting',
+        cycle_count = 0,
+        shift = False,
+        completed = False,
+        settings = defaultSettings,
+        created_at = None,
+        move_history = None):
+
+        super().__init__(
+            players = players,
+            id = id,
+            player_turn = player_turn,
+            p_act = p_act,
+            deck = deck,
+            phase = phase,
+            cycle_count = cycle_count,
+            completed = completed,
+            settings = settings,
+            created_at = created_at,
+            move_history = move_history
+        )
         self.hand_pot = hand_pot
         self.sabacc_pot = sabacc_pot
         self._shift = shift
-        self.settings = settings
-        self.created_at = created_at
-        self.move_history = move_history
 
     # create a new game
     @staticmethod
@@ -180,7 +221,7 @@ class TraditionalGame(Game):
 
         if len(playerIds) != len(playerUsernames):
             return "Uneqal amount of ids and usernames"
-        
+
         if len(playerIds) > 8:
             "Too many players. Max of 8 players."
 
@@ -197,7 +238,7 @@ class TraditionalGame(Game):
         deck = TraditionalDeck()
 
         game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=settings["HandPotAnte"]*len(players), sabacc_pot=settings["SabaccPotAnte"]*len(players))
-        
+
         # Blinds
         if settings["PokerStyleBetting"]:
             activePlayers = game.getActivePlayers()
@@ -210,7 +251,7 @@ class TraditionalGame(Game):
             bigBlind.bet = settings["BigBlind"]
             bigBlind.credits -= settings["BigBlind"]
             game.player_turn = bigBlind.id
-        
+
         # Deal
         game.shuffleDeck()
         game.dealHands()
@@ -230,7 +271,7 @@ class TraditionalGame(Game):
             player.bet = None # reset bets
             player.folded = False # reset folded
             player.lastAction = '' # reset last action
-        
+
         # Antes (Pots)
         self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
         self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
@@ -241,7 +282,7 @@ class TraditionalGame(Game):
         # Blinds
         if self.settings["PokerStyleBetting"]:
             activePlayers = self.getActivePlayers()
-            
+
             smallBlind = activePlayers[1 % len(activePlayers)]
             smallBlind.bet = self.settings["SmallBlind"]
             smallBlind.credits -= self.settings["SmallBlind"]
@@ -263,10 +304,13 @@ class TraditionalGame(Game):
     def toDb(self, card_type, player_type, includeId=False):
         if includeId:
             return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.created_at, self.moveHistoryToDb()]
+
         elif includeId == False:
             return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.moveHistoryToDb()]
+
     def playersToDb(self, player_type, card_type):
         return [player.toDb(player_type, card_type) for player in self.players]
+
     def toDict(self):
         return {
             'id': self.id,
@@ -284,11 +328,13 @@ class TraditionalGame(Game):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'move_history': self.move_history
         }
+
     @staticmethod
     def fromDb(game:object, preSettings=False):
         if preSettings:
             return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings)
         return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=game[11],created_at=game[12],move_history=game[13])
+
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
@@ -313,14 +359,14 @@ class TraditionalGame(Game):
             for i in range(len(hand)):
                 if not hand[i].protected: # if card is not protected
                     hand[i] = self.drawFromDeck()
-    
+
     def alderaan(self, suddenDemise=False, sdPlayers:list=[]):
         # If recursion has been activated due to a tie, and there is sudden demise
         if suddenDemise == True:
             # Give each participant in the sudden demise a card
             for player in sdPlayers:
                 player.hand.cards.append(self.drawFromDeck())
-        
+
         # calculate winners and losers
         winningPlayers, bestHand, bombedOutPlayers = TraditionalGame.calcWinners(sdPlayers) if suddenDemise else TraditionalGame.calcWinners(self.players)
 
@@ -333,18 +379,18 @@ class TraditionalGame(Game):
         # if there's a tie, initiate sudden demise through recursion
         if len(winningPlayers) > 1:
             return self.alderaan(suddenDemise=True, sdPlayers=winningPlayers)
-        
+
         # only 1 winner
         if len(winningPlayers) == 1:
             winner = winningPlayers[0]
-        
+
         return winner, bestHand, bombedOutPlayers
 
     def whoCalledAlderaan(self):
         for player in self.getActivePlayers():
             if player.lastAction == "calls Alderaan":
                 return player
-        
+
     @staticmethod
     def calcWinners(players) -> dict:
         bestHand = 0
@@ -360,7 +406,7 @@ class TraditionalGame(Game):
             tempCurrentHand = currentHand
             if currentHand == SpecialHands.FAIRY_EMPRESS:
                 tempCurrentHand = -22
-            
+
             # convert enum to int
             tempBestHand = bestHand
             if bestHand == SpecialHands.FAIRY_EMPRESS:
@@ -400,7 +446,7 @@ class TraditionalGame(Game):
             player.fold(self.settings["PokerStyleBetting"])
 
             players = self.getActivePlayers()
-            
+
         if params["action"] == "check":
             if player.getBet() != self.getGreatestBet():
                 return

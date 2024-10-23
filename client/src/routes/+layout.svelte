@@ -1,8 +1,11 @@
 
-<script lang="ts"> 
+<script lang="ts">
+    import { afterNavigate } from '$app/navigation';
+ 
 
     import { page } from '$app/stores'
-    import { onMount } from 'svelte';
+    import { afterUpdate, onMount } from 'svelte';
+    // import { browser } from '$app/environment';
 
     /** @type {import('./$types').PageData} */
 	export let data;
@@ -18,10 +21,9 @@
                 window.jQuery('.dropdown-toggle').dropdown();
         });
         }
-        return '';
     }
 
-    onMount( async () => {
+    afterNavigate( async () => {
         initializeDropdown();
     });
 
@@ -66,7 +68,6 @@
 
 
     </head>
-
     <body>
 
         <nav class="navbar navbar-expand-md border" class:navbar-light={dark!="true"} class:bg-light={dark!="true"} class:navbar-dark={dark==="true"} class:bg-dark={dark==="true"}>
@@ -83,11 +84,11 @@
                                 <div class="dropdown-menu">
                                   <a class="dropdown-item" href="/host/traditional">Traditional Sabacc</a>
                                   <a class="dropdown-item" href="/host/corellian-spike">Corellian Spike Sabacc</a>
+                                  <a class="dropdown-item" href="/host/kessel">Kessel Sabacc</a>
                                 </div>
                             </div>
                         </li>
                     </ul>
-                    <!-- {initializeDropdown()} -->
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>
                         <li class="nav-item"><a class="nav-link" href="https://discord.com/invite/AaYrNZjBus" target="_blank">Join the Discord</a></li>

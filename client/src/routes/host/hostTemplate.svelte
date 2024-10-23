@@ -3,9 +3,10 @@
 
     /** @type {import('./$types').PageData} */
     export let game_variant: string;
-    let game_variant_string = {'traditional':'Traditional', 'corellian-spike':'Corellian Spike'}[game_variant]
+    let game_variant_string = {'traditional':'Traditional', 'corellian-spike':'Corellian Spike', 'kessel':'Kessel'}[game_variant]
     import TraditionalSettings from './traditional/settings.svelte';
     import CorellianSpikeSettings from './corellian-spike/settings.svelte';
+    import KesselSettings from './kessel/settings.svelte'
 
 
     export let form;
@@ -39,19 +40,19 @@
         } else {
             players.push(player4);
         }
-        
+
         if (player5 === "") {
             player6 = "";
         } else {
             players.push(player5);
         }
-        
+
         if (player6 === "") {
             player7 = "";
         } else {
             players.push(player6);
         }
-        
+
         if (player7 === "") {
             player8 = "";
         } else {
@@ -60,8 +61,8 @@
             if (player8 != "") {
                 players.push(player8);
             }
-        }  
-        
+        }
+
     }
 
 </script>
@@ -101,6 +102,8 @@
         <TraditionalSettings />
     {:else if game_variant === "corellian-spike"}
         <CorellianSpikeSettings />
+    {:else if game_variant === "kessel"}
+        <KesselSettings />
     {/if}
 
     <br>

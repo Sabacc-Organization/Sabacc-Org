@@ -1,6 +1,6 @@
 <script lang="ts">
 
-    import {  
+    import {
         game,
         currentMove,
         movesDone,
@@ -23,7 +23,7 @@
         tradeCard
     } from "./sharedValues";
 
-    import { 
+    import {
         bet,
         check,
         fold,
@@ -31,8 +31,30 @@
         raise,
         tradeBtn,
         stand,
-        playAgain
+        shiftTokenSelect,
+        playAgain,
+        nextHand
     } from "./gameLogic";
+
+    const SHIFT_TOKENS = [
+        "freeDraw",
+        "refund",
+        "extraRefund",
+        "embezzlement",
+        "majorFraud",
+        "generalTariff",
+        "targetTariff",
+        "generalAudit",
+        "targetAudit",
+        "immunity",
+        "exhaustion",
+        "directTransaction",
+        "embargo",
+        "markdown",
+        "cookTheBooks",
+        "primeSabacc"
+    ]
+    export let renderCard
 
     // actBox reacitivity
 
@@ -120,9 +142,12 @@
             $shiftActive = false;
         }
     }
+
+    // Shift tokens
+    $: shiftTokenBool = ($game["phase"] === "shiftTokenSelect" && $game["player_turn"] === $user_id)
 </script>
 
-<div id="actBox">
+<div id="actBox" class:shiftToken={shiftTokenBool}>
     {#if !$game["completed"] && ($currentMove === $movesDone - 1 || $movesDone === 0)}
         {#if $game["player_turn"] === $user_id}
             {#if $game["phase"] === "betting"}
@@ -183,9 +208,29 @@
                     {/if}
                     <button on:click={stand} type="button" id="standBtn" class="btn btn-primary">Stand</button>
                 </div>
+            {:else if $game["phase"] === "draw"}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button on:click={stand} class="btn btn-primary">Stand</button>
+                </div>
+            {:else if $game["phase"] === "shiftTokenSelect"}
+                <div id="betDiv" class="backBlue brightBlue grid">
+                    {#each SHIFT_TOKENS as shiftToken}
+                        <div class="cardContainer">
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div on:click={() => shiftTokenSelect(shiftToken)}
+                            class="card child shiftToken own active"
+                            style="{renderCard(shiftToken)}"></div>
+                        </div>
+                    {/each}
+                </div>
+            {:else if $game["phase"] === "reveal"}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button on:click={nextHand} class="btn btn-primary">Next Hand</button>
+                </div>
             {/if}
         {/if}
-    {:else if $game["player_turn"] === $user_id && $game["completed"] && $currentMove === $movesDone - 1}
+    {:else if $game["player_turn"] === $user_id && $game["completed"] && ($currentMove === $movesDone - 1)}
         <div id="betDiv" class="backBlue brightBlue">
             <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
         </div>

@@ -30,7 +30,10 @@ class Card:
     def __str__(self) -> str:
         return f'{addPlusBeforeNumber(self.val)} {self.suit}'
     def __eq__(self, other:object) -> bool:
-        return self.val == other.val and self.suit == other.suit
+        try:
+            return self.val == other.val and self.suit == other.suit
+        except AttributeError:
+            return False
     def toDict(self) -> dict:
         return {
             'val': self.val,
@@ -86,7 +89,7 @@ class Hand:
     def __init__(self, cards=[]):
         self.cards: list = cards.copy()
         self.sort()
-    
+
     def __eq__(self, other:object) -> bool:
         if len(self.cards) != len(other.cards):
             return False
@@ -185,7 +188,24 @@ class Player:
             self.lastAction = f'checks'
 
 class Game:
-    def __init__(self, players:list, id:int=None, player_turn:int=None, p_act='', deck:Deck=None, phase='betting', cycle_count=0, completed=False, shift=False, settings={ "PokerStyleBetting": False, "SmallBlind": 1, "BigBlind": 2 }, created_at=None, move_history=[]):
+    def __init__(self,
+        players:list,
+        id:int=None,
+        player_turn:int=None,
+        p_act='',
+        deck:Deck=None,
+        phase='betting',
+        cycle_count=0,
+        completed=False,
+        shift=False,
+        settings={
+            "PokerStyleBetting": False,
+            "SmallBlind": 1,
+            "BigBlind": 2
+        }, created_at = None,
+        move_history = []):
+
+
         self.players = players
         self.id = id
         self.player_turn = player_turn
@@ -203,6 +223,17 @@ class Game:
     @abstractmethod
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
+
+    def getClientData(self, user_id = None, username = None):
+        player: Player = self.getPlayer(username, user_id)
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        users = [i.username for i in self.getActivePlayers()]
+        # print(gameDict)
+        # print(f'\n\n{self.player_turn}\n\n')
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
 
     # shuffle deck
     def shuffleDeck(self):
@@ -229,8 +260,12 @@ class Game:
     
     def getNextPlayer(self, player):
         for player in self.players[self.players.index(player) + 1:] + self.players[:self.players.index(player)]:
-            if not player.folded:
-                return player
+            try:
+                if (not player.folded):
+                    return player
+            except AttributeError:
+                if (not player.outOfGame):
+                    return player
 
     def getPlayerDex(self, username:str=None, id:int=None):
         for i in range(len(self.players)):

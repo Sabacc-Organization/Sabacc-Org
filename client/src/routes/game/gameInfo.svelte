@@ -17,8 +17,8 @@
         draw,
         alderaan,
         shift,
-        imposterRoll,
-        imposterChoice
+        diceRoll,
+        dieChoice
     } from "./gameLogic";
 
     $: {
@@ -102,17 +102,17 @@
 
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span on:click={$game_variant !== "kessel"? shift : imposterRoll} class:shiftActive={$shiftActive || ($game["phase"] === "imposterRoll" && $game["player_turn"] === $user_id)} class="dieContainer">
+    <span on:click={$game_variant !== "kessel"? shift : diceRoll} class:shiftActive={$shiftActive || (["imposterRoll", "shiftTokenRoll"].includes($game["phase"]) && $game["player_turn"] === $user_id)} class="dieContainer">
         {#if $game_variant !== "kessel"}
             <div id="dieOne" class="child die"></div>
             <div id="dieTwo" class="child die shift{$game["shift"]}"></div>
         {:else}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click = {() => imposterChoice(0)} id="dieOne" class="child die {$game["phase"] === "imposterChoice"? "active" : ""}" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][0]}.png);"></div>
+            <div on:click = {() => dieChoice(0)} id="dieOne" class="child die {["imposterChoice", "shiftTokenDieChoice"].includes($game["phase"]) && $game["player_turn"] === $user_id? "active" : ""}" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][0]}.png);"></div>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div on:click = {() => imposterChoice(1)} id="dieTwo" class="child die {$game["phase"] === "imposterChoice"? "active" : ""}" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][1]}.png);"></div>
+            <div on:click = {() => dieChoice(1)} id="dieTwo" class="child die {["imposterChoice", "shiftTokenDieChoice"].includes($game["phase"]) && $game["player_turn"] === $user_id? "active" : ""}" style="background-image: url(/images/modern-theme-images/die/modern/{$game["dice"][1]}.png);"></div>
         {/if}
     </span>
 

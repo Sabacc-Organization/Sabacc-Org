@@ -78,6 +78,15 @@
     background-size: contain;
 }
 
+.shield-logo{
+    display: inline-block;
+    width: 20px;
+    aspect-ratio: 1 / 1;
+    background-image: url("/images/shieldIcon.svg");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
 .alderaan {
     background-image: url("/images/alderaan.png");
     background-repeat: no-repeat, no-repeat;

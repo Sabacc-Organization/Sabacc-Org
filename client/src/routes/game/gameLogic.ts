@@ -292,30 +292,48 @@ export function shift() {
     }
 }
 
-export function imposterRoll() {
-    if (get(game)["phase"] === "imposterRoll" && get(game)["player_turn"] === get(user_id)) {
+export function shiftTokenUse(shiftToken: string) {
+    if (["draw", "discard"].includes(get(game)["phase"]) && get(game)["player_turn"] === get(user_id) && get(thisPlayer)["shiftTokens"].includes(shiftToken)) {
 
         let clientInfo = {
             "username": get(username),
             "password": get(password),
             "game_id": get(game_id),
             "game_variant": get(game_variant),
-            "action": "imposterRoll"
+            "action": "shiftTokenUse",
+            "shiftToken": shiftToken
         }
 
         get(socket)!.emit('gameAction', clientInfo);
     }
 }
 
-export function imposterChoice(index: number) {
-    if (get(game)["phase"] === "imposterChoice" && get(game)["player_turn"] === get(user_id)) {
+export function diceRoll() {
+    if (["imposterRoll", "shiftTokenRoll"].includes(get(game)["phase"]) && get(game)["player_turn"] === get(user_id)) {
+        let action = get(game)["phase"] === "imposterRoll"? "imposterRoll" : "shiftTokenDetail";
 
         let clientInfo = {
             "username": get(username),
             "password": get(password),
             "game_id": get(game_id),
             "game_variant": get(game_variant),
-            "action": "imposterChoice",
+            "action": action
+        }
+
+        get(socket)!.emit('gameAction', clientInfo);
+    }
+}
+
+export function dieChoice(index: number) {
+    if (["imposterChoice", "shiftTokenDieChoice"].includes(get(game)["phase"]) && get(game)["player_turn"] === get(user_id)) {
+        let action = get(game)["phase"] === "imposterChoice"? "imposterChoice" : "shiftTokenDetail";
+
+        let clientInfo = {
+            "username": get(username),
+            "password": get(password),
+            "game_id": get(game_id),
+            "game_variant": get(game_variant),
+            "action": action,
             "die": index
         }
 
@@ -324,7 +342,7 @@ export function imposterChoice(index: number) {
 }
 
 export function shiftTokenSelect(shiftToken: string){
-    if (get(shiftActive) === true) {
+    if (get(game)["player_turn"] === get(user_id) && get(game)["phase"] === "shiftTokenSelect") {
 
         let clientInfo = {
             "username": get(username),
@@ -333,6 +351,36 @@ export function shiftTokenSelect(shiftToken: string){
             "game_variant": get(game_variant),
             "shiftToken": shiftToken,
             "action": "shiftTokenSelect"
+        }
+
+        get(socket)!.emit('gameAction', clientInfo);
+    }
+}
+
+export function playerSelect(playerId: number) {
+    if (get(game)["phase"] === "shiftTokenPlayer" && get(game)["player_turn"] === get(user_id)) {
+
+        let clientInfo = {
+            "username": get(username),
+            "password": get(password),
+            "game_id": get(game_id),
+            "game_variant": get(game_variant),
+            "action": "shiftTokenDetail",
+            "player": playerId
+        }
+
+        get(socket)!.emit('gameAction', clientInfo);
+    }
+}
+
+export function nextHand() {
+    if (get(game)["phase"] === "reveal" && get(game)["player_turn"] === get(user_id)) {
+        let clientInfo = {
+            "username": get(username),
+            "password": get(password),
+            "game_id": get(game_id),
+            "game_variant": get(game_variant),
+            "action": "nextHand"
         }
 
         get(socket)!.emit('gameAction', clientInfo);

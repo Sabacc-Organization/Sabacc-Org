@@ -32,7 +32,8 @@
         tradeBtn,
         stand,
         shiftTokenSelect,
-        playAgain
+        playAgain,
+        nextHand
     } from "./gameLogic";
 
     const SHIFT_TOKENS = [
@@ -143,15 +144,10 @@
     }
 
     // Shift tokens
-    let shiftTokenBool = false;
-    $: {
-        if ($game["phase"] === "shiftTokenSelect" && $game["playerTurn"] === $user_id){
-            shiftTokenBool = true;
-        }
-    }
+    $: shiftTokenBool = ($game["phase"] === "shiftTokenSelect" && $game["player_turn"] === $user_id)
 </script>
 
-<div id="actBox" class="{shiftTokenBool? "shiftToken":""}">
+<div id="actBox" class:shiftToken={shiftTokenBool}>
     {#if !$game["completed"] && ($currentMove === $movesDone - 1 || $movesDone === 0)}
         {#if $game["player_turn"] === $user_id}
             {#if $game["phase"] === "betting"}
@@ -223,14 +219,18 @@
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div on:click={() => shiftTokenSelect(shiftToken)}
-                            class="card child shiftToken"
+                            class="card child shiftToken own active"
                             style="{renderCard(shiftToken)}"></div>
                         </div>
                     {/each}
                 </div>
+            {:else if $game["phase"] === "reveal"}
+                <div id="betDiv" class="backBlue brightBlue">
+                    <button on:click={nextHand} class="btn btn-primary">Next Hand</button>
+                </div>
             {/if}
         {/if}
-    {:else if $game["player_turn"] === $user_id && $game["completed"] && $currentMove === $movesDone - 1}
+    {:else if $game["player_turn"] === $user_id && $game["completed"] && ($currentMove === $movesDone - 1)}
         <div id="betDiv" class="backBlue brightBlue">
             <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
         </div>

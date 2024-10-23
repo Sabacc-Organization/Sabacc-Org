@@ -78,7 +78,6 @@ class Deck:
             return None
 
         if numCards == 1:
-            print(f"removing only {self.cards[-1]}")
             return self.cards.pop()
         else:
             drawnCards = []
@@ -90,7 +89,7 @@ class Hand:
     def __init__(self, cards=[]):
         self.cards: list = cards.copy()
         self.sort()
-    
+
     def __eq__(self, other:object) -> bool:
         if len(self.cards) != len(other.cards):
             return False
@@ -261,8 +260,12 @@ class Game:
     
     def getNextPlayer(self, player):
         for player in self.players[self.players.index(player) + 1:] + self.players[:self.players.index(player)]:
-            if not player.folded:
-                return player
+            try:
+                if (not player.folded):
+                    return player
+            except AttributeError:
+                if (not player.outOfGame):
+                    return player
 
     def getPlayerDex(self, username:str=None, id:int=None):
         for i in range(len(self.players)):

@@ -17,13 +17,17 @@
         handleChipPress,
         clickOrDblclick,
         numOfActivePlayers,
-        kesselDiscard
+        kesselDiscard,
+        shiftTokenUse,
+        playerSelect
     } from "./gameLogic";
 
     export let p;
     export let i;
     export let renderCard;
     export let renderBack;
+
+    $: canSelectPlayers = ($game["phase"] === "shiftTokenPlayer") && ($game["player_turn"] === $user_id)
 
     function onDoubleClickCard(card : {[id: string]: any}) {
         if ($game_variant === "traditional") {
@@ -40,7 +44,16 @@
     }
 </script>
 
-<div id="{p['username']}Stuff" class:folded={p['folded']} class="parent player{$orderedPlayers.indexOf(p)} playerStuff" class:playing={p['username'] === $username}>
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div on:click={() => playerSelect(p["id"])}
+id="{p['username']}Stuff"
+class:folded={p['folded'] || p['outOfGame']}
+class="parent
+player{$orderedPlayers.indexOf(p)}
+playerStuff
+{canSelectPlayers? "active":""}"
+class:playing={p['username'] === $username}>
 
     <!-- Bet boxes -->
     {#if p['username'] === $username}
@@ -172,7 +185,11 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div id="{p['username']}Box" class="backBlue {$game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox">
-            <h5>{p['username']}</h5>
+            <h5>{p['username']}
+                {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
+                    <div class="shield-logo"></div>
+                {/if}
+            </h5>
             {#if $game_variant !== "kessel"}
                 <div class="parent">
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -189,7 +206,9 @@
                 <div class="cardsContainer">
                     {#each p["shiftTokens"] as shiftToken}
                         <div class="cardContainer">
-                            <div class="card own child shiftToken {(["draw", "discard"].includes($game["phase"]) && $game["player_turn"] === $user_id)}" style="{renderCard(shiftToken)}"></div>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-static-element-interactions -->
+                            <div on:click={() => shiftTokenUse(shiftToken)} class="card own child shiftToken {(["draw", "discard"].includes($game["phase"]) && $game["player_turn"] === $user_id)? "active":""}" style="{renderCard(shiftToken)}"></div>
                         </div>
                     {/each}
                 </div>
@@ -203,8 +222,16 @@
             </h5>
         </div>
     {:else}
-        <div id="{p['username']}Box" class="backRed {$game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox">
-            <h5>{p['username']}</h5>
+        <div
+        id="{p['username']}Box"
+        class="backRed
+        {$game["player_turn"] === p['id']? "turnGlow" : "noTurnGlow"}
+        playerBox">
+            <h5>{p['username']}
+                {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
+                    <div class="shield-logo"></div>
+                {/if}
+            </h5>
             {#if $game_variant !== "kessel"}
                 <div class="parent">
                     <div class="chip bigChip child"></div>
@@ -222,7 +249,7 @@
             {/if}
             <h5>
                 <div class="imperial-credits-logo"></div>
-                    <span id="{p['username']}_credits">{$game_variant !== "kessel"? p['credits'] : p['chips']}</span>
+                <span id="{p['username']}_credits">{$game_variant !== "kessel"? p['credits'] : p['chips']}</span>
             </h5>
         </div>
     {/if}

@@ -58,28 +58,28 @@ class KesselPlayer(Player):
         self.shiftTokens = shiftTokens
         self.outOfGame = outOfGame
 
-    def getHandValue(self):
-        if self.positiveCard.suit == "sylop":
-            if self.negativeCard.suit == "sylop":
-                return (0, 0)
-            else:
-                return (0, self.negativeCard.val)
-
-        elif self.negativeCard.suit == "sylop":
+    def getHandValue(self, markdown = False):
+        if markdown is False:
             if self.positiveCard.suit == "sylop":
-                return (0, 0)
-            else:
-                return (0, self.positiveCard.val)
+                if self.negativeCard.suit == "sylop":
+                    return (0, 0)
+                else:
+                    return (0, self.negativeCard.val)
 
-        else:
-            return ((abs(self.positiveCard.val - self.negativeCard.val), min(self.positiveCard.val, self.negativeCard.val)))
+            elif self.negativeCard.suit == "sylop":
+                if self.positiveCard.suit == "sylop":
+                    return (0, 0)
+                else:
+                    return (0, self.positiveCard.val)
+
+        return ((abs(self.positiveCard.val - self.negativeCard.val), min(self.positiveCard.val, self.negativeCard.val)))
 
     def extraCardToDb(self, card_type):
         if self.extraCard is None:
             return None
         else:
             return self.extraCard.toDb(cardType=card_type)
-    
+
     def extraCardToDict(self):
         if self.extraCard is None:
             return None
@@ -87,6 +87,7 @@ class KesselPlayer(Player):
             return self.extraCard.toDict()
 
     def toDb(self, player_type, card_type):
+        print(self.shiftTokens)
         return player_type.python_type(
             self.id,
             self.username,
@@ -124,6 +125,13 @@ class KesselPlayer(Player):
             return Card.fromDb(fromDb)
 
     @staticmethod
+    def shiftTokensFromDb(string):
+        retList = string.strip("}{").split(',')
+        if retList == ['']:
+            retList = []
+        return retList
+
+    @staticmethod
     def fromDb(player:object):
         return KesselPlayer(
             player.id,
@@ -135,7 +143,7 @@ class KesselPlayer(Player):
             player.extracardisnegative,
             player.chips,
             player.usedchips,
-            player.shifttokens.strip('}{').split(','),
+            KesselPlayer.shiftTokensFromDb(player.shifttokens),
             player.outofgame
         )
 
@@ -192,6 +200,7 @@ class KesselGame(Game):
         positive = KesselDeck()
         negative = KesselDeck()
 
+        print(settings)
         players = []
         for i in range(len(playerIds)):
             shiftTokens = []
@@ -203,7 +212,7 @@ class KesselGame(Game):
             players = players,
             player_turn=players[0].id,
             p_act = '',
-            phase = 'shiftTokenSelect' if settings["playersChooseShiftTokens"] else 'draw',
+            phase = 'shiftTokenSelect' if settings["playersChooseShiftTokens"] is True else 'draw',
             positiveDeck = positive,
             negativeDeck = negative,
             positiveDiscard = [positive.draw()],
@@ -344,7 +353,7 @@ class KesselGame(Game):
             else:
                 retStr += f'imposter ({card.val})'
         else:
-            retStr += card.val
+            retStr += str(card.val)
         return retStr
 
     @staticmethod
@@ -375,55 +384,75 @@ class KesselGame(Game):
                 retStr += i
         return retStr
 
-    def trade(self, tradeType: str, player: KesselPlayer, playerKeeps: bool):
-        if player.chips == 0:
-            return "not enough chips to trade"
-        player.chips -= 1
+    def nextRound(self):
+        self.activeShiftTokens = []
 
-        if tradeType == "positiveDeckTrade":
-            if playerKeeps:
-                self.positiveDiscard.append(player.positiveCard)
-                player.positiveCard = self.positiveDeck.draw()
-            else:
-                self.positiveDiscard.append(self.positiveDeck.draw())
+        self.positiveDeck = KesselDeck()
+        self.negativeDeck = KesselDeck()
 
-        elif tradeType == "negativeDeckTrade":
-            if playerKeeps:
-                self.negativeDiscard.append(player.negativeCard)
-                player.negativeCard = self.negativeDeck.draw()
-            else:
-                self.negativeDiscard.append(self.negativeDeck.draw())
+        self.positiveDiscard = [self.positiveDeck.draw()]
+        self.negativeDiscard = [self.negativeDeck.draw()]
 
-        elif tradeType == "positiveDiscardTrade":
-            if playerKeeps:
-                temp = self.positiveDiscard.pop()
-                self.positiveDiscard.append(player.positiveCard)
-                player.positiveCard = temp
-            else:
-                pass
+        newPlayers = []
+        for i in range(len(self.players)):
+            newPlayers.append(self.players[(i + 1) % len(self.players)])
+        self.players = newPlayers
 
-        elif tradeType == "negativeDiscardTrade":
-            if playerKeeps:
-                temp = self.negativeDiscard.pop()
-                self.negativeDiscard.append(player.negativeCard)
-                player.negativeCard = temp
-            else:
-                pass
+        for i in self.players:
+            i.shiftTokens = []
+            i.outOfGame = False
+            i.chips = self.settings["startingChips"]
+            i.usedChips = 0
+            if self.settings["playersChooseShiftTokens"] is False:
+                i.shiftTokens = [random.choice(shiftTokenTypes) for _ in range(3)]
+
+        for i in self.getActivePlayers():
+            i.positiveCard = self.positiveDeck.draw()
+            i.negativeCard = self.negativeDeck.draw()
+            i.extraCard = None
+
+        self.player_turn = self.getActivePlayers()[0].id
+        self.cycle_count = 0
+
+        if self.settings["playersChooseShiftTokens"]:
+            self.phase = "shiftTokenSelect"
+        else:
+            self.phase = "draw"
+        self.p_act = ""
+        self.rollDice()
 
     def handOver(self):
         self.player_turn = self.getActivePlayers()[0].id
         # determine winners of the hand
         handWinners = []
-        winningHand = (6, 6) # distance between cards, lowest card
+
+        markdown = ["markdown", ""] in self.activeShiftTokens
+        primeSabacc = -1
+        for i in self.activeShiftTokens:
+            if i[0] == "primeSabacc":
+                if i[1].isdigit():
+                    primeSabacc = i[1]
+
+        if ["cookTheBooks", ""] in self.activeShiftTokens:
+            winningHand = (6, 0)
+
+            for i in self.getActivePlayers():
+                tempHand = i.getHandValue(markdown)
+
+                if (tempHand[0] < winningHand[0]) or ((tempHand[0] == winningHand[0]) and (tempHand[1] > winningHand[1] or tempHand[1] == primeSabacc)):
+                    winningHand = tempHand
+
+        else:
+            winningHand = (6, 6) # distance between cards, lowest card
+
+            for i in self.getActivePlayers():
+                tempHand = i.getHandValue(markdown)
+
+                if (tempHand[0] < winningHand[0]) or ((tempHand[0] == winningHand[0]) and (tempHand[1] < winningHand[1] or tempHand[1] == primeSabacc)):
+                    winningHand = tempHand
 
         for i in self.getActivePlayers():
-            tempHand = i.getHandValue()
-
-            if (tempHand[0] < winningHand[0]) or ((tempHand[0] == winningHand[0]) and (tempHand[1] < winningHand[1])):
-                winningHand = tempHand
-
-        for i in self.getActivePlayers():
-            tempHand = i.getHandValue()
+            tempHand = i.getHandValue(markdown)
 
             if tempHand == winningHand:
                 handWinners.append(i)
@@ -446,7 +475,7 @@ class KesselGame(Game):
             if i in handWinners:
                 i.chips += i.usedChips
             else:
-                i.chips -= min(i.getHandValue()[0], 1)
+                i.chips -= min(i.getHandValue(markdown)[0], 1)
             i.usedChips = 0
 
         # remove players who have no chips.
@@ -459,14 +488,33 @@ class KesselGame(Game):
         if len(self.getActivePlayers()) <= 1:
             self.completed = True
 
+        newActiveShiftTokens = []
+        for i in self.activeShiftTokens:
+            if i == ["markdown", ""]:
+                continue
+            elif i == ["cookTheBooks", ""]:
+                continue
+            elif i[0] == "primeSabacc" and i[1].isdigit():
+                continue
+            newActiveShiftTokens.append(i)
+        self.activeShiftTokens = newActiveShiftTokens
+
         self.phase = "reveal"
 
     def nextHand(self):
+        self.phase = "draw"
+        self.activeShiftTokens = []
+
         self.positiveDeck = KesselDeck()
         self.negativeDeck = KesselDeck()
 
         self.positiveDiscard = [self.positiveDeck.draw()]
         self.negativeDiscard = [self.negativeDeck.draw()]
+
+        newPlayers = []
+        for i in range(len(self.players)):
+            newPlayers.append(self.players[(i + 1) % len(self.players)])
+        self.players = newPlayers
 
         for i in self.getActivePlayers():
             i.positiveCard = self.positiveDeck.draw()
@@ -509,6 +557,170 @@ class KesselGame(Game):
             self.phase = "draw"
         self.player_turn = self.getActivePlayers()[nextPlayer].id
 
+        if ["embargo", self.getActivePlayers()[nextPlayer].id] in self.activeShiftTokens:
+            self.activeShiftTokens.remove(["embargo", self.getActivePlayers()[nextPlayer].id])
+            self.playerTurnOver()
+
+    def getLastDrawActions(self):
+        # print(self.move_history)
+        playerLastActions = {i.id: "none" for i in self.players}
+
+        if self.move_history is not None:
+            moveHistoryIndex = 0
+            while moveHistoryIndex < len(self.move_history):
+                currentDict = self.move_history[moveHistoryIndex]
+                if "players" in currentDict:
+                    for i in currentDict["players"]:
+                        if i["lastAction"] == "stands" or i["lastAction"].startswith("draws"):
+                            playerLastActions[i["id"]] = i["lastAction"]
+                if "phase" in currentDict:
+                    if currentDict["phase"] == "reveal":
+                        for i in playerLastActions:
+                            playerLastActions[i] = 'none'
+
+                moveHistoryIndex += 1
+
+            for i in self.players:
+                if i.lastAction == "stands" or i.lastAction.startswith("draws"):
+                    playerLastActions[i.id] = i.lastAction
+
+        return playerLastActions
+
+    def shiftTokenUse(self, player: KesselPlayer, shiftToken: str):
+        if shiftToken == "freeDraw":
+            self.activeShiftTokens.append(["freeDraw", str(player.id)])
+            self.p_act = f'{player.username} used free draw shift token, thier next draw will be free.'
+            player.lastAction = 'uses free draw'
+
+        elif shiftToken == "refund":
+            transferAmount = min(player.usedChips, 2)
+            player.chips += transferAmount
+            player.usedChips -= transferAmount
+            self.p_act = f'{player.username} used refund shift token, they got refunded two chips'
+            player.lastAction = 'uses refund'
+
+        elif shiftToken == "extraRefund":
+            transferAmount = min(player.usedChips, 3)
+            player.chips += transferAmount
+            player.usedChips -= transferAmount
+            self.p_act = f'{player.username} used free extra refund shift token, they got refunded three chips.'
+            player.lastAction = 'uses extra refund'
+
+        elif shiftToken == "embezzlement":
+            for i in self.getActivePlayers():
+                if ["immunity", str(i.id)] in self.activeShiftTokens:
+                    continue
+
+                if i.chips >= 1:
+                    i.chips -= 1
+                    player.chips += 1
+
+            self.p_act = f'{player.username} used embezzlement shift token, taking one chip from each players pots'
+            player.lastAction = 'uses embezzlement'
+
+        elif shiftToken == "majorFraud":
+            fraudify = (lambda x: (6 if x.suit == "imposter" else x.val))
+            for i in self.positiveDeck.cards:
+                i.val = fraudify(i)
+
+            for i in self.negativeDeck.cards:
+                i.val = fraudify(i)
+
+            for i in self.positiveDiscard:
+                i.val = fraudify(i)
+
+            for i in self.negativeDiscard:
+                i.val = fraudify(i)
+
+            for i in self.getActivePlayers():
+                i.positiveCard.val = fraudify(i.positiveCard)
+                i.negativeCard.val = fraudify(i.negativeCard)
+
+                if i.extraCard is not None:
+                        i.extraCard.val = fraudify(i.extraCard)
+
+            self.p_act = f'{player.username} used major fraud shift token, all imposters now have a value of 6.'
+            player.lastAction = 'uses major fraud'
+
+        elif shiftToken == "generalTariff":
+            for i in self.getActivePlayers():
+                if ["immunity", str(i.id)] in self.activeShiftTokens:
+                    continue
+
+                if i.chips >= 1:
+                    i.chips -= 1
+
+            self.p_act = f'{player.username} used general tariff shift token, taxing each player 1 chip.'
+            player.lastAction = 'uses general tariff'
+
+        elif shiftToken == "targetTariff":
+            self.activeShiftTokens.append(["targetTariff", self.phase])
+            self.phase = "shiftTokenPlayer"
+
+        elif shiftToken == "generalAudit":
+            if self.cycle_count == 0:
+                for i in self.getActivePlayers():
+                    if ["immunity", str(i.id)] in self.activeShiftTokens:
+                        continue
+
+                    if (self.getPlayerDex(None, i.id) > self.getPlayerDex(None, player.id) and self.getLastDrawActions()[i.id] == "stands"):
+                        i.chips -= min(i.chips, 2)
+            else:
+                for i in self.getActivePlayers():
+                    if ["immunity", str(i.id)] in self.activeShiftTokens:
+                        continue
+
+                    if i.lastAction == "stands" and i != player:
+                        i.chips -= min(i.chips, 2)
+
+            self.p_act = f'{player.username} used general audit shift token, taxing every standing player 2 chips.'
+            player.lastAction = 'uses general audit'
+
+        elif shiftToken == "targetAudit":
+            self.activeShiftTokens.append(["targetAudit", self.phase])
+            self.phase = "shiftTokenPlayer"
+
+        elif shiftToken == "immunity":
+            self.activeShiftTokens.append(["immunity", str(player.id)])
+            self.p_act = f'{player.username} used immunity shift token, they are immune to other players shift token attacks.'
+            player.lastAction = 'uses immunity'
+
+        elif shiftToken == "exhaustion":
+            self.activeShiftTokens.append(["exhaustion", self.phase])
+            self.phase = "shiftTokenPlayer"
+
+        elif shiftToken == "directTransaction":
+            if self.phase == "discard":
+                return "you cannot use directTransaction during discard phase"
+            self.activeShiftTokens.append(["directTransaction", self.phase])
+            self.phase = "shiftTokenPlayer"
+
+        elif shiftToken == "embargo":
+            targetPlayer = self.getNextPlayer(player)
+            if not (["immunity", str(targetPlayer.id)] in self.activeShiftTokens):
+                self.activeShiftTokens.append(["embargo", str(targetPlayer.id)])
+
+            self.p_act = f'{player.username} used embargo shift token, forcing {targetPlayer.username} to stand.'
+            player.lastAction = 'uses embargo'
+
+        elif shiftToken == "markdown":
+            self.activeShiftTokens.append(["markdown", ""])
+
+            self.p_act = f'{player.username} used markdown shift token, now all sylops have a value of 0 (as opposed to matching the other card).'
+            player.lastAction = 'uses markdown'
+
+        elif shiftToken == "cookTheBooks":
+            self.activeShiftTokens.append(["cookTheBooks", ""])
+
+            self.p_act = f'{player.username} used cook the books shift token, now sabacc ranks are reversed (you want higher cards).'
+            player.lastAction = 'uses cook the books'
+
+        elif shiftToken == "primeSabacc":
+            self.activeShiftTokens.append(["primeSabacc", self.phase])
+            self.phase = "shiftTokenRoll"
+
+        player.shiftTokens.remove(shiftToken)
+
     def action(self, params: dict, db):
         originalSelf = copy.deepcopy(self)
 
@@ -532,21 +744,118 @@ class KesselGame(Game):
             self.p_act = f'{player.username} chooses new shift token: {KesselGame.camelToNatural(params["shiftToken"])}'
             player.lastAction = f'chooses shift token {params["shiftToken"]}'
 
+        elif (params["action"] == "shiftTokenUse") and (self.player_turn == player.id) and (self.phase in ("draw", "discard")) and (self.completed == False):
+            self.shiftTokenUse(player, params["shiftToken"])
+
+        elif (params["action"] == "shiftTokenDetail") and (self.player_turn == player.id) and (self.phase in ("shiftTokenPlayer", "shiftTokenRoll", "shiftTokenDieChoice")) and (self.completed == False):
+            for i, j in enumerate(self.activeShiftTokens):
+                if j[1] in ("draw", "discard"):
+                    shiftToken = j[0]
+                    shiftTokenInd = i
+
+            if self.phase == "shiftTokenPlayer":
+                targetPlayer: KesselPlayer = self.getPlayer(None, params["player"])
+                if targetPlayer == player:
+                    return "you cannot target yourself"
+
+                if ["immunity", str(targetPlayer.id)] in self.activeShiftTokens:
+                    return "you cannot target this player, they are immune"
+
+                if shiftToken == "targetTariff":
+                    targetPlayer.chips -= min(targetPlayer.chips, 2)
+
+                    self.p_act = f'{player.username} used target tariff shift token against {targetPlayer.username}, removing 2 tokens from their pot.'
+                    player.lastAction = f'uses target tariff against {targetPlayer.username}'
+
+                elif shiftToken == "targetAudit":
+                    if self.cycle_count == 0:
+                        if self.getPlayerDex(None, targetPlayer.id) >= self.getPlayerDex(None, player.id):
+                            return "you cannot target this player, they havent moved yet"
+
+                        elif self.getLastDrawActions()[targetPlayer.id] != "stands":
+                            return "you cannot target this player, they didnt stand"
+
+                        else:
+                            targetPlayer.chips -= min(targetPlayer.chips, 3)
+
+                    else:
+                        if targetPlayer.lastAction != "stands":
+                            return "you cannot target this player, they didnt stand"
+
+                        else:
+                            targetPlayer.chips -= min(targetPlayer.chips, 3)
+
+                    self.p_act = f'{player.username} used target audit shift token against {targetPlayer.username}, taxing them 3 tokens because they are standing.'
+                    player.lastAction = f'uses target audit against {targetPlayer.username}'
+
+                elif shiftToken == "exhaustion":
+                    self.positiveDiscard.append(targetPlayer.positiveCard)
+                    self.negativeDiscard.append(targetPlayer.negativeCard)
+                    targetPlayer.positiveCard = self.positiveDeck.draw()
+                    targetPlayer.negativeCard = self.negativeDeck.draw()
+
+                    self.p_act = f'{player.username} used exhaustion shift token against {targetPlayer.username}, forcing them to redraw both of their cards.'
+                    player.lastAction = f'uses exhaustion against {targetPlayer.username}'
+
+                elif shiftToken == "directTransaction":
+                    temp = player.negativeCard
+                    player.negativeCard = targetPlayer.negativeCard
+                    targetPlayer.negativeCard = temp
+
+                    temp = player.positiveCard
+                    player.positiveCard = targetPlayer.positiveCard
+                    targetPlayer.positiveCard = temp
+
+                    self.p_act = f'{player.username} used direct transaction shift token against {targetPlayer.username}, trading their hands.'
+                    player.lastAction = f'uses direct transaction against {targetPlayer.username}'
+
+                self.phase = self.activeShiftTokens[shiftTokenInd][1]
+                self.activeShiftTokens.pop(shiftTokenInd)
+
+            elif self.phase == "shiftTokenRoll":
+                self.rollDice()
+                self.phase = "shiftTokenDieChoice"
+
+            elif self.phase == "shiftTokenDieChoice":
+                self.activeShiftTokens.append(["primeSabacc", str(self.dice[params["die"]])])
+
+                self.p_act = f'{player.username} used prime sabacc shift token and rolled {self.dice[params["die"]]}. now {self.dice[params["die"]]} is the best hand value.'
+                player.lastAction = f'uses prime sabacc rolling {self.dice[params["die"]]}'
+
+                self.phase = self.activeShiftTokens[shiftTokenInd][1]
+                self.activeShiftTokens.pop(shiftTokenInd)
+
         elif (params["action"] in ("positiveDeckDraw", "negativeDeckDraw", "positiveDiscardDraw", "negativeDiscardDraw", "stand")) and (self.player_turn == player.id) and (self.phase == "draw") and (self.completed == False):
             if player.extraCard is not None:
                 return "player already has extra card"
 
             if params["action"] == "stand":
-                self.playerTurnOver(player)
                 self.p_act = f'{player.username} stands'
                 player.lastAction = "stands"
 
-            else:
-                if player.chips == 0:
-                    return "not enough chips to draw"
+                everyoneStands = True
+                lastDrawActions = self.getLastDrawActions()
+                print(lastDrawActions)
+                for i in lastDrawActions:
+                    print(i)
+                    if self.getPlayer(None, i).outOfGame:
+                        continue
+                    if lastDrawActions[i] != "stands":
+                        everyoneStands = False
+                        break
 
-                player.chips -= 1
-                player.usedChips += 1
+                if everyoneStands:
+                    self.handOver()
+                else:
+                    self.playerTurnOver(player)
+
+            else:
+                if not (["freeDraw", str(player.id)] in self.activeShiftTokens):
+                    if player.chips == 0:
+                        return "not enough chips to draw"
+
+                    player.chips -= 1
+                    player.usedChips += 1
 
                 if params["action"] == "positiveDeckDraw":
                     player.extraCard = self.positiveDeck.draw()
@@ -593,7 +902,7 @@ class KesselGame(Game):
                     self.positiveDiscard.append(player.extraCard)
                     player.extraCard = None
 
-            self.p_act = f'{player.username} discards {'their new card' if params["keep"] else 'their origional card'}'
+            self.p_act = f'{player.username} discards {'their origonal card' if params["keep"] else 'their new card'}'
             player.lastAction = f'discards {'their new card' if params["keep"] else 'their origional card'}'
 
             self.playerTurnOver(player)
@@ -619,8 +928,6 @@ class KesselGame(Game):
                 self.phase = "imposterRoll"
                 nextPlayer = otherImposter
                 self.player_turn = self.getActivePlayers()[nextPlayer].id
-
-
 
         elif (params["action"] == "nextHand") and (self.player_turn == player.id) and (self.phase == "reveal") and (self.completed == False):
             self.nextHand()

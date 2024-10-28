@@ -902,9 +902,10 @@ class KesselGame(Game):
                     self.positiveDiscard.append(player.extraCard)
                     player.extraCard = None
 
-            self.p_act = f'{player.username} discards {'their origonal card' if params["keep"] else 'their new card'}'
-            player.lastAction = f'discards {'their new card' if params["keep"] else 'their origional card'}'
-
+            discardCardString = 'their original card' if params["keep"] else 'their new card'
+            self.p_act = f'{player.username} discards {discardCardString}'
+            player.lastAction = f'discards {discardCardString}'
+            
             self.playerTurnOver(player)
 
         elif (params["action"] == "imposterRoll") and (self.player_turn == player.id) and (self.phase == "imposterRoll") and (self.completed == False):

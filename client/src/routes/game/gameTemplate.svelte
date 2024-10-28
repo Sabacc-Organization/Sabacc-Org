@@ -21,7 +21,8 @@
     import {
         requestGameUpdate,
         updateClientGame,
-        updateClientInfo
+        updateClientInfo,
+        camelToSpaced
     } from './gameLogic'
 
     // Template Components
@@ -117,7 +118,7 @@
 
 {#if $dataToRender}
     <h1 class="header">{$header}</h1>
-    <h2 class="header">round {$game["cycle_count"] + 1} during {$game["phase"]} phase</h2>
+    <h2 class="header">round {$game["cycle_count"] + 1} during {camelToSpaced($game["phase"])} phase</h2>
 
     <div id="tableCont">
         <div id="table"></div>

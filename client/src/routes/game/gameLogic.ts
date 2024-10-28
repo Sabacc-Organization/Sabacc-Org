@@ -152,6 +152,21 @@ export function clickOrDblclick(clickFunction: () => void, dblclickFunction: () 
     }
 }
 
+export function camelToSpaced(camel: string) {
+    let spaced = ""
+    let charVal: number;
+    for (let i = 0; i < camel.length; i++) {
+        charVal = camel.charCodeAt(i)
+        if (65 <= charVal && charVal <= 90){
+            spaced += " "
+            spaced += String.fromCharCode(charVal + 32)
+        } else {
+            spaced += camel.charAt(i)
+        }
+    }
+    return spaced;
+}
+
 export function numOfActivePlayers() {
     let players = get(game)["players"];
     let num = 0;

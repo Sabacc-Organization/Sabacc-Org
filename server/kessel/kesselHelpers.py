@@ -420,6 +420,7 @@ class KesselGame(Game):
             self.phase = "draw"
         self.p_act = ""
         self.rollDice()
+        self.completed = False
 
     def handOver(self):
         self.player_turn = self.getActivePlayers()[0].id

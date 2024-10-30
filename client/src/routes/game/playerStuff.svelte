@@ -186,8 +186,10 @@ class:playing={p['username'] === $username}>
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div id="{p['username']}Box" class="backBlue {$game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox">
             <h5>{p['username']}
-                {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
-                    <div class="shield-logo"></div>
+                {#if $game_variant === "kessel"}
+                    {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
+                        <div class="shield-logo"></div>
+                    {/if}
                 {/if}
             </h5>
             {#if $game_variant !== "kessel"}
@@ -228,8 +230,10 @@ class:playing={p['username'] === $username}>
         {$game["player_turn"] === p['id']? "turnGlow" : "noTurnGlow"}
         playerBox">
             <h5>{p['username']}
-                {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
-                    <div class="shield-logo"></div>
+                {#if $game_variant === "kessel"}
+                    {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
+                        <div class="shield-logo"></div>
+                    {/if}
                 {/if}
             </h5>
             {#if $game_variant !== "kessel"}

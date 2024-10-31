@@ -20,7 +20,8 @@
         potsActive,
         followAmount,
         raiseAmount,
-        tradeCard
+        tradeCard,
+        SHIFT_TOKENS
     } from "./sharedValues";
 
     import {
@@ -36,24 +37,6 @@
         nextHand
     } from "./gameLogic";
 
-    const SHIFT_TOKENS = [
-        "freeDraw",
-        "refund",
-        "extraRefund",
-        "embezzlement",
-        "majorFraud",
-        "generalTariff",
-        "targetTariff",
-        "generalAudit",
-        "targetAudit",
-        "immunity",
-        "exhaustion",
-        "directTransaction",
-        "embargo",
-        "markdown",
-        "cookTheBooks",
-        "primeSabacc"
-    ]
     export let renderCard
 
     // actBox reacitivity

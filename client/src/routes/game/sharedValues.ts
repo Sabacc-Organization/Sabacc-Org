@@ -70,6 +70,9 @@ export const shiftActive = writable(false);
 export const currentMove: Writable<number|null> = writable(null);
 export const playbackInput: Writable<number|null> = writable(null);
 
+// tooltip
+export const tooltip = writable("");
+
 export function resetGameStores() {
   socket.set(null);
   game_variant.set(null);
@@ -79,7 +82,7 @@ export function resetGameStores() {
   theme.set(null);
   cardDesign.set(null);
 
-//   game_id.set(null);
+  //   game_id.set(null);
   dataToRender.set(false);
   header.set("");
 
@@ -129,4 +132,45 @@ export function resetGameStores() {
 
   currentMove.set(null);
   playbackInput.set(null);
+
+  tooltip.set("")
+}
+
+// kessel shift tokens
+export const SHIFT_TOKENS = [
+  "freeDraw",
+  "refund",
+  "extraRefund",
+  "embezzlement",
+  "majorFraud",
+  "generalTariff",
+  "targetTariff",
+  "generalAudit",
+  "targetAudit",
+  "immunity",
+  "exhaustion",
+  "directTransaction",
+  "embargo",
+  "markdown",
+  "cookTheBooks",
+  "primeSabacc"
+]
+
+export const SHIFT_TOKEN_DESCRIPTIONS: {[id: string]: string} = {
+  "freeDraw": "free draw:<br>lets you draw a card without paying the fee.",
+  "refund": "refund:<br>retrieves two of your invested chips back into your pot.",
+  "extraRefund": "extra refund:<br>retrieves three of your invested chips back into your pot.",
+  "embezzlement": "embezzlement:<br>takes one chip from each of your opponenets pots and puts them into your pot.",
+  "majorFraud": "major fraud:<br>sets the imposter card value to six (as opposed to rolling the dice for it).",
+  "generalTariff": "general tariff:<br>each opponent player permanantly loses one chip from their pot.",
+  "targetTariff": "target tariff:<br>choose one opponent player. they will permanantly lose two chips from their pot.",
+  "generalAudit": "general audit:<br>each opponent player in stand will permanantly lose two chips from their pot.",
+  "targetAudit": "target audit:<br>choose one opponent player in stand. they will permanantly lose three chips from their pot. if you choose a player not in stand, you will get to choose again.",
+  "immunity": "immunity:<br>makes you immune to other players shift token attacks.",
+  "exhaustion": "exhaustion:<br>choose one opponent player. they will discard both of their cards and draw new ones.",
+  "directTransaction": "direct transaction:<br>choose one opponent player. you will switch hands with them.",
+  "embargo": "embargo:<br>the player directly after you will be forced to stand.",
+  "markdown": "markdown:<br>sets the sylop card value to zero (as opposed to it matching the other card in your hand). pure sabacc is still the best hand.",
+  "cookTheBooks": "cook the books:<br>sabacc hand values are reversed. the best hand you can have now is a 6 6 sabacc.",
+  "primeSabacc": "prime sabacc:<br>roll the dice. then choose one die to be the new best sabacc hand in the game. if you choose 5 for example, the best hand will be 5 5. other hands are unaffected."
 }

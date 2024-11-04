@@ -16,7 +16,8 @@
         password,
         dark,
         cardDesign,
-        resetGameStores
+        resetGameStores,
+        tooltip
     } from './sharedValues'
     import {
         requestGameUpdate,
@@ -55,10 +56,15 @@
     export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
+    let xMousePos = 0
+    let yMousePos = 0
 
     // Once page is mounted
     onMount(() => {
-
+        onmousemove = (event) => {
+            xMousePos = event.pageX;
+            yMousePos = window.innerHeight - event.pageY;
+        }
 
         // defines a new socket object for real-time communication with server
         $socket = io(BACKEND_URL);
@@ -163,4 +169,8 @@
         </div>
         <div class="mobileActSpacer"></div>
     {/if}
+
+    <div class="tooltip-box" style="bottom: {yMousePos}px; left: {xMousePos}px; display: {$tooltip === ""? "none":"block"};">
+        <p>{@html $tooltip}</p>
+    </div>
 {/if}

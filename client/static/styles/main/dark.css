@@ -27,3 +27,8 @@ tr:nth-child(even)
 {
     background-color: #434242;
 }
+
+.tooltip-box {
+    border: double white 5px;
+    background-color: #212121;
+}

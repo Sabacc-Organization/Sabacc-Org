@@ -190,3 +190,18 @@ input[type=number].playback-input {
     text-align: center;
     width: 60px;
 }
+
+.tooltip-box {
+    border: double black 5px;
+    border-radius: 10px;
+    background-color: white;
+    position: absolute;
+    max-width: 500px;
+    word-break: normal;
+    padding: 15px;
+    z-index: 2;
+}
+
+.tooltip-box p{
+    margin-bottom: 3px;
+}

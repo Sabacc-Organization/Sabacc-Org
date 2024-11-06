@@ -229,9 +229,16 @@ class Game:
 
         gameDict = self.toDict()
         gameDict.pop('deck')
+        if self.completed is False:
+            for p in gameDict['players']:
+                if p['id'] == player.id:
+                    continue
+
+                for card in p['hand']:
+                    card['suit'] = 'hidden'
+                    card['val'] = 0
+
         users = [i.username for i in self.getActivePlayers()]
-        # print(gameDict)
-        # print(f'\n\n{self.player_turn}\n\n')
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
 

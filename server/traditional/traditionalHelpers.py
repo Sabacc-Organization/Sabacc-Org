@@ -260,7 +260,27 @@ class TraditionalGame(Game):
             db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=traditionalPlayerType,card_type=traditionalCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(traditionalCardType), game.player_turn, game.p_act, json.dumps(settings)])
 
         return game
-    
+
+    def getClientData(self, user_id = None, username = None):
+        player: Player = self.getPlayer(username, user_id)
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        if self.completed is False:
+            for p in gameDict['players']:
+                if p['id'] == player.id:
+                    continue
+
+                for card in p['hand']:
+                    if card['prot'] is True:
+                        continue
+                    card['suit'] = 'hidden'
+                    card['val'] = 0
+
+        users = [i.username for i in self.getActivePlayers()]
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
+
     # sets up for next round
     def nextRound(self):
         # rotate dealer (1st in list is always dealer) - move 1st player to end

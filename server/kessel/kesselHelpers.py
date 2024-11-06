@@ -247,6 +247,20 @@ class KesselGame(Game):
         gameDict = self.toDict()
         users = [i.username for i in self.getActivePlayers()]
 
+        if (self.completed is False) and (not self.phase in ('reveal', 'imposterRoll', 'imposterChoice')):
+            for p in gameDict['players']:
+                if p['id'] == player.id:
+                    continue
+
+                p['positiveCard']['suit'] = 'hidden'
+                p['positiveCard']['val'] = 0
+                p['negativeCard']['suit'] = 'hidden'
+                p['negativeCard']['val'] = 0
+
+                if p['extraCard'] is not None:
+                    p['extraCard']['suit'] = 'hidden'
+                    p['extraCard']['val'] = 0
+
         gameDict.pop("positiveDeck")
         gameDict.pop("negativeDeck")
 

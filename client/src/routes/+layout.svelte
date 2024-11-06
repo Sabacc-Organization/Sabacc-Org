@@ -59,14 +59,6 @@
         <link href="/styles/main/styles.css" rel="stylesheet">
         <link rel="stylesheet" href="/styles/main/styles-homepage.css">
 
-        {#if loggedIn === true}
-            {#if dark === "true"}
-                <!-- Light/Dark mode -->
-                <link href="/styles/main/dark.css" rel="stylesheet">
-            {/if}
-        {/if}
-
-
     </head>
     <body>
 
@@ -109,6 +101,13 @@
         <main class="container-fluid p-5">
             <slot></slot>
         </main>
+
+        {#if loggedIn === true}
+            {#if dark === "true"}
+                <!-- Light/Dark mode -->
+                <link href="/styles/main/dark.css" rel="stylesheet">
+            {/if}
+        {/if}
 
     </body>
 

@@ -128,7 +128,7 @@ class KesselPlayer(Player):
 
     @staticmethod
     def fromDict(dict: dict):
-        return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=dict['positiveCard'], negativeCard=dict['negativeCard'], extraCard=dict["extraCard"], extraCardIsNegative=dict["extraCardIsNegative"], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=dict["shiftTokens"], outOfGame=dict['outOfGame'])
+        return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=Card.fromDict(dict['positiveCard']), negativeCard=Card.fromDict(dict['negativeCard']), extraCard=Card.fromDict(dict["extraCard"]), extraCardIsNegative=dict["extraCardIsNegative"], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=dict["shiftTokens"], outOfGame=dict['outOfGame'])
 
 
 # Default game settings 
@@ -254,13 +254,13 @@ class KesselGame(Game):
     @staticmethod
     def fromDb(game: list):
         return KesselGame( id = game[0],
-            players = [KesselPlayer.fromDb(player) for player in game[1]],
+            players = [KesselPlayer.fromDb(player) for player in json.loads(game[1])],
             phase = game[2],
             dice = json.loads(game[3]),
             positiveDeck = KesselDeck.fromDb(game[4]),
             negativeDeck = KesselDeck.fromDb(game[5]),
-            positiveDiscard = [Card.fromDb(i) for i in game[6]],
-            negativeDiscard = [Card.fromDb(i) for i in game[7]],
+            positiveDiscard = [Card.fromDb(i) for i in json.loads(game[6])],
+            negativeDiscard = [Card.fromDb(i) for i in json.loads(game[7])],
             activeShiftTokens = json.loads(game[8]),
             player_turn = game[9],
             p_act = game[10],
@@ -308,7 +308,7 @@ class KesselGame(Game):
             self.p_act,
             self.cycle_count,
             self.completed,
-            self.settingsToDb,
+            self.settingsToDb(),
             self.created_at,
             self.moveHistoryToDb()
         ]
@@ -334,7 +334,7 @@ class KesselGame(Game):
             "cycle_count": self.cycle_count,
             "completed": self.completed,
             "settings": self.settings,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": self.created_at,
             "move_history": self.move_history
         }
 

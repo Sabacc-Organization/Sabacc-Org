@@ -419,7 +419,7 @@ class CorellianSpikeGame(Game):
             'shift': self._shift,
             'completed': self.completed,
             'settings': self.settings,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': self.created_at,
             'move_history': self.move_history
         }
 
@@ -530,7 +530,7 @@ class CorellianSpikeGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in game[6]], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings, created_at=game[13], move_history=game[14])
+        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings, created_at=game[13], move_history=json.loads(game[14]))
 
         if preSettings == False:
             gameObj.settings = json.loads(game[12])

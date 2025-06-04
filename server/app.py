@@ -15,11 +15,8 @@ from dataHelpers import *
 import dbConversion.dbConversion as dbConversion
 from socketio import Client
 from flask_socketio import SocketIO, send, emit, join_room, rooms
-import traditional.traditionalHelpers
 from traditional.traditionalHelpers import TraditionalGame
-import corellian_spike.corellianHelpers
 from corellian_spike.corellianHelpers import CorellianSpikeGame
-import kessel.kesselHelpers
 from kessel.kesselHelpers import KesselGame
 import yaml
 import psycopg
@@ -66,12 +63,11 @@ CORS(app, origins=allowedCORS)
 clientUserMap = {}
 
 # Connect to postgresql database
-conn = sqlite3.connect(config['DATABASE'])
+conn = sqlite3.connect(config['DATABASE'], check_same_thread=False)
 print(conn)
 
 
 psql_conn = psycopg.connect(config['PSQL_DATABASE'])
-dbConversion.convertPsqlToSqlite(conn, psql_conn)
 
 # Open a cursor to perform database operations
 db = conn.cursor()
@@ -84,7 +80,67 @@ with open('schema.sql', 'r') as f:
 # Execute the query
 db.executescript(query)
 conn.commit()
+# conn.close()
 
+# dbConversion.convertPsqlToSqlite(db, psql_conn)
+# conn.commit()
+
+# psql_db = psql_conn.cursor()
+# sqlite_db = db
+
+# from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame as psql_TraditionalGame
+# from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame as psql_CorellianSpikeGame
+# from dbConversion.psql_helpers.psql_kesselHelpers import KesselGame as psql_KesselGame
+
+# # register Traditional custom types
+# traditionalCardType = CompositeInfo.fetch(psql_conn, 'traditionalcard')
+# traditionalPlayerType = CompositeInfo.fetch(psql_conn, 'traditionalplayer')
+# register_composite(traditionalCardType, psql_db)
+# register_composite(traditionalPlayerType, psql_db)
+
+# print("Registered Traditional custom types")
+
+# # register Corellian custom types
+# corellianSpikeCardType = CompositeInfo.fetch(psql_conn, 'corellianspikecard')
+# corellianSpikePlayerType = CompositeInfo.fetch(psql_conn, 'corellianspikeplayer')
+# register_composite(corellianSpikeCardType, psql_db)
+# register_composite(corellianSpikePlayerType, psql_db)
+
+# print("Registered Corellian custom types")
+
+# # register Kessel custom types
+# kesselCardType = CompositeInfo.fetch(psql_conn, 'kesselcard')
+# kesselPlayerType = CompositeInfo.fetch(psql_conn, 'kesselplayer')
+# register_composite(kesselCardType, psql_db)
+# register_composite(kesselPlayerType, psql_db)
+
+# print("Registered Kessel custom types")
+
+# psql_users = psql_db.execute("SELECT username, hash FROM users ORDER BY id ASC").fetchall()
+# for user in psql_users:
+#     sqlite_db.execute("INSERT INTO users (username, hash, created_at) VALUES (?, ?, ?)", [user[0], user[1], None])
+
+# print("Users copied over")
+
+# psql_traditionalGames = psql_db.execute("SELECT * FROM traditional_games ORDER BY game_id ASC").fetchall()
+# psql_corellianSpikeGames = psql_db.execute("SELECT * FROM corellian_spike_games ORDER BY game_id ASC").fetchall()
+# psql_kesselGames = psql_db.execute("SELECT * FROM kessel_games ORDER BY game_id ASC").fetchall()
+
+# for game in psql_traditionalGames:
+#     dbGame = TraditionalGame.fromDict(psql_TraditionalGame.fromDb(game).toDict()).toDb(includeId=False)
+#     sqlite_db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+# for game in psql_corellianSpikeGames:
+#     dbGame = CorellianSpikeGame.fromDict(psql_CorellianSpikeGame.fromDb(game).toDict()).toDb(includeId=False)
+#     sqlite_db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, phase, deck, discard_pile, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+# for game in psql_kesselGames:
+#     dbGame = KesselGame.fromDict(psql_KesselGame.fromDb(game).toDict()).toDb(includeId=False)
+#     sqlite_db.execute("INSERT INTO kessel_games (players, phase, dice, positivedeck, negativedeck, positivediscard, negativediscard, activeshifttokens, player_turn, p_act, cycle_count, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+# print("Games copied over")
+
+# conn.commit()
 
 """ DB Conversions: """
 
@@ -112,10 +168,14 @@ conn.commit()
 def login():
     """Log user in"""
 
+    # conn.close()
+    # conn = sqlite3.connect(config['DATABASE'])
+    # db = conn.cursor()
+
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         print(f'error was here, {check}')
         return jsonify({"message": check["message"]}), check["status"]
@@ -138,7 +198,7 @@ def login():
 
     #     # Change user's password
     #     passHash = str(generate_password_hash(password))
-    #     db.execute(f"UPDATE users SET hash = %s WHERE username = %s", passHash, username)
+    #     db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
 
     # Remember which user has logged in
     # session["user_id"] = rows[0]["id"]
@@ -159,12 +219,12 @@ def index():
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get the user's id for later use
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
+    db.execute("SELECT id FROM users WHERE username = ?", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
     traditionalPlayerTurnUsernames = []
@@ -192,7 +252,7 @@ def index():
             corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
     kesselPlayerTurnUsernames = []
-
+    print("made it")
     # Query the database for all the Kessel games
     allKesselGames = [KesselGame.fromDb(game) for game in db.execute("SELECT * FROM kessel_games").fetchall()]
     kesselGames = []
@@ -227,7 +287,7 @@ def register():
         return jsonify({"message": "Please do not put spaces in your username"}), 401
 
     # Check that username has not already been taken
-    if db.execute("SELECT * FROM users WHERE username = %s", [username]).fetchall() != []:
+    if db.execute("SELECT * FROM users WHERE username = ?", [username]).fetchall() != []:
         return jsonify({"message": "Username has already been taken"}), 401
 
     # Ensure password is valid
@@ -249,7 +309,7 @@ def register():
 
     # Complete registration
     passHash = generate_password_hash(password)
-    db.execute("INSERT INTO users (username, hash) VALUES(%s, %s)", [username, str(passHash)])
+    db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", [username, str(passHash)])
     conn.commit()
 
     # Redirect user to home page
@@ -257,11 +317,11 @@ def register():
 
 def getGameFromDb(game_variant, game_id):
     if game_variant == 'traditional':
-        return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     elif game_variant == 'corellian_spike':
-        return CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        return CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     elif game_variant == 'kessel':
-        return KesselGame.fromDb(db.execute("SELECT * FROM kessel_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        return KesselGame.fromDb(db.execute("SELECT * FROM kessel_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     else:
         return None
 
@@ -270,7 +330,7 @@ def getGameFromDb(game_variant, game_id):
 def getGameClientInfo(clientInfo):
     user_id = -1
     if clientInfo["username"] != "":
-        db.execute("SELECT id FROM users WHERE username = %s", [clientInfo["username"]])
+        db.execute("SELECT id FROM users WHERE username = ?", [clientInfo["username"]])
         user_id = getDictsForDB(db)[0]["id"]
 
     game_id = clientInfo['game_id']
@@ -296,7 +356,7 @@ def host():
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
+    db.execute("SELECT id FROM users WHERE username = ?", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
     # Get list of players in the game
@@ -311,7 +371,7 @@ def host():
     # Ensure each submitted player is valid
     for pForm in formPlayers:
         if pForm != "":
-            db.execute("SELECT * FROM users WHERE username = %s", [pForm])
+            db.execute("SELECT * FROM users WHERE username = ?", [pForm])
             p = getDictsForDB(db)
             if len(p) == 0:
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
@@ -367,7 +427,7 @@ def gameAction(clientInfo):
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
-    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username]).fetchone()
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", [username]).fetchone()
 
     if not user_id:
         return jsonify({"message": "User does not exist"}), 401

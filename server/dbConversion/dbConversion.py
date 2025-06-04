@@ -21,10 +21,9 @@ from dbConversion.psql_helpers.psql_kesselHelpers import *
 
 
 # convert from psql to sqlite3
-def convertPsqlToSqlite(sqlite_conn, psql_conn):
+def convertPsqlToSqlite(sqlite_db, psql_conn):
 
     psql_db = psql_conn.cursor()
-    sqlite_db = sqlite_conn.cursor()
 
     # register Traditional custom types
     traditionalCardType = CompositeInfo.fetch(psql_conn, 'traditionalcard')
@@ -52,7 +51,7 @@ def convertPsqlToSqlite(sqlite_conn, psql_conn):
 
     psql_users = psql_db.execute("SELECT username, hash FROM users ORDER BY id ASC").fetchall()
     for user in psql_users:
-        sqlite_db.execute("INSERT INTO users (username, hash) VALUES (?, ?)", user)
+        sqlite_db.execute("INSERT INTO users (username, hash, created_at) VALUES (?, ?, ?)", [user[0], user[1], None])
 
     print("Users copied over")
 
@@ -70,11 +69,11 @@ def convertPsqlToSqlite(sqlite_conn, psql_conn):
 
     for game in psql_kesselGames:
         dbGame = sqlite_kessel.KesselGame.fromDict(KesselGame.fromDb(game).toDict()).toDb(includeId=False)
-        sqlite_db.execute("INSERT INTO kessel_games (players, phase, dice, deck, positivedeck, negativedeck, positivediscard, negativediscard, activeshifttokens, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+        sqlite_db.execute("INSERT INTO kessel_games (players, phase, dice, positivedeck, negativedeck, positivediscard, negativediscard, activeshifttokens, player_turn, p_act, cycle_count, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
 
     print("Games copied over")
 
-    sqlite_conn.commit()
+    # sqlite_conn.commit()
     
 
 

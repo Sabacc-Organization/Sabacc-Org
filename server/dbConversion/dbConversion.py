@@ -1,12 +1,85 @@
+import sys
+# sys.path.insert(0, '../')
+
 from cs50 import SQL
 from helpers import *
 from dataHelpers import *
 # from traditional.alderaanHelpers import *
-from traditional.traditionalHelpers import *
-from corellian_spike.corellianHelpers import *
+import traditional.traditionalHelpers as sqlite_traditional
+import corellian_spike.corellianHelpers as sqlite_corellian
+import kessel.kesselHelpers as sqlite_kessel
 from colorama import Fore
 from datetime import datetime, timezone
 import json
+import sqlite3
+import psycopg
+from psycopg.types.composite import CompositeInfo, register_composite
+
+from dbConversion.psql_helpers.psql_traditionalHelpers import *
+from dbConversion.psql_helpers.psql_corellianHelpers import *
+from dbConversion.psql_helpers.psql_kesselHelpers import *
+
+
+# convert from psql to sqlite3
+def convertPsqlToSqlite(sqlite_conn, psql_conn):
+
+    psql_db = psql_conn.cursor()
+    sqlite_db = sqlite_conn.cursor()
+
+    # register Traditional custom types
+    traditionalCardType = CompositeInfo.fetch(psql_conn, 'traditionalcard')
+    traditionalPlayerType = CompositeInfo.fetch(psql_conn, 'traditionalplayer')
+    register_composite(traditionalCardType, psql_db)
+    register_composite(traditionalPlayerType, psql_db)
+
+    print("Registered Traditional custom types")
+
+    # register Corellian custom types
+    corellianSpikeCardType = CompositeInfo.fetch(psql_conn, 'corellianspikecard')
+    corellianSpikePlayerType = CompositeInfo.fetch(psql_conn, 'corellianspikeplayer')
+    register_composite(corellianSpikeCardType, psql_db)
+    register_composite(corellianSpikePlayerType, psql_db)
+
+    print("Registered Corellian custom types")
+
+    # register Kessel custom types
+    kesselCardType = CompositeInfo.fetch(psql_conn, 'kesselcard')
+    kesselPlayerType = CompositeInfo.fetch(psql_conn, 'kesselplayer')
+    register_composite(kesselCardType, psql_db)
+    register_composite(kesselPlayerType, psql_db)
+
+    print("Registered Kessel custom types")
+
+    psql_users = psql_db.execute("SELECT username, hash FROM users ORDER BY id ASC").fetchall()
+    for user in psql_users:
+        sqlite_db.execute("INSERT INTO users (username, hash) VALUES (?, ?)", user)
+
+    print("Users copied over")
+
+    psql_traditionalGames = psql_db.execute("SELECT * FROM traditional_games ORDER BY game_id ASC").fetchall()
+    psql_corellianSpikeGames = psql_db.execute("SELECT * FROM corellian_spike_games ORDER BY game_id ASC").fetchall()
+    psql_kesselGames = psql_db.execute("SELECT * FROM kessel_games ORDER BY game_id ASC").fetchall()
+
+    for game in psql_traditionalGames:
+        dbGame = sqlite_traditional.TraditionalGame.fromDict(TraditionalGame.fromDb(game).toDict()).toDb(includeId=False)
+        sqlite_db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+    for game in psql_corellianSpikeGames:
+        dbGame = sqlite_corellian.CorellianSpikeGame.fromDict(CorellianSpikeGame.fromDb(game).toDict()).toDb(includeId=False)
+        sqlite_db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, phase, deck, discard_pile, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+    for game in psql_kesselGames:
+        dbGame = sqlite_kessel.KesselGame.fromDict(KesselGame.fromDb(game).toDict()).toDb(includeId=False)
+        sqlite_db.execute("INSERT INTO kessel_games (players, phase, dice, deck, positivedeck, negativedeck, positivediscard, negativediscard, activeshifttokens, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+    print("Games copied over")
+
+    sqlite_conn.commit()
+    
+
+
+
+    # print(getDictsForDB(psql_db)[0])
 
 
 # function to clean up deck data from completed games

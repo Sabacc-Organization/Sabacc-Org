@@ -1,16 +1,18 @@
+import sys
+# sys.path.insert(0, '../../')
+
 from flask import redirect, render_template, request, session, jsonify
 from functools import wraps
 import random
 from flask_socketio import emit
-# import psycopg
+import psycopg
 from dataHelpers import *
-import sqlite3
+from cs50 import SQL
 from werkzeug.security import check_password_hash
 import yaml
 from abc import ABC, abstractmethod # allows abstract classes/methods
 import copy
 import json
-from typing import Union
 
 # Get config.yml data
 config = {}
@@ -18,7 +20,7 @@ with open("config.yml", "r") as f:
     config = yaml.safe_load(f)
 
 # Connect to database
-conn = sqlite3.connect(config['DATABASE'])
+conn = psycopg.connect(config['PSQL_DATABASE'])
 db = conn.cursor()
 
 class Suit:
@@ -44,14 +46,11 @@ class Card:
     def fromDict(card:dict) -> object:
         return Card(val=card['val'], suit=card['suit'])
     
-    def toDb(self):
-        return json.dumps(self.toDict())
+    def toDb(self, cardType):
+        return cardType.python_type(self.val, self.suit)
     @staticmethod
-    def fromDb(card: Union[str, dict]) -> object:
-        if isinstance(card, str):
-            return Card.fromDict(json.loads(card))
-        if isinstance(card, dict):
-            return Card.fromDict(card)
+    def fromDb(card):
+        return Card(card.val, card.suit)
 
 class Deck:
     def __init__(self, cards:list=[]):
@@ -59,14 +58,11 @@ class Deck:
     def __str__(self) -> str:
         return f'[{listToStr(self.cards)}]'
     
-    def toDb(self):
-        return json.dumps(self.toDict())
+    def toDb(self, card_type):
+        return [card.toDb(card_type) for card in self.cards]
     @staticmethod
-    def fromDb(deck: Union[str, list]) -> object:
-        if isinstance(deck, str):
-            return Deck.fromDict(json.loads(deck))
-        if isinstance(deck, list):
-            return Deck.fromDict(deck)
+    def fromDb(deck) -> object:
+        return Deck([Card.fromDb(card) for card in deck])
 
     def toDict(self) -> list:
         return [card.toDict() for card in self.cards]
@@ -110,11 +106,8 @@ class Hand:
         return f'[{listToStr(self.cards)}]'
     
     @staticmethod
-    def fromDb(hand: Union[str, list]) -> object:
-        if isinstance(hand, str):
-            return Hand.fromDict(json.loads(hand))
-        if isinstance(hand, list):
-            return Hand.fromDict(hand)
+    def fromDb(hand) -> object:
+        return Hand([Card.fromDb(card) for card in hand])
     def toDict(self) -> list:
         return [card.toDict() for card in self.cards]
     @staticmethod
@@ -296,14 +289,14 @@ class Game:
                 maxBet = player.getBet()
         return maxBet
     
-    def deckToDb(self):
-        return self.deck.toDb()
+    def deckToDb(self, card_type):
+        return self.deck.toDb(card_type=card_type)
     
     def moveHistoryToDb(self):
-        return json.dumps(self.move_history)
-    
-    def settingsToDb(self):
-        return json.dumps(self.settings)
+        dbHistory = []
+        for move in self.move_history:
+            dbHistory.append(json.dumps(move))
+        return dbHistory
     
     # compare games to see what has changed
     def compare(self, other):
@@ -321,7 +314,7 @@ class Game:
         pass
 
 # For getting a list of dictionaries for rows in a database.
-def getDictsForDB(cursor: sqlite3.Cursor):
+def getDictsForDB(cursor: psycopg.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
 

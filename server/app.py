@@ -12,7 +12,7 @@ from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
 # from traditional.alderaanHelpers import *
-import dbConversion
+import dbConversion.dbConversion as dbConversion
 from socketio import Client
 from flask_socketio import SocketIO, send, emit, join_room, rooms
 import traditional.traditionalHelpers
@@ -23,6 +23,7 @@ import kessel.kesselHelpers
 from kessel.kesselHelpers import KesselGame
 import yaml
 import psycopg
+import sqlite3
 from psycopg.types.composite import CompositeInfo, register_composite
 import signal
 from datetime import datetime
@@ -65,210 +66,25 @@ CORS(app, origins=allowedCORS)
 clientUserMap = {}
 
 # Connect to postgresql database
-conn = psycopg.connect(config['DATABASE'])
+conn = sqlite3.connect(config['DATABASE'])
 print(conn)
+
+
+psql_conn = psycopg.connect(config['PSQL_DATABASE'])
+dbConversion.convertPsqlToSqlite(conn, psql_conn)
 
 # Open a cursor to perform database operations
 db = conn.cursor()
 
-# Create users table
-db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
-db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+# Make sure all tables exist in the db
+query = ""
+with open('schema.sql', 'r') as f:
+    query = f.read()
+
+# Execute the query
+db.executescript(query)
 conn.commit()
 
-# create custom traditional types
-
-# Create custom TraditionalSuit type
-try:
-    db.execute("CREATE TYPE TraditionalSuit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
-    conn.commit()
-    print("Created custom PostgreSQL type TraditionalSuit")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type TraditionalSuit already exists")
-    conn.rollback()
-
-# Create custom TraditionalCard type
-try:
-    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit TraditionalSuit, protected BOOL);")
-    conn.commit()
-    print("Created custom PostgreSQL type TraditionalCard")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type TraditionalCard already exists")
-    conn.rollback()
-
-# Create custom TraditionalPlayer type
-try:
-    db.execute("""
-        CREATE TYPE TraditionalPlayer AS (
-        id INTEGER,
-        username TEXT,
-        credits INTEGER,
-        bet INTEGER,
-        hand TraditionalCard[],
-        folded BOOL,
-        lastAction TEXT);
-    """)
-    conn.commit()
-    print("Created custom PostgreSQL type TraditionalPlayer")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type TraditionalPlayer already exists")
-    conn.rollback()
-
-
-# register Traditional custom types
-traditional.traditionalHelpers.traditionalCardType = CompositeInfo.fetch(conn, 'traditionalcard')
-traditional.traditionalHelpers.traditionalPlayerType = CompositeInfo.fetch(conn, 'traditionalplayer')
-register_composite(traditional.traditionalHelpers.traditionalCardType, db)
-register_composite(traditional.traditionalHelpers.traditionalPlayerType, db)
-print("Registered Traditional custom types")
-
-# create Traditional tables
-db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\" : 1000 }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
-print("Created Traditional table")
-conn.commit()
-
-print()
-
-# Create custom Corellian Spike types
-
-# Create custom CorellianSpikeSuit type
-try:
-    db.execute("CREATE TYPE CorellianSpikeSuit AS ENUM('circle','square','triangle','sylop');")
-    conn.commit()
-    print("Created custom PostgreSQL type CorellianSpikeSuit")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type CorellianSpikeSuit already exists")
-    conn.rollback()
-
-# Create custom CorellianSpikeCard type
-try:
-    db.execute("CREATE TYPE CorellianSpikeCard AS (val INTEGER, suit CorellianSpikeSuit);")
-    conn.commit()
-    print("Created custom PostgreSQL type CorellianSpikeCard")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type CorellianSpikeCard already exists")
-    conn.rollback()
-
-# Create custom CorellianSpikePlayer type
-try:
-    db.execute("""
-        CREATE TYPE CorellianSpikePlayer AS (
-        id INTEGER,
-        username TEXT,
-        credits INTEGER,
-        bet INTEGER,
-        hand CorellianSpikeCard[],
-        folded BOOL,
-        lastAction TEXT);
-    """)
-    conn.commit()
-    print("Created custom PostgreSQL type CorellianSpikePlayer")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type CorellianSpikePlayer already exists")
-    conn.rollback()
-
-
-# register CorellianSpike custom types
-corellian_spike.corellianHelpers.corellianSpikeCardType = CompositeInfo.fetch(conn, 'corellianspikecard')
-corellian_spike.corellianHelpers.corellianSpikePlayerType = CompositeInfo.fetch(conn, 'corellianspikeplayer')
-register_composite(corellian_spike.corellianHelpers.corellianSpikeCardType, db)
-register_composite(corellian_spike.corellianHelpers.corellianSpikePlayerType, db)
-print("Registered CorellianSpike custom types")
-
-# create CorellianSpike tables
-db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\": 1000, \"HandRanking\": \"Wayne\", \"DeckDrawCost\": 5, \"DiscardDrawCost\": 10, \"DeckTradeCost\": 10, \"DiscardTradeCost\": 15, \"DiscardCosts\": [15, 20, 25] }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
-print("Created CorellianSpike table")
-conn.commit()
-
-# Create custom Kessel types
-# db.execute("DROP TABLE kessel_games")
-# conn.commit()
-# db.execute("DROP TYPE IF EXISTS KesselPlayer CASCADE")
-# conn.commit()
-# db.execute("DROP TYPE  IF EXISTS KesselCard CASCADE")
-# conn.commit()
-# db.execute("DROP TYPE  IF EXISTS KesselShiftToken CASCADE")
-# conn.commit()
-
-# Create custom KesselShiftToken type
-try:
-    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'targetAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo', 'markdown', 'cookTheBooks', 'primeSabacc');")
-    conn.commit()
-    print("Created custom PostgreSQL type KesselShiftToken")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselShiftToken already exists")
-    conn.rollback()
-
-# Create custom KesselSuit type
-try:
-    db.execute("CREATE TYPE KesselSuit AS ENUM('imposter', 'basic', 'sylop');")
-    conn.commit()
-    print("Created custom PostgreSQL type KesselSuit")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselSuit already exists")
-    conn.rollback()
-
-# Create custom KesselCard type
-try:
-    db.execute("CREATE TYPE KesselCard AS (val INTEGER, suit KesselSuit);")
-    conn.commit()
-    print("Created custom PostgreSQL type KesselCard")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselCard already exists")
-    conn.rollback()
-
-# Create custom KesselPlayer type
-try:
-    db.execute("""
-        CREATE TYPE KesselPlayer AS (
-        id INTEGER,
-        username TEXT,
-        chips INTEGER,
-        usedChips INTEGER,
-        positiveCard KesselCard,
-        negativeCard KesselCard,
-        extraCard KesselCard,
-        extraCardIsNegative BOOL,
-        shiftTokens KesselShiftToken[],
-        outOfGame BOOL,
-        lastAction TEXT);
-    """)
-    conn.commit()
-    print("Created custom PostgreSQL type KesselPlayer")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselPlayer already exists")
-    conn.rollback()
-
-
-# register Kessel custom types
-kessel.kesselHelpers.kesselCardType = CompositeInfo.fetch(conn, 'kesselcard')
-kessel.kesselHelpers.kesselPlayerType = CompositeInfo.fetch(conn, 'kesselplayer')
-register_composite(kessel.kesselHelpers.kesselCardType, db)
-register_composite(kessel.kesselHelpers.kesselPlayerType, db)
-
-print("Registered Kessel custom types")
-
-# create Kessel tables
-db.execute('''CREATE TABLE IF NOT EXISTS kessel_games (
-    game_id SERIAL PRIMARY KEY,
-    players KesselPlayer[],
-    phase TEXT NOT NULL DEFAULT 'draw',
-    dice INTEGER[2] NOT NULL DEFAULT '{ 1, 1 }',
-    positiveDeck KesselCard[],
-    negativeDeck KesselCard[],
-    positiveDiscard KesselCard[],
-    negativeDiscard KesselCard[],
-    activeShiftTokens TEXT[][] NOT NULL DEFAULT '{}',
-    player_turn INTEGER,
-    p_act TEXT,
-    cycle_count INTEGER NOT NULL DEFAULT 0,
-    completed BOOL NOT NULL DEFAULT false,
-    settings JSONB NOT NULL DEFAULT '{ \"startingChips\" : 8, \"playersChooseShiftTokens\" : false }',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    move_history JSONB[]);
-''')
-print("Created Kessel table")
-conn.commit()
 
 """ DB Conversions: """
 
@@ -629,6 +445,7 @@ def handle_sigint(signum, frame):
 
     # close db connection
     conn.close()
+    psql_conn.close()
 
     # After cleanup, raise KeyboardInterrupt to allow the normal exit process
     raise KeyboardInterrupt

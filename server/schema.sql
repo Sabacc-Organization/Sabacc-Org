@@ -1,10 +1,11 @@
- CREATE TABLE users (
+ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
-    hash TEXT NOT NULL
-)
+    hash TEXT NOT NULL,
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP) -- ISO 8601 (UTC)
+);
 
-CREATE TABLE traditional_games (
+CREATE TABLE IF NOT EXISTS traditional_games (
     game_id SERIAL PRIMARY KEY,
     players TEXT, -- TraditionalPlayer[]
     hand_pot INTEGER NOT NULL DEFAULT 0,
@@ -17,11 +18,11 @@ CREATE TABLE traditional_games (
     shift BOOLEAN NOT NULL DEFAULT FALSE,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     settings TEXT NOT NULL DEFAULT '{"BigBlind": 2, "SmallBlind": 1, "HandPotAnte": 5, "SabaccPotAnte": 10, "StartingCredits": 1000, "PokerStyleBetting": false}',
-    created_at TEXT, -- ISO 8601 (UTC)
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP), -- ISO 8601 (UTC)
     move_history TEXT -- json[]
-)
+);
 
-CREATE TABLE corellian_spike_games (
+CREATE TABLE IF NOT EXISTS corellian_spike_games (
     game_id SERIAL PRIMARY KEY,
     players TEXT, -- CorellianSpikePlayer[]
     hand_pot INTEGER NOT NULL DEFAULT 0,
@@ -35,15 +36,15 @@ CREATE TABLE corellian_spike_games (
     shift BOOLEAN NOT NULL DEFAULT FALSE,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     settings TEXT NOT NULL DEFAULT '{"BigBlind": 2, "SmallBlind": 1, "HandPotAnte": 5, "HandRanking": "Wayne", "DeckDrawCost": 5, "DiscardCosts": [15, 20, 25], "DeckTradeCost": 10, "SabaccPotAnte": 10, "DiscardDrawCost": 10, "StartingCredits": 1000, "DiscardTradeCost": 15, "PokerStyleBetting": false}',
-    created_at TEXT, -- ISO 8601 (UTC)
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP), -- ISO 8601 (UTC)
     move_history TEXT -- json[]
-)
+);
 
-CREATE TABLE kessel_games (
+CREATE TABLE IF NOT EXISTS kessel_games (
     game_id SERIAL PRIMARY KEY,
     players TEXT, -- KesselPlayer[]
     phase TEXT NOT NULL DEFAULT 'draw',
-    dice TEXT NOT NULL DEFAULT '1,1', -- INTEGER[]
+    dice TEXT NOT NULL DEFAULT '1,1', -- INTEGER[2]
     positivedeck TEXT, -- KesselCard[]
     negativedeck TEXT, -- KesselCard[]
     positivediscard TEXT, -- KesselCard[]
@@ -55,6 +56,6 @@ CREATE TABLE kessel_games (
     shift BOOLEAN NOT NULL DEFAULT FALSE,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     settings TEXT NOT NULL DEFAULT '{"startingChips": 8, "playersChooseShiftTokens": false}',
-    created_at TEXT, -- ISO 8601 (UTC)
+    created_at TEXT DEFAULT (CURRENT_TIMESTAMP), -- ISO 8601 (UTC)
     move_history TEXT -- json[]
-)
+);

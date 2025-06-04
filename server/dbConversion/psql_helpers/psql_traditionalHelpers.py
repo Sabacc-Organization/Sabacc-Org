@@ -1,10 +1,16 @@
+import sys
+# sys.path.insert(0, '../')
+print(sys.path)
+
 import random
 from enum import Enum
-from helpers import *
+from dbConversion.psql_helpers.psql_helpers import *
 import copy
 import json
 from datetime import datetime, timezone
-from typing import Union
+
+traditionalCardType = None
+traditionalPlayerType = None
 
 class TraditionalSuit(Suit):
     COINS = 'coins'
@@ -31,7 +37,9 @@ class TraditionalCard(Card):
 
     def __str__(self) -> str:
         return f"{self.val} of {str(self.suit)}{' (protected)' if self.protected else ''}"
-        
+
+    def toDb(self, cardType):
+        return cardType.python_type(self.val, self.suit, self.protected)
 
     def toDict(self) -> dict:
         return {
@@ -41,11 +49,9 @@ class TraditionalCard(Card):
         }
 
     @staticmethod
-    def fromDb(card: Union[str, dict]) -> object:
-        if isinstance(card, str):
-            return TraditionalCard.fromDict(json.loads(card))
-        if isinstance(card, dict):
-            return TraditionalCard.fromDict(card)
+    def fromDb(card):
+        a = TraditionalCard(card.val, card.suit, card.protected)
+        return a
 
     @staticmethod
     def fromDict(dict):
@@ -75,40 +81,34 @@ class TraditionalCard(Card):
         return card
 
 class TraditionalDeck(Deck):
-    def __init__(self, cards:list=None):
+    def __init__(self, cardsToExclude:list=[]):
         super().__init__()
-        if not cards:
-            self.cards = 2 * [
-                TraditionalCard(-11,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(0,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(-8,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(-14,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(-15,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(-2,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(-13,TraditionalSuit.NEGATIVE_NEUTRAL),
-                TraditionalCard(-17,TraditionalSuit.NEGATIVE_NEUTRAL)
-            ]
+        self.cards = 2 * [
+            TraditionalCard(-11,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(0,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-8,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-14,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-15,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-2,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-13,TraditionalSuit.NEGATIVE_NEUTRAL),
+            TraditionalCard(-17,TraditionalSuit.NEGATIVE_NEUTRAL)
+        ]
 
-            for suit in [TraditionalSuit.COINS,TraditionalSuit.FLASKS,TraditionalSuit.SABERS,TraditionalSuit.STAVES]:
-                for val in range(1,16):
-                    self.cards.append(TraditionalCard(val=val,suit=suit))
+        for suit in [TraditionalSuit.COINS,TraditionalSuit.FLASKS,TraditionalSuit.SABERS,TraditionalSuit.STAVES]:
+            for val in range(1,16):
+                self.cards.append(TraditionalCard(val=val,suit=suit))
 
-            self.shuffle()
+        for card in cardsToExclude:
+            self.cards.remove(card)
 
-        else:
-            self.cards = cards
+        self.shuffle()
 
     @staticmethod
-    def fromDb(deck: Union[str, list]) -> object:
-        if isinstance(deck, str):
-            return TraditionalDeck.fromDict(json.loads(deck))
-        if isinstance(deck, list):
-            return TraditionalDeck.fromDict(deck)
-        
-    @staticmethod
-    def fromDict(dict) -> object:
-        return TraditionalDeck([TraditionalCard.fromDict(card) for card in dict])
-        
+    def fromDb(deck) -> object:
+        return TraditionalDeck([TraditionalCard.fromDb(card) for card in deck])
+
+    def toDb(self, card_type):
+        return [card.toDb(card_type) for card in self.cards]
 
 class TraditionalHand(Hand):
     def __init__(self, cards=[]):
@@ -123,11 +123,8 @@ class TraditionalHand(Hand):
         return card
 
     @staticmethod
-    def fromDb(hand: Union[str, list]) -> object:
-        if isinstance(hand, str):
-            return TraditionalHand.fromDict(json.loads(hand))
-        if isinstance(hand, list):
-            return TraditionalHand.fromDict(hand)
+    def fromDb(hand) -> object:
+        return TraditionalHand([TraditionalCard.fromDb(card) for card in hand])
 
     @staticmethod
     def fromDict(hand) -> object:
@@ -141,8 +138,10 @@ class TraditionalPlayer(Player):
         self.hand.protect(card)
         self.lastAction = f"protected a {card.val}"
 
-    def toDb(self):
-        return json.dumps(self.toDict())
+    def toDb(self, playerType, cardType):
+        # for i in range(len(self.hand.cards)):
+        #     self.hand.cards[i] = self.hand.cards[i].toDb(cardType)
+        return playerType.python_type(self.id, self.username, self.credits, self.bet, [card.toDb(cardType) for card in self.hand.cards], self.folded, self.lastAction)
 
     def toDict(self):
         return {
@@ -156,14 +155,11 @@ class TraditionalPlayer(Player):
         }
 
     @staticmethod
-    def fromDb(player: Union[str, dict]) -> object:
-        if isinstance(player, str):
-            return TraditionalPlayer.fromDict(json.loads(player))
-        if isinstance(player, dict):
-            return TraditionalPlayer.fromDict(player)
+    def fromDb(player:object):
+        return TraditionalPlayer(player.id, player.username, player.credits, player.bet, TraditionalHand.fromDb(player.hand), player.folded, player.lastaction)
 
     @staticmethod
-    def fromDict(dict: dict):
+    def fromDict(dict:dict):
         return TraditionalPlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=TraditionalHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])
 
     def calcHandVal(self):
@@ -180,7 +176,6 @@ class TraditionalPlayer(Player):
 
         return sum(cardVals)
 
-# Default game settings
 defaultSettings = {
     "PokerStyleBetting": False,
     "SmallBlind": 1,
@@ -266,30 +261,10 @@ class TraditionalGame(Game):
         game.dealHands()
 
         if db:
-            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, json.dumps(settings)])
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(player_type=traditionalPlayerType,card_type=traditionalCardType), game.hand_pot, game.sabacc_pot, game.deckToDb(traditionalCardType), game.player_turn, game.p_act, json.dumps(settings)])
 
         return game
-
-    def getClientData(self, user_id = None, username = None):
-        player: Player = self.getPlayer(username, user_id)
-
-        gameDict = self.toDict()
-        gameDict.pop('deck')
-        if self.completed is False:
-            for p in gameDict['players']:
-                if p['id'] == player.id:
-                    continue
-
-                for card in p['hand']:
-                    if card['prot'] is True:
-                        continue
-                    card['suit'] = 'hidden'
-                    card['val'] = 0
-
-        users = [i.username for i in self.getActivePlayers()]
-
-        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
-
+    
     # sets up for next round
     def nextRound(self):
         # rotate dealer (1st in list is always dealer) - move 1st player to end
@@ -330,15 +305,15 @@ class TraditionalGame(Game):
         for player in self.players:
             player.hand.cards = [self.drawFromDeck(),self.drawFromDeck()]
 
-    def toDb(self, includeId=False):
-        dbGame = [self.id, self.playersToDb(), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
-        if includeId == False:
-            dbGame.pop(0)
+    def toDb(self, card_type, player_type, includeId=False):
+        if includeId:
+            return [self.id, self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.created_at, self.moveHistoryToDb()]
 
-        return dbGame
+        elif includeId == False:
+            return [self.playersToDb(player_type=player_type,card_type=card_type), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(card_type), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, json.dumps(self.settings), self.moveHistoryToDb()]
 
-    def playersToDb(self):
-        return json.dumps([player.toDict() for player in self.players])
+    def playersToDb(self, player_type, card_type):
+        return [player.toDb(player_type, card_type) for player in self.players]
 
     def toDict(self):
         return {
@@ -359,12 +334,11 @@ class TraditionalGame(Game):
         }
 
     @staticmethod
-    def fromDb(game: list, preSettings=False):
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=json.loads(game[13]))
-        if preSettings == False:
-            gameObj.settings = json.loads(game[11])
-        return gameObj
-    
+    def fromDb(game:object, preSettings=False):
+        if preSettings:
+            return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings)
+        return TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=game[11],created_at=game[12],move_history=game[13])
+
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
@@ -532,7 +506,7 @@ class TraditionalGame(Game):
         self.completed = len(players) <= 1
 
         dbList = [
-            self.playersToDb(),
+            self.playersToDb(traditionalPlayerType, traditionalCardType),
             self.hand_pot,
             self.phase,
             self.player_turn,
@@ -631,8 +605,8 @@ class TraditionalGame(Game):
             self.p_act = alderaanCaller.username + " called Alderaan; " + self.p_act
 
         dbList = [
-            self.deck.toDb(),
-            self.playersToDb(),
+            self.deck.toDb(traditionalCardType),
+            self.playersToDb(traditionalPlayerType, traditionalCardType),
             self.hand_pot,
             self.sabacc_pot,
             self.phase,
@@ -659,7 +633,7 @@ class TraditionalGame(Game):
             self.p_act = f"{player.username} protected a {card.val}"
 
             dbList = [
-                self.playersToDb(),
+                self.playersToDb(traditionalPlayerType, traditionalCardType),
                 self.p_act,
                 self.id
             ]
@@ -687,8 +661,8 @@ class TraditionalGame(Game):
 
             dbList = [
                 self.phase,
-                self.deck.toDb(),
-                self.playersToDb(),
+                self.deck.toDb(traditionalCardType),
+                self.playersToDb(traditionalPlayerType, traditionalCardType),
                 self.player_turn,
                 self._shift,
                 self.p_act,
@@ -707,11 +681,11 @@ class TraditionalGame(Game):
             self.completed = False
 
             dbList = [
-                self.playersToDb(),
+                self.playersToDb(traditionalPlayerType, traditionalCardType),
                 self.hand_pot,
                 self.sabacc_pot,
                 self.phase,
-                self.deck.toDb(),
+                self.deck.toDb(traditionalCardType),
                 self.player_turn,
                 self.cycle_count,
                 self.p_act,

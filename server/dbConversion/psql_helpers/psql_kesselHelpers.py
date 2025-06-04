@@ -1,7 +1,11 @@
-from helpers import *
+
+
+from dbConversion.psql_helpers.psql_helpers import *
 import json
 from datetime import datetime, timezone
-from typing import Union
+
+kesselCardType = None
+kesselPlayerType = None
 
 shiftTokenTypes = [
     "freeDraw",
@@ -39,11 +43,8 @@ class KesselDeck(Deck):
         self.shuffle()
 
     @staticmethod
-    def fromDb(deck: Union[str, list]) -> object:
-        if isinstance(deck, str):
-            return KesselDeck.fromDict(json.loads(deck))
-        if isinstance(deck, list):
-            return KesselDeck.fromDict(deck)
+    def fromDb(deck) -> object:
+        return KesselDeck([Card.fromDb(card) for card in deck])
 
 class KesselPlayer(Player):
     def __init__(self, id: int, username: str, lastAction: str, positiveCard: Card, negativeCard: Card, extraCard: Card = None, extraCardIsNegative: bool = False, chips: int = 8, usedChips: int = 0, shiftTokens: list[str] = [], outOfGame: bool = False):
@@ -75,11 +76,11 @@ class KesselPlayer(Player):
 
         return ((abs(self.positiveCard.val - self.negativeCard.val), min(self.positiveCard.val, self.negativeCard.val)))
 
-    def extraCardToDb(self):
+    def extraCardToDb(self, card_type):
         if self.extraCard is None:
             return None
         else:
-            return self.extraCard.toDb()
+            return self.extraCard.toDb(cardType=card_type)
 
     def extraCardToDict(self):
         if self.extraCard is None:
@@ -87,8 +88,21 @@ class KesselPlayer(Player):
         else:
             return self.extraCard.toDict()
 
-    def toDb(self):
-        return json.dumps(self.toDict())
+    def toDb(self, player_type, card_type):
+        print(self.shiftTokens)
+        return player_type.python_type(
+            self.id,
+            self.username,
+            self.chips,
+            self.usedChips,
+            self.positiveCard.toDb(card_type),
+            self.negativeCard.toDb(card_type),
+            self.extraCardToDb(card_type),
+            self.extraCardIsNegative,
+            self.shiftTokens,
+            self.outOfGame,
+            self.lastAction
+        )
 
     def toDict(self):
         return {
@@ -120,18 +134,25 @@ class KesselPlayer(Player):
         return retList
 
     @staticmethod
-    def fromDb(player: Union[str, dict]) -> object:
-        if isinstance(player, str):
-            return KesselPlayer.fromDict(json.loads(player))
-        if isinstance(player, dict):
-            return KesselPlayer.fromDict(player)
+    def fromDb(player:object):
+        return KesselPlayer(
+            player.id,
+            player.username,
+            player.lastaction,
+            Card.fromDb(player.positivecard),
+            Card.fromDb(player.negativecard),
+            KesselPlayer.extraCardFromDb(player.extracard),
+            player.extracardisnegative,
+            player.chips,
+            player.usedchips,
+            KesselPlayer.shiftTokensFromDb(player.shifttokens),
+            player.outofgame
+        )
 
     @staticmethod
-    def fromDict(dict: dict):
+    def fromDict(dict:dict):
         return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=dict['positiveCard'], negativeCard=dict['negativeCard'], extraCard=dict["extraCard"], extraCardIsNegative=dict["extraCardIsNegative"], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=dict["shiftTokens"], outOfGame=dict['outOfGame'])
 
-
-# Default game settings 
 defaultSettings = {
     "startingChips": 8,
     "playersChooseShiftTokens": False
@@ -207,17 +228,17 @@ class KesselGame(Game):
 
         if db:
             db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, activeShiftTokens, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", [
-                game.playersToDb(),
+                game.playersToDb(player_type=kesselPlayerType, card_type=kesselCardType),
                 game.phase,
-                game.diceToDb(),
-                game.positiveDeckToDb(),
-                game.negativeDeckToDb(),
-                game.positiveDiscardToDb(),
-                game.negativeDiscardToDb(),
+                list(game.dice),
+                game.positiveDeck.toDb(kesselCardType),
+                game.negativeDeck.toDb(kesselCardType),
+                [card.toDb(kesselCardType) for card in game.positiveDiscard],
+                [card.toDb(kesselCardType) for card in game.negativeDiscard],
                 game.activeShiftTokens,
                 game.player_turn,
                 game.p_act,
-                game.settingsToDb()
+                json.dumps(game.settings)
             ])
 
         return game
@@ -228,120 +249,78 @@ class KesselGame(Game):
         gameDict = self.toDict()
         users = [i.username for i in self.getActivePlayers()]
 
-        if (self.completed is False) and (not self.phase in ('reveal', 'imposterRoll', 'imposterChoice')):
-            for p in gameDict['players']:
-                if p['id'] == player.id:
-                    continue
-
-                p['positiveCard']['suit'] = 'hidden'
-                p['positiveCard']['val'] = 0
-                p['negativeCard']['suit'] = 'hidden'
-                p['negativeCard']['val'] = 0
-
-                if p['extraCard'] is not None:
-                    p['extraCard']['suit'] = 'hidden'
-                    p['extraCard']['val'] = 0
-
         gameDict.pop("positiveDeck")
         gameDict.pop("negativeDeck")
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
-    
-    def positiveDeckToDb(self):
-        return self.positiveDeck.toDb()
-
-    def negativeDeckToDb(self):
-        return self.negativeDeck.toDb()
-    
-    def positiveDiscardToDb(self):
-        return json.dumps(self.discardPileToDict(self.positiveDiscard))
-
-    def negativeDiscardToDb(self):
-        return json.dumps(self.discardPileToDict(self.negativeDiscard))
-    
-    def discardPileToDict(self, discardPile):
-        return [card.toDict() for card in discardPile]
-    
-    def activeShiftTokensToDb(self):
-        return json.dumps(self.activeShiftTokens)
 
     @staticmethod
-    def fromDb(game: list):
+    def fromDb(game:object):
         return KesselGame( id = game[0],
             players = [KesselPlayer.fromDb(player) for player in game[1]],
             phase = game[2],
-            dice = json.loads(game[3]),
+            dice = tuple(game[3]),
             positiveDeck = KesselDeck.fromDb(game[4]),
             negativeDeck = KesselDeck.fromDb(game[5]),
             positiveDiscard = [Card.fromDb(i) for i in game[6]],
             negativeDiscard = [Card.fromDb(i) for i in game[7]],
-            activeShiftTokens = json.loads(game[8]),
+            activeShiftTokens = game[8],
             player_turn = game[9],
             p_act = game[10],
             cycle_count = game[11],
             completed = game[12],
-            settings = json.loads(game[13]),
+            settings = game[13],
             created_at = game[14],
-            move_history = json.loads(game[15])
-        )
-    
-    @staticmethod
-    def fromDict(dict: dict) -> object:
-        return KesselGame(
-            id = dict['id'],
-            players = [KesselPlayer.fromDict(player) for player in dict['players']],
-            phase = dict['phase'],
-            dice = dict['dice'],
-            positiveDeck = KesselDeck.fromDict(dict['positiveDeck']),
-            negativeDeck = KesselDeck.fromDict(dict['negativeDeck']),
-            positiveDiscard = [Card.fromDict(i) for i in dict['positiveDiscard']],
-            negativeDiscard = [Card.fromDict(i) for i in dict['negativeDiscard']],
-            activeShiftTokens = dict['activeShiftTokens'],
-            player_turn = dict['player_turn'],
-            p_act = dict['p_act'],
-            cycle_count = dict['cycle_count'],
-            completed = dict['completed'],
-            settings = dict['settings'],
-            created_at = dict['created_at'],
-            move_history = dict['move_history']
+            move_history = game[15]
         )
 
-    def toDb(self, includeId=False):
-
-        dbGame = [
-            self.id,
-            self.playersToDb(),
-            self.phase,
-            self.diceToDb(),
-            self.positiveDeckToDb(),
-            self.negativeDeckToDb(),
-            self.positiveDiscardToDb(),
-            self.negativeDiscardToDb(),
-            self.activeShiftTokensToDb(),
-            self.player_turn,
-            self.p_act,
-            self.cycle_count,
-            self.completed,
-            self.settingsToDb,
-            self.created_at,
-            self.moveHistoryToDb()
-        ]
-
-        if includeId == False:
-            dbGame.pop(0)
-
-        return dbGame
+    def toDb(self, player_type, card_type, includeId=False):
+        if includeId:
+            return [
+                self.id,
+                self.playersToDb(player_type, card_type),
+                self.phase,
+                list(self.dice),
+                self.positiveDeck.toDb(card_type),
+                self.negativeDeck.toDb(card_type),
+                self.positiveDiscard.toDb(card_type),
+                self.negativeDiscard.toDb(card_type),
+                self.activeShiftTokens,
+                self.player_turn,
+                self.cycle_count,
+                self.completed,
+                json.dumps(self.settings),
+                self.created_at,
+                self.moveHistoryToDb()
+            ]
+        else:
+            return [
+                self.playersToDb(player_type, card_type),
+                self.phase,
+                list(self.dice),
+                self.positiveDeck.toDb(card_type),
+                self.negativeDeck.toDb(card_type),
+                self.positiveDiscard.toDb(card_type),
+                self.negativeDiscard.toDb(card_type),
+                self.activeShiftTokens,
+                self.player_turn,
+                self.cycle_count,
+                self.completed,
+                json.dumps(self.settings),
+                self.created_at,
+                self.moveHistoryToDb()
+            ]
 
     def toDict(self):
         return {
             "id": self.id,
             "players": [i.toDict() for i in self.players],
             "phase": self.phase,
-            "dice": self.dice,
+            "dice": list(self.dice),
             "positiveDeck": self.positiveDeck.toDict(),
             "negativeDeck": self.negativeDeck.toDict(),
-            "positiveDiscard": self.discardPileToDict(self.positiveDiscard),
-            "negativeDiscard": self.discardPileToDict(self.negativeDiscard),
+            "positiveDiscard": [i.toDict() for i in self.positiveDiscard],
+            "negativeDiscard": [i.toDict() for i in self.negativeDiscard],
             "activeShiftTokens": self.activeShiftTokens,
             "player_turn": self.player_turn,
             "p_act": self.p_act,
@@ -352,11 +331,8 @@ class KesselGame(Game):
             "move_history": self.move_history
         }
 
-    def playersToDb(self):
-        return json.dumps([player.toDict() for player in self.players])
-    
-    def diceToDb(self):
-        return json.dumps(self.dice)
+    def playersToDb(self, player_type, card_type):
+        return [i.toDb(player_type, card_type) for i in self.players]
 
     def getActivePlayers(self) -> list[KesselPlayer]:
         activePlayers = []
@@ -964,13 +940,13 @@ class KesselGame(Game):
             self.nextRound()
 
         dbList = [
-            self.playersToDb(),
+            self.playersToDb(kesselPlayerType, kesselCardType),
             self.phase,
-            self.diceToDb(),
-            self.positiveDeckToDb(),
-            self.negativeDeckToDb(),
-            self.discardPileToDict(self.positiveDiscard),
-            self.discardPileToDict(self.negativeDiscard),
+            list(self.dice),
+            self.positiveDeck.toDb(kesselCardType),
+            self.negativeDeck.toDb(kesselCardType),
+            [i.toDb(kesselCardType) for i in self.positiveDiscard],
+            [i.toDb(kesselCardType) for i in self.negativeDiscard],
             self.activeShiftTokens,
             self.player_turn,
             self.p_act,

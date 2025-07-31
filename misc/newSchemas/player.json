@@ -1,0 +1,43 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "$id": "https://samuelanes.com/schemas/player.json",
+    "type": "object",
+    "properties": {
+        "id": {"type": "integer", "description": "user name"},
+        "username": {"type": "string"},
+        "hash": {"type": "string"},
+        "games": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "type": "integer"
+            }
+        },
+        "preferences": {
+            "type": "object",
+            "properties": {
+                "darkMode": {
+                    "type": "boolean"
+                },
+                "cardDesign": {
+                    "enum": ["auto", "dark", "light", "pescado"]
+                },
+                "theme": {
+                    "enum": ["pescado"]
+                }
+            },
+            "required": [
+                "darkMode",
+                "cardDesign",
+                "theme"
+            ]
+        }
+    },
+    "required": [
+        "id",
+        "username",
+        "hash",
+        "games",
+        "preferences"
+    ]
+}

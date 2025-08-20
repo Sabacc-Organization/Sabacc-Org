@@ -341,7 +341,7 @@ def getGameClientInfo(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     # print(game.getClientData(user_id, clientInfo["username"]))
 
-    emit('clientUpdate', game.getClientData(user_id, clientInfo["username"]))
+    emit('clientUpdate', game.getClientData(user_id, username=clientInfo["username"]))
 
 @app.route("/host", methods=["POST"])
 @cross_origin()

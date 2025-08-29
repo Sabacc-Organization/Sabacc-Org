@@ -70,7 +70,7 @@ print(conn)
 psql_conn = psycopg.connect(config['PSQL_DATABASE'])
 
 # Open a cursor to perform database operations
-db = conn.cursor()
+sqlite_db = conn.cursor()
 
 # Make sure all tables exist in the db
 query = ""
@@ -78,15 +78,14 @@ with open('schema.sql', 'r') as f:
     query = f.read()
 
 # Execute the query
-db.executescript(query)
+sqlite_db.executescript(query)
 conn.commit()
 # conn.close()
 
-# dbConversion.convertPsqlToSqlite(db, psql_conn)
+# dbConversion.convertPsqlToSqlite(sqlite_db, psql_conn)
 # conn.commit()
 
 # psql_db = psql_conn.cursor()
-# sqlite_db = db
 
 # from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame as psql_TraditionalGame
 # from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame as psql_CorellianSpikeGame
@@ -168,9 +167,7 @@ conn.commit()
 def login():
     """Log user in"""
 
-    # conn.close()
-    # conn = sqlite3.connect(config['DATABASE'])
-    # db = conn.cursor()
+    db = conn.cursor()
 
     # Authenticate User
     username = request.json.get("username")
@@ -215,6 +212,8 @@ def login():
 def index():
 
     """ Get Info for Home Page """
+
+    db = conn.cursor()
 
     # Authenticate User
     username = request.json.get("username")
@@ -278,6 +277,8 @@ def index():
 def register():
     """Register user"""
 
+    db = conn.cursor()
+
     # Ensure username was submitted
     username = request.json.get("username")
     if not username:
@@ -316,6 +317,9 @@ def register():
     return jsonify({"message": "Registered!"}), 200
 
 def getGameFromDb(game_variant, game_id):
+
+    db = conn.cursor()
+
     if game_variant == 'traditional':
         return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     elif game_variant == 'corellian_spike':
@@ -328,6 +332,9 @@ def getGameFromDb(game_variant, game_id):
 # this is caled manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
 def getGameClientInfo(clientInfo):
+
+    db = conn.cursor()
+
     user_id = -1
     if clientInfo["username"] != "":
         db.execute("SELECT id FROM users WHERE username = ?", [clientInfo["username"]])
@@ -347,6 +354,8 @@ def getGameClientInfo(clientInfo):
 @cross_origin()
 def host():
     """ Make a new game of Sabacc """
+
+    db = conn.cursor()
 
     # Authenticate User
     username = request.json.get("username")
@@ -420,6 +429,8 @@ def host():
 def gameAction(clientInfo):
     """ Perform an action in a game """
 
+    db = conn.cursor()
+
     # Authenticate User
     username = clientInfo["username"]
     password = clientInfo["password"]
@@ -468,6 +479,8 @@ def handleMessage(msg):
 def chat():
 
     """Global Chat using Socket.IO"""
+
+    db = conn.cursor()
 
     # Tell the client what their username is
     user_id = session.get("user_id")

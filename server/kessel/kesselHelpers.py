@@ -206,7 +206,7 @@ class KesselGame(Game):
         game.rollDice()
 
         if db:
-            db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, activeShiftTokens, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", [
+            db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, activeShiftTokens, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
                 game.playersToDb(),
                 game.phase,
                 game.diceToDb(),
@@ -214,7 +214,7 @@ class KesselGame(Game):
                 game.negativeDeckToDb(),
                 game.positiveDiscardToDb(),
                 game.negativeDiscardToDb(),
-                game.activeShiftTokens,
+                game.activeShiftTokensToDb(),
                 game.player_turn,
                 game.p_act,
                 game.settingsToDb()
@@ -268,7 +268,7 @@ class KesselGame(Game):
             completed = game[12],
             settings = json.loads(game[13]),
             created_at = game[14],
-            move_history = json.loads(game[15])
+            move_history = None if not game[15] else json.loads(game[15])
         )
     
     @staticmethod
@@ -965,7 +965,7 @@ class KesselGame(Game):
             self.id
         ]
 
-        db.execute("UPDATE kessel_games SET players = %s, phase = %s, dice = %s, positiveDeck = %s, negativeDeck = %s, positiveDiscard = %s, negativeDiscard = %s, activeShiftTokens = %s, player_turn = %s, p_act = %s, cycle_count = %s, completed = %s WHERE game_id = %s", dbList)
+        db.execute("UPDATE kessel_games SET players = ?, phase = ?, dice = ?, positiveDeck = ?, negativeDeck = ?, positiveDiscard = ?, negativeDiscard = ?, activeShiftTokens = ?, player_turn = ?, p_act = ?, cycle_count = ?, completed = ? WHERE game_id = ?", dbList)
 
         originalChangedValues = self.compare(originalSelf)
         if originalChangedValues == {}:
@@ -978,6 +978,6 @@ class KesselGame(Game):
         else:
             self.move_history = [originalChangedValues]
 
-        db.execute("UPDATE kessel_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
+        db.execute("UPDATE kessel_games SET move_history = ? WHERE game_id = ?", [self.moveHistoryToDb(), self.id])
 
         return self

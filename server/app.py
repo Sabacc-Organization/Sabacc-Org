@@ -360,7 +360,7 @@ def host():
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
@@ -434,7 +434,7 @@ def gameAction(clientInfo):
     # Authenticate User
     username = clientInfo["username"]
     password = clientInfo["password"]
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 

@@ -254,7 +254,7 @@ class CorellianSpikeGame(Game):
         # the 1st player is the 1st dealer
 
         if db:
-            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", [
+            db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", [
                 game.playersToDb(),
                 game.hand_pot,
                 game.sabacc_pot,
@@ -530,7 +530,7 @@ class CorellianSpikeGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings, created_at=game[13], move_history=json.loads(game[14]))
+        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
 
         if preSettings == False:
             gameObj.settings = json.loads(game[12])
@@ -631,7 +631,7 @@ class CorellianSpikeGame(Game):
                 self.p_act,
                 self.id
             ]
-            db.execute("UPDATE corellian_spike_games SET deck = %s, discard_pile = %s, players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ? WHERE game_id = ?", dbList)
 
         elif (params['action'] in ["fold", "check", "bet", "call", "raise"]) and (self.phase == "betting") and (self.player_turn == player.id) and (self.completed == False):
             players = self.getActivePlayers()
@@ -706,7 +706,7 @@ class CorellianSpikeGame(Game):
                 self.completed,
                 self.id
             ]
-            db.execute("UPDATE corellian_spike_games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE corellian_spike_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         elif (params["action"] == "shift") and (self.player_turn == player.id) and (self.completed == False):
             self._shift = self.rollShift()
@@ -753,7 +753,7 @@ class CorellianSpikeGame(Game):
                 self.id
             ]
 
-            db.execute("UPDATE corellian_spike_games SET phase = %s, deck = %s, discard_pile = %s, players = %s, hand_pot = %s, sabacc_pot = %s, player_turn = %s, shift = %s, p_act = %s, cycle_count = %s, completed = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE corellian_spike_games SET phase = ?, deck = ?, discard_pile = ?, players = ?, hand_pot = ?, sabacc_pot = ?, player_turn = ?, shift = ?, p_act = ?, cycle_count = ?, completed = ? WHERE game_id = ?", dbList)
 
         elif (params["action"] == "playAgain") and (self.player_turn == player.id) and (self.completed):
             self.nextRound()
@@ -779,7 +779,7 @@ class CorellianSpikeGame(Game):
                 self.id
             ]
 
-            db.execute("UPDATE corellian_spike_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, discard_pile = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE corellian_spike_games SET players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, discard_pile = ?, player_turn = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
 
         originalChangedValues = self.compare(originalSelf)
@@ -793,6 +793,6 @@ class CorellianSpikeGame(Game):
         else:
             self.move_history = [originalChangedValues]
 
-        db.execute("UPDATE corellian_spike_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
+        db.execute("UPDATE corellian_spike_games SET move_history = ? WHERE game_id = ?", [self.moveHistoryToDb(), self.id])
 
         return self

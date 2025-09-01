@@ -359,7 +359,7 @@ class CorellianSpikeGame(Game):
                 if player.hand.lowestPosValue() == lowest:
                     newWinningPlayers.append(player)
             if len(newWinningPlayers) == 1:
-                return {"winStr": ret + f"{winningPlayers[0].username} won with a lowest positive value of +{lowest}", "winner": winningPlayers[0], "0": True}
+                return {"winStr": ret + f"{newWinningPlayers[0].username} won with a lowest positive value of +{lowest}", "winner": newWinningPlayers[0], "0": True}
             winningPlayers = newWinningPlayers
             ret += f"players {listToStr(winningPlayers)} tied with a lowest positive value of +{lowest}\n"
 

@@ -1,0 +1,211 @@
+/* For players and cards, since theres so much css dedicated to just them */
+
+/* playerStuff */
+    .playerStuff{
+        position: absolute;
+        z-index: 2;
+        width: max-content;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .playerStuff h5{
+        margin-bottom: 0px;
+    }
+
+    .playerStuff > .cardsContainer{
+        position: absolute;
+        z-index: 2;
+    }
+
+    /* playerBox */
+        .playerBox{
+            padding: 0px 10px;
+            font-size: 1rem;
+        }
+
+        .playerBox h5{
+            font-size: 1.25em;
+        }
+
+        .backBlue{
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .turnGlow{
+            color: black;
+        }
+
+        .noTurnGlow{
+            color: white;
+        }
+
+        .red{
+            color: #ed3b3b;
+        }
+
+        .backRed{
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .chip{
+            background-size: contain;
+        }
+
+        .bigChip{
+            background-image: url("/images/modern-theme-images/credit-chips/Credit\ Gold.png");
+        }
+
+        .midChip{
+            background-image: url("/images/modern-theme-images/credit-chips/Credit\ Silver.png");
+        }
+
+        .lowChip{
+            background-image: url("/images/modern-theme-images/credit-chips/Credit\ Bronze.png");
+        }
+    /* playerBox */
+    /* cards */
+        .cardsContainer{
+            display: grid;
+            grid-auto-flow: column;
+            column-count: 5;
+        }
+
+        .card{
+            padding: 0;
+            background-image: url("/images/cards/traditional/rebels-card-back.png");
+            background-repeat: no-repeat, no-repeat;
+            background-size: cover;
+            margin: 3px;
+            width: 50px;
+            aspect-ratio: 50 / 67;
+            border-radius: 5px;
+            color: #ffffff;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card.protected{
+            background-image: none;
+            background-color: firebrick;
+        }
+
+        h5.protected{
+            color: firebrick;
+        }
+
+        .card h5{
+            font-size: 30px;
+        }
+    /* cards */
+/* playerStuff */
+
+
+/* player positions */
+    .player0{
+        top: 100%;
+        left: 36%;
+        translate: -50% 0%;
+    }
+
+    .player0 > .cardsContainer{
+        rotate: 0deg;
+        top: -36px;
+        left: 50%;
+        translate: -50% -50%;
+    }
+
+    .player1{
+        top: 74%;
+        left: 2%;
+        translate: -100% 0%;
+    }
+
+    .player1 > .cardsContainer{
+        rotate: 58deg;
+        top: -6px;
+        left: calc(100% + 60px);
+        translate: -50% -50%;
+    }
+
+    .player2{
+        bottom: 74%;
+        left: 2%;
+        translate: -100% 0%;
+    }
+
+    .player2 > .cardsContainer{
+        rotate: 302deg;
+        top: 130px;
+        left: calc(100% + 53px);
+        translate: -50% -50%;
+    }
+
+    .player3{
+        bottom: 103%;
+        left: 36%;
+        translate: -50% 0%;
+    }
+
+    .player3 > .cardsContainer{
+        rotate: 0deg;
+        top: 170px;
+        left: 50%;
+        translate: -50% -50%;
+    }
+
+    .player4{
+        bottom: 103%;
+        left: 64%;
+        translate: -50% 0%;
+    }
+
+    .player4 > .cardsContainer{
+        rotate: 0deg;
+        top: 170px;
+        left: 50%;
+        translate: -50% -50%;
+    }
+
+    .player5{
+        bottom: 74%;
+        right: 2%;
+        translate: 100% 0%;
+    }
+
+    .player5 > .cardsContainer{
+        rotate: 58deg;
+        top: 130px;
+        right: calc(100% + 53px);
+        translate: 50% -50%;
+    }
+
+    .player6{
+        top: 74%;
+        right: 3%;
+        translate: 100% 0%;
+    }
+
+    .player6 > .cardsContainer{
+        rotate: 302deg;
+        top: -6px;
+        right: calc(100% + 45px);
+        translate: 50% -50%;
+    }
+
+    .player7{
+        top: 100%;
+        left: 64%;
+        translate: -50% 0%;
+    }
+
+    .player7 > .cardsContainer{
+        rotate: 0deg;
+        top: -36px;
+        left: 50%;
+        translate: -50% -50%;
+    }
+/* player positions */

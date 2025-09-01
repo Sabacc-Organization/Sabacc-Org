@@ -1,0 +1,130 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "$id": "https://samuelanes.com/schemas/corellianSpikeGame.json",
+    "definitions": {
+        "card": {
+            "type": "object",
+            "properties": {
+                "val": {
+                    "type": "integer"
+                },
+                "suit": {
+                    "enum": ["circle", "square", "triangle", "sylop", "unknown"]
+                }
+            },
+            "required": [
+                "val",
+                "suit"
+            ]
+        }
+    },
+    "type": "object",
+    "properties": {
+        "firstFutureChange": {"type": "integer"},
+        "ignore": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "createdAt": {"type": "string", "format": "date-time"},
+                "settings": {
+                    "type": "object",
+                    "properties": {
+                        "pokerStyleBetting": {"type": "boolean"},
+                        "deckDrawCost": {"type": "integer"},
+                        "discardDrawCost": {"type": "integer"},
+                        "deckTradeCost": {"type": "integer"},
+                        "discardTradeCost": {"type": "integer"},
+                        "discardCosts": {
+                            "type": "array",
+                            "items": {"type": "integer"},
+                            "minItems": 3,
+                            "maxItems": 3
+                        },
+                        "smallBlind": {"type": "integer"},
+                        "bigBlind": {"type": "integer"},
+                        "handPotAnte": {"type": "integer"},
+                        "sabaccPotAnte": {"type": "integer"},
+                        "startingCredits": {"type": "integer"}
+                    },
+                    "required": [
+                        "pokerStyleBetting",
+                        "deckDrawCost",
+                        "discardDrawCost",
+                        "deckTradeCost",
+                        "discardTradeCost",
+                        "discardCosts",
+                        "smallBlind",
+                        "bigBlind",
+                        "handPotAnte",
+                        "sabaccPotAnte",
+                        "startingCredits"
+                    ]
+                },
+                "completed": {"type": "boolean"}
+            },
+            "required": [
+                "id",
+                "createdAt",
+                "settings",
+                "completed"
+            ]
+        },
+        "track": {
+            "type": "object",
+            "properties": {
+                "players": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "username": {"type": "string"},
+                            "credits": {"type": "integer"},
+                            "bet": {"type": "integer"},
+                            "hand": {"type": "array", "items": {"$ref": "card"}},
+                            "folded": {"type": "boolean"},
+                            "lastAction": {"type": "string"}
+                        },
+                        "required": [
+                            "id",
+                            "username",
+                            "credits",
+                            "bet",
+                            "hand",
+                            "folded",
+                            "lastAction"
+                        ]
+                    }
+                },
+                "handPot": {"type": "integer"},
+                "sabaccPot": {"type": "integer"},
+                "phase": {"type": "string"},
+                "deck": {"type": "array", "items": {"$ref": "card"}},
+                "discard": {"type": "array", "items": {"$ref": "card"}},
+                "playerTurn": {"type": "integer"},
+                "lastAction": {"type": "string"},
+                "cycleCount": {"type": "integer"},
+                "shift": {"type": "boolean"}
+            },
+            "required": [
+                "players",
+                "handPot",
+                "sabaccPot",
+                "phase",
+                "deck",
+                "discard",
+                "playerTurn",
+                "lastAction",
+                "cycleCount",
+                "shift"
+            ]
+        },
+        "history": {"$ref": "https://samuelanes.com/schemas/history.json"}
+    },
+    "required": [
+        "firstFutureChange",
+        "ignore",
+        "track",
+        "history"
+    ]
+}

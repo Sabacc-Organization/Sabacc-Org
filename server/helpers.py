@@ -2,11 +2,15 @@ from flask import redirect, render_template, request, session, jsonify
 from functools import wraps
 import random
 from flask_socketio import emit
-import psycopg
+# import psycopg
 from dataHelpers import *
-from cs50 import SQL
+import sqlite3
 from werkzeug.security import check_password_hash
 import yaml
+from abc import ABC, abstractmethod # allows abstract classes/methods
+import copy
+import json
+from typing import Union
 
 # Get config.yml data
 config = {}
@@ -14,22 +18,322 @@ with open("config.yml", "r") as f:
     config = yaml.safe_load(f)
 
 # Connect to database
-conn = psycopg.connect(config['DATABASE'])
-db = conn.cursor()
+# conn = sqlite3.connect(config['DATABASE'])
+# db = conn.cursor()
 
-# Global deck constant
-DECK = "1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,0,0,-2,-2,-8,-8,-11,-11,-13,-13,-14,-14,-15,-15,-17,-17"
+class Suit:
+    DEFAULT = "NONE"
+
+class Card:
+    def __init__(self, val:int, suit:str):
+        self.val = val
+        self.suit = suit
+    def __str__(self) -> str:
+        return f'{addPlusBeforeNumber(self.val)} {self.suit}'
+    def __eq__(self, other:object) -> bool:
+        try:
+            return self.val == other.val and self.suit == other.suit
+        except AttributeError:
+            return False
+    def toDict(self) -> dict:
+        return {
+            'val': self.val,
+            'suit': self.suit
+        }
+    @staticmethod
+    def fromDict(card:dict) -> object:
+        return Card(val=card['val'], suit=card['suit']) if card is not None else None
+    
+    def toDb(self):
+        return json.dumps(self.toDict())
+    @staticmethod
+    def fromDb(card: Union[str, dict]) -> object:
+        if isinstance(card, str):
+            return Card.fromDict(json.loads(card))
+        if isinstance(card, dict):
+            return Card.fromDict(card)
+
+class Deck:
+    def __init__(self, cards:list=[]):
+        self.cards = cards.copy()
+    def __str__(self) -> str:
+        return f'[{listToStr(self.cards)}]'
+    
+    def toDb(self):
+        return json.dumps(self.toDict())
+    @staticmethod
+    def fromDb(deck: Union[str, list]) -> object:
+        if isinstance(deck, str):
+            return Deck.fromDict(json.loads(deck))
+        if isinstance(deck, list):
+            return Deck.fromDict(deck)
+
+    def toDict(self) -> list:
+        return [card.toDict() for card in self.cards]
+    @staticmethod
+    def fromDict(dict) -> object:
+        return Deck([Card.fromDict(card) for card in dict])
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+
+    # remove a number of cards from the top (end) of the deck and return them
+    def draw(self, numCards=1):
+        # check there are enuf cards left in deck
+        if len(self.cards) < numCards:
+            print(f"ERROR: trying to draw from deck but not enough cards left")
+            return None
+
+        if numCards == 1:
+            return self.cards.pop()
+        else:
+            drawnCards = []
+            for i in range(numCards):
+                drawnCards.append(self.cards.pop())
+            return drawnCards
+
+class Hand:
+    def __init__(self, cards=[]):
+        self.cards: list = cards.copy()
+        self.sort()
+
+    def __eq__(self, other:object) -> bool:
+        if len(self.cards) != len(other.cards):
+            return False
+        for i in range(len(self.cards)):
+            if self.cards[i] != other.cards[i]:
+                return False
+        return True
+
+    def __str__(self) -> str:
+        self.sort()
+        return f'[{listToStr(self.cards)}]'
+    
+    @staticmethod
+    def fromDb(hand: Union[str, list]) -> object:
+        if isinstance(hand, str):
+            return Hand.fromDict(json.loads(hand))
+        if isinstance(hand, list):
+            return Hand.fromDict(hand)
+    def toDict(self) -> list:
+        return [card.toDict() for card in self.cards]
+    @staticmethod
+    def fromDict(hand) -> object:
+        return Hand([Card.fromDict(card) for card in hand])
+
+    def append(self, card:Card):
+        self.cards.append(card)
+    def pop(self, index:int) -> object:
+        return self.cards.pop(index)
+    
+    def getListOfVals(self) -> list:
+        return [card.val for card in self.cards]
+    
+    def getTotal(self) -> int:
+        return sum(self.getListOfVals())
+    
+    # sort hand by value (selection sort)
+    def sort(self):
+        if self.cards == []:
+            return
+        self.cards.sort(key=(lambda x: x.val))
+
+class Player:
+    def __init__(self, id:int, username:str, credits:int, bet:int, hand:object, folded:bool, lastAction:str):
+        self.id = id
+        self.username = username
+        if type(credits) == int:
+            self.credits = credits
+        else:
+            print(f"ERROR: type of credits is {type(credits)}, not int")
+        if type(bet) == int or bet == None:
+            self.bet = bet
+        else:
+            print(f"ERROR: bet is not int or none, it's {type(bet)}")
+        self.hand = copy.deepcopy(hand)
+        self.folded = folded
+        self.lastAction = lastAction
+        
+    def addToHand(self, cards):
+        if not isinstance(cards, list):
+            cards = [cards]
+        self.hand.cards.extend(cards)
+
+    def discard(self, discardCardIndex:int):
+        try:
+            return self.hand.pop(discardCardIndex)
+        except IndexError:
+            print("ERROR: invalid index for discard card")
+    
+    def getIndexOfCard(self, targetCard:Card) -> int:
+        for i in range(len(self.hand)):
+            if self.hand[i] == targetCard:
+                return i
+        return -1
+    
+    def getBet(self) -> int:
+        return self.bet if self.bet != None else 0
+        
+    def fold(self, pokerStyle=False):
+        if not pokerStyle:
+            self.credits += self.getBet()
+        self.bet = None
+        self.folded = True
+        self.lastAction = "folded"
+    
+    def makeBet(self, creditAmount: int, absolute: bool = True):
+        if absolute:
+            self.credits -= creditAmount - self.getBet()
+            self.bet = creditAmount
+        else:
+            self.bet = self.bet if creditAmount == 0 else self.getBet()
+            self.credits -= creditAmount
+            if not self.bet:
+                self.bet = 0
+            self.bet += creditAmount
+
+        if creditAmount != 0:
+            self.lastAction = f'bets {creditAmount}'
+        else:
+            self.lastAction = f'checks'
+
+class Game:
+    def __init__(self,
+        players:list,
+        id:int=None,
+        player_turn:int=None,
+        p_act='',
+        deck:Deck=None,
+        phase='betting',
+        cycle_count=0,
+        completed=False,
+        shift=False,
+        settings={
+            "PokerStyleBetting": False,
+            "SmallBlind": 1,
+            "BigBlind": 2
+        }, created_at = None,
+        move_history = []):
+
+
+        self.players = players
+        self.id = id
+        self.player_turn = player_turn
+        self.p_act = p_act
+        self.deck = deck
+        self.phase = phase
+        self.cycle_count = cycle_count
+        self.completed = completed
+        self.shift = shift
+        self.settings = settings
+        self.created_at = created_at
+        self.move_history = move_history
+
+    @staticmethod
+    @abstractmethod
+    def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
+        pass
+
+    def getClientData(self, user_id = None, username = None):
+        player: Player = self.getPlayer(username, user_id)
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        users = [i.username for i in self.getActivePlayers()]
+        # print(gameDict)
+        # print(f'\n\n{self.player_turn}\n\n')
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
+
+    # shuffle deck
+    def shuffleDeck(self):
+        self.deck.shuffle()
+
+    # roll shift
+    def rollShift(self):
+        roll1 = random.randint(1, 6)
+        roll2 = random.randint(1, 6)
+        self.shift = roll1 == roll2
+        return self.shift
+        
+    def getActivePlayers(self):
+        activePlayers = []
+        for player in self.players:
+            if not player.folded:
+                activePlayers.append(player)
+        return activePlayers
+    
+    def getPreviousPlayer(self, player):
+        for player in (self.players[:self.players.index(player)] + self.players[self.players.index(player) + 1:]).reversed():
+            if not player.folded:
+                return player
+    
+    def getNextPlayer(self, player):
+        for player in self.players[self.players.index(player) + 1:] + self.players[:self.players.index(player)]:
+            try:
+                if (not player.folded):
+                    return player
+            except AttributeError:
+                if (not player.outOfGame):
+                    return player
+
+    def getPlayerDex(self, username:str=None, id:int=None):
+        for i in range(len(self.players)):
+            player = self.players[i]
+            if player.username == username or player.id == id:
+                return i
+        return -1
+    def getPlayer(self, username:str=None, id:int=None):
+        dex = self.getPlayerDex(username=username, id=id)
+        return None if dex == -1 else self.players[dex]
+    def containsPlayer(self, username:str=None, id:int=None) -> bool:
+        return self.getPlayer(username=username, id=id) != None
+    
+    def getGreatestBet(self):
+        maxBet = 0
+        for player in self.getActivePlayers():
+            if player.getBet() > maxBet:
+                maxBet = player.getBet()
+        return maxBet
+    
+    def deckToDb(self):
+        return self.deck.toDb()
+    
+    def moveHistoryToDb(self):
+        return json.dumps(self.move_history)
+    
+    def settingsToDb(self):
+        return json.dumps(self.settings)
+    
+    # compare games to see what has changed
+    def compare(self, other):
+        selfDict = self.toDict()
+        originalValues = {}
+        for key, value, in other.toDict().items():
+            if value != selfDict[key]:
+                originalValues[key] = value
+        return originalValues
+    
+    # abstract method for card actions (draw, trade, etc.)
+    # each sub game class must override
+    @abstractmethod
+    def action(self, action, actionParams):
+        pass
 
 # For getting a list of dictionaries for rows in a database.
-def getDictsForDB(cursor: psycopg.Cursor):
+def getDictsForDB(cursor: sqlite3.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
+    print("Columns: ", columns)
 
     returnList = []
     for row in rows:
         rowDict = {}
+        print("Row: ", row)
+        print("enum: ", enumerate(row))
         for i, col in enumerate(columns):
-            rowDict[col.name] = row[i]
+            print(f"i: {i}, col: {col}")
+            rowDict[col[0]] = row[i]
         returnList.append(rowDict)
     
     return returnList
@@ -64,7 +368,7 @@ def login_required(f):
     return decorated_function
 
 # Attempt to Authenticate User
-def checkLogin(username, password):
+def checkLogin(db, username, password):
     # If username is none
     if not username:
         return {"message": "Must provide username", "status": 401}
@@ -76,7 +380,7 @@ def checkLogin(username, password):
     # Attempt to find the password hash of this user
     orHash = None
     try:
-        db.execute("SELECT * FROM users WHERE username = %s", [username])
+        db.execute("SELECT * FROM users WHERE username = ?", [username])
         orHash = getDictsForDB(db)[0]["hash"]
     except IndexError:
         # If user does not exist
@@ -89,31 +393,9 @@ def checkLogin(username, password):
     # User authenticated!
     return {"message": "Logged in!", "status": 200}
 
-# Draw a card
-def drawCard(deckStr):
+# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
+def addPlusBeforeNumber(n:int) -> str:
+    return ('+' if n > 0 else '') + str(n)
 
-    # Turn deck into a list
-    deckList = deckStr.split(",")
-
-    # Draw the card
-    randDex = random.randint(0, len(deckList) - 1)
-    card = deckList.pop(randDex)
-
-    # Turn deck back into string
-    deck = listToStr(deckList)
-
-    # Return deck and card drawn
-    data = {"deck": deck, "card": card}
-    return data
-
-# Roll the Shift dice
-def rollShift():
-    # Roll the dice
-    dieOne = random.randint(1, 6)
-    dieTwo = random.randint(1, 6)
-    
-    # If doubles, shift
-    if dieOne == dieTwo:
-        return True
-    else:
-        return False
+def bothOrAll(num:int):
+    return 'both' if num == 2 else 'all'

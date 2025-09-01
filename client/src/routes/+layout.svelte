@@ -1,24 +1,31 @@
 
-<script lang="ts"> 
+<script lang="ts">
+    import { afterNavigate } from '$app/navigation';
+ 
 
-    import Cookies from 'js-cookie'
-    import { onMount } from 'svelte';
-    import { checkLogin} from '$lib/index.js';
     import { page } from '$app/stores'
+    import { afterUpdate, onMount } from 'svelte';
+    // import { browser } from '$app/environment';
 
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-    const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
+    /** @type {import('./$types').PageData} */
+	export let data;
+    $: loggedIn = data.loggedIn;
+    $: username = data.username;
+    $: dark = data.dark;
+    $: cardDesign = data.cardDesign;
+    $: theme = data.theme;
 
-    let loggedIn = false;
-    let username = Cookies.get("username");
-    let password = Cookies.get("password");
-    let dark = Cookies.get("dark");
-    let theme = Cookies.get("theme");
+    function initializeDropdown() {
+        if (window.jQuery && window.jQuery.fn.dropdown) {
+            window.jQuery(document).ready(() => {
+                window.jQuery('.dropdown-toggle').dropdown();
+        });
+        }
+    }
 
-    onMount( async () => {
-        loggedIn = await checkLogin(username, password, BACKEND_URL);
+    afterNavigate( async () => {
+        initializeDropdown();
     });
-
 
 </script>
 
@@ -49,25 +56,18 @@
         <link href="favicon.png" rel="icon">
 
         <!-- General CSS -->
-        <link href="/styles.css" rel="stylesheet">
+        <link href="/styles/main/styles.css" rel="stylesheet">
+        <link rel="stylesheet" href="/styles/main/styles-homepage.css">
 
         {#if loggedIn === true}
             {#if dark === "true"}
                 <!-- Light/Dark mode -->
-                <link href="/dark.css" rel="stylesheet">
+                <link href="/styles/main/dark.css" rel="stylesheet">
             {/if}
-
-            {#if theme != undefined}
-                <!-- Theme -->
-                <link href="/{theme}.css" rel="stylesheet">
-            {/if}
-        {:else}
-            <link href="/rebels.css" rel="stylesheet">
         {/if}
 
 
     </head>
-
     <body>
 
         <nav class="navbar navbar-expand-md border" class:navbar-light={dark!="true"} class:bg-light={dark!="true"} class:navbar-dark={dark==="true"} class:bg-dark={dark==="true"}>
@@ -78,7 +78,16 @@
             <div class="nav nav-pills collapse navbar-collapse" id="navbar">
                 {#if loggedIn}
                     <ul class="navbar-nav mr-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/host"} href="/host">Host a Game</a></li>
+                        <li class="nav-item">
+                            <div class="dropdown">
+                                <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">Host a Game</a>
+                                <div class="dropdown-menu">
+                                  <a class="dropdown-item" href="/host/traditional">Traditional Sabacc</a>
+                                  <a class="dropdown-item" href="/host/corellian-spike">Corellian Spike Sabacc</a>
+                                  <a class="dropdown-item" href="/host/kessel">Kessel Sabacc</a>
+                                </div>
+                            </div>
+                        </li>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" class:active={$page.url.pathname==="/how-to-play"} href="/how-to-play">How to Play</a></li>

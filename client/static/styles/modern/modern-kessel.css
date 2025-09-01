@@ -1,0 +1,58 @@
+#tableCont{
+    margin: 15% auto;
+}
+
+#gameInfo{
+    top: 48%;
+    width: 22%;
+    grid-template-columns: 2fr 1fr 1fr 2fr;
+    grid-template-rows: 2fr 1fr;
+}
+
+#gameInfo > .cardsContainer{
+    grid-area: 1/1/2/5;
+}
+
+.dieContainer{
+    grid-area: 2/2/3/4;
+}
+
+.die.active:hover{
+    filter: drop-shadow(0px 0px 5px #fff700);
+}
+
+#betDiv.grid{
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    padding: 0%;
+}
+
+#actBox.shiftToken{
+    padding: 2%;
+    top: 53%;
+    width: unset;
+}
+
+.card.shiftToken{
+    aspect-ratio: 158/243;
+}
+
+.card.own:hover{
+    filter: none;
+}
+
+.card.own.active:hover{
+    filter: drop-shadow(0px 0px 5px #fff700);
+}
+
+.card.shiftToken.own.active:hover{
+    filter: drop-shadow(0px 0px 5px #fff700);
+}
+
+#positiveDeck.active:hover, #negativeDeck.active:hover, #positiveDiscard.active:hover, #negativeDiscard.active:hover{
+    filter: drop-shadow(0px 0px 5px #fff700);
+}
+
+.playerStuff.active:hover{
+    filter: drop-shadow(0px 0px 5px #fff700);
+}

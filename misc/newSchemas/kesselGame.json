@@ -1,0 +1,149 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "$id": "https://samuelanes.com/schemas/kesselGame.json",
+    "definitions": {
+        "card": {
+            "type": "object",
+            "properties": {
+                "val": {
+                    "type": "integer"
+                },
+                "suit": {
+                    "enum": ["sand", "blood", "unknown"]
+                }
+            },
+            "required": [
+                "val",
+                "suit"
+            ]
+        },
+        "shiftToken": {
+            "enum": [
+                "freeDraw",
+                "refund",
+                "extraRefund",
+                "embezzlement",
+                "majorFraud",
+                "generalTariff",
+                "targetTariff",
+                "generalAudit",
+                "targetAudit",
+                "immunity",
+                "exhaustion",
+                "directTransaction",
+                "embargo",
+                "markdown",
+                "cookTheBooks",
+                "primeSabacc"
+            ]
+        }
+    },
+    "type": "object",
+    "properties": {
+        "firstFutureChange": {"type": "integer"},
+        "ignore": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "createdAt": {"type": "string", "format": "date-time"},
+                "settings": {
+                    "type": "object",
+                    "properties": {
+                        "startingChips": {"type": "integer"},
+                        "playersChooseShiftTokens": {"type": "boolean"}
+                    },
+                    "required": [
+                        "startingChips",
+                        "playersChooseShiftTokens"
+                    ]
+                },
+                "completed": {"type": "boolean"}
+            },
+            "required": [
+                "id",
+                "createdAt",
+                "settings",
+                "completed"
+            ]
+        },
+        "track": {
+            "type": "object",
+            "properties": {
+                "players": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "username": {"type": "string"},
+                            "sandCard": {"$ref": "card"},
+                            "bloodCard": {"$ref": "card"},
+                            "extraCard": {"$ref": "card"},
+                            "chips": {"type": "integer"},
+                            "usedChips": {"type": "integer"},
+                            "shiftTokens": {"type": "array", "items": {"$ref": "shiftToken"}},
+                            "outOfGame": {"type": "boolean"},
+                            "lastAction": {"type": "string"}
+                        },
+                        "required": [
+                            "id",
+                            "username",
+                            "sandCard",
+                            "bloodCard",
+                            "extraCard",
+                            "chips",
+                            "usedChips",
+                            "shiftTokens",
+                            "outOfGame",
+                            "lastAction"
+                        ]
+                    }
+                },
+                "phase": {"type": "string"},
+                "dice": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "minItems": 2,
+                    "maxItems": 2
+                },
+                "sandDeck": {"type": "array", "items": {"$ref": "card"}},
+                "bloodDeck": {"type": "array", "items": {"$ref": "card"}},
+                "sandDiscard": {"type": "array", "items": {"$ref": "card"}},
+                "bloodDiscard": {"type": "array", "items": {"$ref": "card"}},
+                "activeShiftTokens": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": [
+                            {"$ref": "shiftToken"},
+                            true
+                        ]
+                    }
+                },
+                "playerTurn": {"type": "integer"},
+                "lastAction": {"type": "string"},
+                "cycleCount": {"type": "integer"}
+            },
+            "required": [
+                "players",
+                "phase",
+                "dice",
+                "sandDeck",
+                "bloodDeck",
+                "sandDiscard",
+                "bloodDiscard",
+                "activeShiftTokens",
+                "playerTurn",
+                "lastAction",
+                "cycleCount"
+            ]
+        },
+        "history": {"$ref": "https://samuelanes.com/schemas/history.json"}
+    },
+    "required": [
+        "firstFutureChange",
+        "ignore",
+        "track",
+        "history"
+    ]
+}

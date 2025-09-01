@@ -12,17 +12,15 @@ from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
 # from traditional.alderaanHelpers import *
-import dbConversion
+import dbConversion.dbConversion as dbConversion
 from socketio import Client
 from flask_socketio import SocketIO, send, emit, join_room, rooms
-import traditional.traditionalHelpers
 from traditional.traditionalHelpers import TraditionalGame
-import corellian_spike.corellianHelpers
 from corellian_spike.corellianHelpers import CorellianSpikeGame
-import kessel.kesselHelpers
 from kessel.kesselHelpers import KesselGame
 import yaml
 import psycopg
+import sqlite3
 from psycopg.types.composite import CompositeInfo, register_composite
 import signal
 from datetime import datetime
@@ -65,210 +63,83 @@ CORS(app, origins=allowedCORS)
 clientUserMap = {}
 
 # Connect to postgresql database
-conn = psycopg.connect(config['DATABASE'])
+conn = sqlite3.connect(config['DATABASE'], check_same_thread=False)
 print(conn)
 
+
+psql_conn = psycopg.connect(config['PSQL_DATABASE'])
+
 # Open a cursor to perform database operations
-db = conn.cursor()
+sqlite_db = conn.cursor()
 
-# Create users table
-db.execute("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT NOT NULL, hash TEXT NOT NULL)")
-db.execute("CREATE UNIQUE INDEX IF NOT EXISTS username ON users (username)")
+# Make sure all tables exist in the db
+query = ""
+with open('schema.sql', 'r') as f:
+    query = f.read()
+
+# Execute the query
+sqlite_db.executescript(query)
 conn.commit()
+# conn.close()
 
-# create custom traditional types
-
-# Create custom TraditionalSuit type
-try:
-    db.execute("CREATE TYPE TraditionalSuit AS ENUM ('flasks','sabers','staves','coins','negative/neutral');")
-    conn.commit()
-    print("Created custom PostgreSQL type TraditionalSuit")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type TraditionalSuit already exists")
-    conn.rollback()
-
-# Create custom TraditionalCard type
-try:
-    db.execute("CREATE TYPE TraditionalCard AS (val INTEGER, suit TraditionalSuit, protected BOOL);")
-    conn.commit()
-    print("Created custom PostgreSQL type TraditionalCard")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type TraditionalCard already exists")
-    conn.rollback()
-
-# Create custom TraditionalPlayer type
-try:
-    db.execute("""
-        CREATE TYPE TraditionalPlayer AS (
-        id INTEGER,
-        username TEXT,
-        credits INTEGER,
-        bet INTEGER,
-        hand TraditionalCard[],
-        folded BOOL,
-        lastAction TEXT);
-    """)
-    conn.commit()
-    print("Created custom PostgreSQL type TraditionalPlayer")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type TraditionalPlayer already exists")
-    conn.rollback()
-
-
-# register Traditional custom types
-traditional.traditionalHelpers.traditionalCardType = CompositeInfo.fetch(conn, 'traditionalcard')
-traditional.traditionalHelpers.traditionalPlayerType = CompositeInfo.fetch(conn, 'traditionalplayer')
-register_composite(traditional.traditionalHelpers.traditionalCardType, db)
-register_composite(traditional.traditionalHelpers.traditionalPlayerType, db)
-print("Registered Traditional custom types")
-
-# create Traditional tables
-db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\" : 1000 }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
-print("Created Traditional table")
-conn.commit()
-
-print()
-
-# Create custom Corellian Spike types
-
-# Create custom CorellianSpikeSuit type
-try:
-    db.execute("CREATE TYPE CorellianSpikeSuit AS ENUM('circle','square','triangle','sylop');")
-    conn.commit()
-    print("Created custom PostgreSQL type CorellianSpikeSuit")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type CorellianSpikeSuit already exists")
-    conn.rollback()
-
-# Create custom CorellianSpikeCard type
-try:
-    db.execute("CREATE TYPE CorellianSpikeCard AS (val INTEGER, suit CorellianSpikeSuit);")
-    conn.commit()
-    print("Created custom PostgreSQL type CorellianSpikeCard")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type CorellianSpikeCard already exists")
-    conn.rollback()
-
-# Create custom CorellianSpikePlayer type
-try:
-    db.execute("""
-        CREATE TYPE CorellianSpikePlayer AS (
-        id INTEGER,
-        username TEXT,
-        credits INTEGER,
-        bet INTEGER,
-        hand CorellianSpikeCard[],
-        folded BOOL,
-        lastAction TEXT);
-    """)
-    conn.commit()
-    print("Created custom PostgreSQL type CorellianSpikePlayer")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type CorellianSpikePlayer already exists")
-    conn.rollback()
-
-
-# register CorellianSpike custom types
-corellian_spike.corellianHelpers.corellianSpikeCardType = CompositeInfo.fetch(conn, 'corellianspikecard')
-corellian_spike.corellianHelpers.corellianSpikePlayerType = CompositeInfo.fetch(conn, 'corellianspikeplayer')
-register_composite(corellian_spike.corellianHelpers.corellianSpikeCardType, db)
-register_composite(corellian_spike.corellianHelpers.corellianSpikePlayerType, db)
-print("Registered CorellianSpike custom types")
-
-# create CorellianSpike tables
-db.execute("CREATE TABLE IF NOT EXISTS corellian_spike_games (game_id SERIAL PRIMARY KEY, players CorellianSpikePlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'card', deck CorellianSpikeCard[], discard_pile CorellianSpikeCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\": 1000, \"HandRanking\": \"Wayne\", \"DeckDrawCost\": 5, \"DiscardDrawCost\": 10, \"DeckTradeCost\": 10, \"DiscardTradeCost\": 15, \"DiscardCosts\": [15, 20, 25] }', created_at TIMESTAMPTZ DEFAULT NOW(), move_history JSONB[]);")
-print("Created CorellianSpike table")
-conn.commit()
-
-# Create custom Kessel types
-# db.execute("DROP TABLE kessel_games")
-# conn.commit()
-# db.execute("DROP TYPE IF EXISTS KesselPlayer CASCADE")
-# conn.commit()
-# db.execute("DROP TYPE  IF EXISTS KesselCard CASCADE")
-# conn.commit()
-# db.execute("DROP TYPE  IF EXISTS KesselShiftToken CASCADE")
+# dbConversion.convertPsqlToSqlite(sqlite_db, psql_conn)
 # conn.commit()
 
-# Create custom KesselShiftToken type
-try:
-    db.execute("CREATE TYPE KesselShiftToken AS ENUM('freeDraw', 'refund', 'extraRefund', 'embezzlement', 'majorFraud', 'generalTariff', 'targetTariff', 'generalAudit', 'targetAudit', 'immunity', 'exhaustion', 'directTransaction', 'embargo', 'markdown', 'cookTheBooks', 'primeSabacc');")
-    conn.commit()
-    print("Created custom PostgreSQL type KesselShiftToken")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselShiftToken already exists")
-    conn.rollback()
+# psql_db = psql_conn.cursor()
 
-# Create custom KesselSuit type
-try:
-    db.execute("CREATE TYPE KesselSuit AS ENUM('imposter', 'basic', 'sylop');")
-    conn.commit()
-    print("Created custom PostgreSQL type KesselSuit")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselSuit already exists")
-    conn.rollback()
+# from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame as psql_TraditionalGame
+# from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame as psql_CorellianSpikeGame
+# from dbConversion.psql_helpers.psql_kesselHelpers import KesselGame as psql_KesselGame
 
-# Create custom KesselCard type
-try:
-    db.execute("CREATE TYPE KesselCard AS (val INTEGER, suit KesselSuit);")
-    conn.commit()
-    print("Created custom PostgreSQL type KesselCard")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselCard already exists")
-    conn.rollback()
+# # register Traditional custom types
+# traditionalCardType = CompositeInfo.fetch(psql_conn, 'traditionalcard')
+# traditionalPlayerType = CompositeInfo.fetch(psql_conn, 'traditionalplayer')
+# register_composite(traditionalCardType, psql_db)
+# register_composite(traditionalPlayerType, psql_db)
 
-# Create custom KesselPlayer type
-try:
-    db.execute("""
-        CREATE TYPE KesselPlayer AS (
-        id INTEGER,
-        username TEXT,
-        chips INTEGER,
-        usedChips INTEGER,
-        positiveCard KesselCard,
-        negativeCard KesselCard,
-        extraCard KesselCard,
-        extraCardIsNegative BOOL,
-        shiftTokens KesselShiftToken[],
-        outOfGame BOOL,
-        lastAction TEXT);
-    """)
-    conn.commit()
-    print("Created custom PostgreSQL type KesselPlayer")
-except psycopg.errors.DuplicateObject:
-    print("Custom PostgreSQL type KesselPlayer already exists")
-    conn.rollback()
+# print("Registered Traditional custom types")
 
+# # register Corellian custom types
+# corellianSpikeCardType = CompositeInfo.fetch(psql_conn, 'corellianspikecard')
+# corellianSpikePlayerType = CompositeInfo.fetch(psql_conn, 'corellianspikeplayer')
+# register_composite(corellianSpikeCardType, psql_db)
+# register_composite(corellianSpikePlayerType, psql_db)
 
-# register Kessel custom types
-kessel.kesselHelpers.kesselCardType = CompositeInfo.fetch(conn, 'kesselcard')
-kessel.kesselHelpers.kesselPlayerType = CompositeInfo.fetch(conn, 'kesselplayer')
-register_composite(kessel.kesselHelpers.kesselCardType, db)
-register_composite(kessel.kesselHelpers.kesselPlayerType, db)
+# print("Registered Corellian custom types")
 
-print("Registered Kessel custom types")
+# # register Kessel custom types
+# kesselCardType = CompositeInfo.fetch(psql_conn, 'kesselcard')
+# kesselPlayerType = CompositeInfo.fetch(psql_conn, 'kesselplayer')
+# register_composite(kesselCardType, psql_db)
+# register_composite(kesselPlayerType, psql_db)
 
-# create Kessel tables
-db.execute('''CREATE TABLE IF NOT EXISTS kessel_games (
-    game_id SERIAL PRIMARY KEY,
-    players KesselPlayer[],
-    phase TEXT NOT NULL DEFAULT 'draw',
-    dice INTEGER[2] NOT NULL DEFAULT '{ 1, 1 }',
-    positiveDeck KesselCard[],
-    negativeDeck KesselCard[],
-    positiveDiscard KesselCard[],
-    negativeDiscard KesselCard[],
-    activeShiftTokens TEXT[][] NOT NULL DEFAULT '{}',
-    player_turn INTEGER,
-    p_act TEXT,
-    cycle_count INTEGER NOT NULL DEFAULT 0,
-    completed BOOL NOT NULL DEFAULT false,
-    settings JSONB NOT NULL DEFAULT '{ \"startingChips\" : 8, \"playersChooseShiftTokens\" : false }',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    move_history JSONB[]);
-''')
-print("Created Kessel table")
-conn.commit()
+# print("Registered Kessel custom types")
+
+# psql_users = psql_db.execute("SELECT username, hash FROM users ORDER BY id ASC").fetchall()
+# for user in psql_users:
+#     sqlite_db.execute("INSERT INTO users (username, hash, created_at) VALUES (?, ?, ?)", [user[0], user[1], None])
+
+# print("Users copied over")
+
+# psql_traditionalGames = psql_db.execute("SELECT * FROM traditional_games ORDER BY game_id ASC").fetchall()
+# psql_corellianSpikeGames = psql_db.execute("SELECT * FROM corellian_spike_games ORDER BY game_id ASC").fetchall()
+# psql_kesselGames = psql_db.execute("SELECT * FROM kessel_games ORDER BY game_id ASC").fetchall()
+
+# for game in psql_traditionalGames:
+#     dbGame = TraditionalGame.fromDict(psql_TraditionalGame.fromDb(game).toDict()).toDb(includeId=False)
+#     sqlite_db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+# for game in psql_corellianSpikeGames:
+#     dbGame = CorellianSpikeGame.fromDict(psql_CorellianSpikeGame.fromDb(game).toDict()).toDb(includeId=False)
+#     sqlite_db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, phase, deck, discard_pile, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+# for game in psql_kesselGames:
+#     dbGame = KesselGame.fromDict(psql_KesselGame.fromDb(game).toDict()).toDb(includeId=False)
+#     sqlite_db.execute("INSERT INTO kessel_games (players, phase, dice, positivedeck, negativedeck, positivediscard, negativediscard, activeshifttokens, player_turn, p_act, cycle_count, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
+
+# print("Games copied over")
+
+# conn.commit()
 
 """ DB Conversions: """
 
@@ -296,10 +167,12 @@ conn.commit()
 def login():
     """Log user in"""
 
+    db = conn.cursor()
+
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         print(f'error was here, {check}')
         return jsonify({"message": check["message"]}), check["status"]
@@ -322,7 +195,7 @@ def login():
 
     #     # Change user's password
     #     passHash = str(generate_password_hash(password))
-    #     db.execute(f"UPDATE users SET hash = %s WHERE username = %s", passHash, username)
+    #     db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
 
     # Remember which user has logged in
     # session["user_id"] = rows[0]["id"]
@@ -340,15 +213,17 @@ def index():
 
     """ Get Info for Home Page """
 
+    db = conn.cursor()
+
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get the user's id for later use
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
+    db.execute("SELECT id FROM users WHERE username = ?", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
     traditionalPlayerTurnUsernames = []
@@ -376,7 +251,7 @@ def index():
             corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
     kesselPlayerTurnUsernames = []
-
+    print("made it")
     # Query the database for all the Kessel games
     allKesselGames = [KesselGame.fromDb(game) for game in db.execute("SELECT * FROM kessel_games").fetchall()]
     kesselGames = []
@@ -402,6 +277,8 @@ def index():
 def register():
     """Register user"""
 
+    db = conn.cursor()
+
     # Ensure username was submitted
     username = request.json.get("username")
     if not username:
@@ -411,7 +288,7 @@ def register():
         return jsonify({"message": "Please do not put spaces in your username"}), 401
 
     # Check that username has not already been taken
-    if db.execute("SELECT * FROM users WHERE username = %s", [username]).fetchall() != []:
+    if db.execute("SELECT * FROM users WHERE username = ?", [username]).fetchall() != []:
         return jsonify({"message": "Username has already been taken"}), 401
 
     # Ensure password is valid
@@ -433,28 +310,34 @@ def register():
 
     # Complete registration
     passHash = generate_password_hash(password)
-    db.execute("INSERT INTO users (username, hash) VALUES(%s, %s)", [username, str(passHash)])
+    db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", [username, str(passHash)])
     conn.commit()
 
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
 
 def getGameFromDb(game_variant, game_id):
+
+    db = conn.cursor()
+
     if game_variant == 'traditional':
-        return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     elif game_variant == 'corellian_spike':
-        return CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        return CorellianSpikeGame.fromDb(db.execute("SELECT * FROM corellian_spike_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     elif game_variant == 'kessel':
-        return KesselGame.fromDb(db.execute("SELECT * FROM kessel_games WHERE game_id = %s", [int(game_id)]).fetchall()[0])
+        return KesselGame.fromDb(db.execute("SELECT * FROM kessel_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
     else:
         return None
 
 # this is caled manually by clients when they first open the page, and it sends the game information only to them, aswell as joining them into a room
 @socketio.on('getGame')
 def getGameClientInfo(clientInfo):
+
+    db = conn.cursor()
+
     user_id = -1
     if clientInfo["username"] != "":
-        db.execute("SELECT id FROM users WHERE username = %s", [clientInfo["username"]])
+        db.execute("SELECT id FROM users WHERE username = ?", [clientInfo["username"]])
         user_id = getDictsForDB(db)[0]["id"]
 
     game_id = clientInfo['game_id']
@@ -465,22 +348,24 @@ def getGameClientInfo(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     # print(game.getClientData(user_id, clientInfo["username"]))
 
-    emit('clientUpdate', game.getClientData(user_id, clientInfo["username"]))
+    emit('clientUpdate', game.getClientData(user_id, username=clientInfo["username"]))
 
 @app.route("/host", methods=["POST"])
 @cross_origin()
 def host():
     """ Make a new game of Sabacc """
 
+    db = conn.cursor()
+
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
     # Get User ID
-    db.execute("SELECT id FROM users WHERE username = %s", [username])
+    db.execute("SELECT id FROM users WHERE username = ?", [username])
     user_id = getDictsForDB(db)[0]["id"]
 
     # Get list of players in the game
@@ -495,7 +380,7 @@ def host():
     # Ensure each submitted player is valid
     for pForm in formPlayers:
         if pForm != "":
-            db.execute("SELECT * FROM users WHERE username = %s", [pForm])
+            db.execute("SELECT * FROM users WHERE username = ?", [pForm])
             p = getDictsForDB(db)
             if len(p) == 0:
                 return jsonify({"message": f"Player {pForm} does not exist"}), 401
@@ -544,14 +429,16 @@ def host():
 def gameAction(clientInfo):
     """ Perform an action in a game """
 
+    db = conn.cursor()
+
     # Authenticate User
     username = clientInfo["username"]
     password = clientInfo["password"]
-    check = checkLogin(username, password)
+    check = checkLogin(db, username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
-    user_id = db.execute("SELECT id FROM users WHERE username = %s", [username]).fetchone()
+    user_id = db.execute("SELECT id FROM users WHERE username = ?", [username]).fetchone()
 
     if not user_id:
         return jsonify({"message": "User does not exist"}), 401
@@ -593,6 +480,8 @@ def chat():
 
     """Global Chat using Socket.IO"""
 
+    db = conn.cursor()
+
     # Tell the client what their username is
     user_id = session.get("user_id")
     user = db.execute(f"SELECT * FROM users WHERE id = {user_id}").fetchall()[0]
@@ -629,6 +518,7 @@ def handle_sigint(signum, frame):
 
     # close db connection
     conn.close()
+    psql_conn.close()
 
     # After cleanup, raise KeyboardInterrupt to allow the normal exit process
     raise KeyboardInterrupt

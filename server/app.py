@@ -1,7 +1,6 @@
 """ app.py - Handles all requests to the backend """
 
 # Import Libraries
-from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, jsonify
 from flask_cors import CORS, cross_origin
 from flask_session import Session

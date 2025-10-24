@@ -11,7 +11,6 @@ from werkzeug.datastructures import ImmutableMultiDict
 from helpers import *
 from dataHelpers import *
 # from traditional.alderaanHelpers import *
-import dbConversion.dbConversion as dbConversion
 from socketio import Client
 from flask_socketio import SocketIO, send, emit, join_room, rooms
 from traditional.traditionalHelpers import TraditionalGame
@@ -79,6 +78,29 @@ sqlite_db.executescript(query)
 conn.commit()
 # conn.close()
 
+
+
+""" DB Conversions: """
+
+""" copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
+# dbConversion.convertSqliteToPsql(db=db, card_type=traditional.traditionalHelpers.traditionalCardType, player_type=traditional.traditionalHelpers.traditionalPlayerType)
+# conn.commit()
+
+""" transfer traditional games data from games to traditional_games table """ # Uncomment to run - DO NOT DELETE
+""" when using this, types in table must be traditional types, not generic types """
+# dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
+# conn.commit()
+
+""" transfer old games which did not have settings or timestamps to new tables """ # Uncomment to run - DO NOT DELETE
+# dbConversion.convertPreSettingsToPostSettings(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType, corellian_spike.corellianHelpers.corellianSpikeCardType, corellian_spike.corellianHelpers.corellianSpikePlayerType)
+# conn.commit()
+
+""" convert games created_at columns from TIMESTAMP to TIMESTAMPTZ """ # Uncomment to run - DO NOT DELETE
+# dbConversion.convertDBToTimestamptz(db, alterTables=True)
+# conn.commit()
+
+""" convert PSQL data to sqlite3 """ # Uncomment to run - DO NOT DELETE
+# import dbConversion.dbConversion as dbConversion
 # psql_conn = psycopg.connect(config['PSQL_DATABASE'])
 
 # dbConversion.convertPsqlToSqlite(sqlite_db, psql_conn)
@@ -140,24 +162,6 @@ conn.commit()
 
 # conn.commit()
 
-""" DB Conversions: """
-
-""" copy over sqlite3 data """ # Uncomment to run - DO NOT DELETE
-# dbConversion.convertSqliteToPsql(db=db, card_type=traditional.traditionalHelpers.traditionalCardType, player_type=traditional.traditionalHelpers.traditionalPlayerType)
-# conn.commit()
-
-""" transfer traditional games data from games to traditional_games table """ # Uncomment to run - DO NOT DELETE
-""" when using this, types in table must be traditional types, not generic types """
-# dbConversion.transferTraditionalGames(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType)
-# conn.commit()
-
-""" transfer old games which did not have settings or timestamps to new tables """ # Uncomment to run - DO NOT DELETE
-# dbConversion.convertPreSettingsToPostSettings(db, traditional.traditionalHelpers.traditionalCardType, traditional.traditionalHelpers.traditionalPlayerType, corellian_spike.corellianHelpers.corellianSpikeCardType, corellian_spike.corellianHelpers.corellianSpikePlayerType)
-# conn.commit()
-
-""" convert games created_at columns from TIMESTAMP to TIMESTAMPTZ """ # Uncomment to run - DO NOT DELETE
-# dbConversion.convertDBToTimestamptz(db, alterTables=True)
-# conn.commit()
 
 """ REST APIs """
 

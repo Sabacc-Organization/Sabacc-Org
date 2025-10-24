@@ -66,8 +66,6 @@ conn = sqlite3.connect(config['DATABASE'], check_same_thread=False)
 print(conn)
 
 
-psql_conn = psycopg.connect(config['PSQL_DATABASE'])
-
 # Open a cursor to perform database operations
 sqlite_db = conn.cursor()
 
@@ -80,6 +78,8 @@ with open('schema.sql', 'r') as f:
 sqlite_db.executescript(query)
 conn.commit()
 # conn.close()
+
+# psql_conn = psycopg.connect(config['PSQL_DATABASE'])
 
 # dbConversion.convertPsqlToSqlite(sqlite_db, psql_conn)
 # conn.commit()

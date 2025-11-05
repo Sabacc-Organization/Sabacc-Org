@@ -21,7 +21,8 @@ import psycopg
 import sqlite3
 from psycopg.types.composite import CompositeInfo, register_composite
 import signal
-from datetime import datetime
+from datetime import datetime, timedelta
+import json
 
 # Get config.yml data
 config = {}
@@ -259,7 +260,6 @@ def index():
             corellianSpikePlayerTurnUsernames.append(game.getPlayer(id=game.player_turn).username)
 
     kesselPlayerTurnUsernames = []
-    print("made it")
     # Query the database for all the Kessel games
     allKesselGames = [KesselGame.fromDb(game) for game in db.execute("SELECT * FROM kessel_games").fetchall()]
     kesselGames = []
@@ -279,6 +279,275 @@ def index():
         "kessel_games": [game.toDict() for game in kesselGames],
         "kessel_player_turn_usernames": kesselPlayerTurnUsernames
         }), 200
+
+@app.route("/stats", methods=["POST"])
+@cross_origin()
+def stats():
+    """ Get game statistics """
+    
+    db = conn.cursor()
+    
+    # Get total number of games for each type
+    traditional_total = db.execute("SELECT COUNT(*) FROM traditional_games").fetchone()[0]
+    corellian_spike_total = db.execute("SELECT COUNT(*) FROM corellian_spike_games").fetchone()[0]
+    kessel_total = db.execute("SELECT COUNT(*) FROM kessel_games").fetchone()[0]
+    
+    # Get number of completed games
+    traditional_completed = db.execute("SELECT COUNT(*) FROM traditional_games WHERE completed = 1").fetchone()[0]
+    corellian_spike_completed = db.execute("SELECT COUNT(*) FROM corellian_spike_games WHERE completed = 1").fetchone()[0]
+    kessel_completed = db.execute("SELECT COUNT(*) FROM kessel_games WHERE completed = 1").fetchone()[0]
+    
+    # Get number of active games
+    traditional_active = traditional_total - traditional_completed
+    corellian_spike_active = corellian_spike_total - corellian_spike_completed
+    kessel_active = kessel_total - kessel_completed
+    
+    # Get total number of unique players
+    total_players = db.execute("SELECT COUNT(DISTINCT id) FROM users").fetchone()[0]
+    
+    # Calculate overall stats
+    total_games = traditional_total + corellian_spike_total + kessel_total
+    total_completed = traditional_completed + corellian_spike_completed + kessel_completed
+    total_active = total_games - total_completed
+    
+    # Calculate average players per game for each type
+    def calculate_avg_players(table_name):
+        games = db.execute(f"SELECT players FROM {table_name}").fetchall()
+        if not games:
+            return 0
+        total_players = 0
+        for game in games:
+            try:
+                players_data = json.loads(game[0])
+                total_players += len(players_data)
+            except:
+                continue
+        return round(total_players / len(games), 1) if games else 0
+    
+    traditional_avg_players = calculate_avg_players("traditional_games")
+    corellian_avg_players = calculate_avg_players("corellian_spike_games")
+    kessel_avg_players = calculate_avg_players("kessel_games")
+    
+    # Calculate average moves per game for each type (only for games with move_history)
+    def calculate_avg_moves(table_name):
+        games = db.execute(f"SELECT move_history FROM {table_name} WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchall()
+        if not games:
+            return 0
+        total_moves = 0
+        valid_games = 0
+        for game in games:
+            try:
+                moves = json.loads(game[0])
+                if moves and len(moves) > 0:
+                    total_moves += len(moves)
+                    valid_games += 1
+            except:
+                continue
+        return round(total_moves / valid_games, 1) if valid_games > 0 else 0
+    
+    traditional_avg_moves = calculate_avg_moves("traditional_games")
+    corellian_avg_moves = calculate_avg_moves("corellian_spike_games")
+    kessel_avg_moves = calculate_avg_moves("kessel_games")
+    
+    # Calculate overall averages
+    overall_avg_players = round((traditional_avg_players * traditional_total + 
+                                corellian_avg_players * corellian_spike_total + 
+                                kessel_avg_players * kessel_total) / total_games, 1) if total_games > 0 else 0
+    
+    # For overall average moves, we need to count games with history across all types
+    total_games_with_history = (
+        db.execute("SELECT COUNT(*) FROM traditional_games WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchone()[0] +
+        db.execute("SELECT COUNT(*) FROM corellian_spike_games WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchone()[0] +
+        db.execute("SELECT COUNT(*) FROM kessel_games WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchone()[0]
+    )
+    
+    overall_avg_moves = round((traditional_avg_moves * db.execute("SELECT COUNT(*) FROM traditional_games WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchone()[0] +
+                              corellian_avg_moves * db.execute("SELECT COUNT(*) FROM corellian_spike_games WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchone()[0] +
+                              kessel_avg_moves * db.execute("SELECT COUNT(*) FROM kessel_games WHERE move_history IS NOT NULL AND move_history != '[]' AND move_history != ''").fetchone()[0]) / 
+                              total_games_with_history, 1) if total_games_with_history > 0 else 0
+    
+    # Get recent game activity (games created in the last week)
+    one_week_ago = datetime.now() - timedelta(days=7)
+    one_month_ago = datetime.now() - timedelta(days=30)
+    
+    # Recent traditional games
+    recent_traditional_week = db.execute(
+        "SELECT COUNT(*) FROM traditional_games WHERE datetime(created_at) > datetime(?)", 
+        [one_week_ago.isoformat()]
+    ).fetchone()[0]
+    
+    recent_traditional_month = db.execute(
+        "SELECT COUNT(*) FROM traditional_games WHERE datetime(created_at) > datetime(?)", 
+        [one_month_ago.isoformat()]
+    ).fetchone()[0]
+    
+    # Recent corellian spike games
+    recent_corellian_week = db.execute(
+        "SELECT COUNT(*) FROM corellian_spike_games WHERE datetime(created_at) > datetime(?)", 
+        [one_week_ago.isoformat()]
+    ).fetchone()[0]
+    
+    recent_corellian_month = db.execute(
+        "SELECT COUNT(*) FROM corellian_spike_games WHERE datetime(created_at) > datetime(?)", 
+        [one_month_ago.isoformat()]
+    ).fetchone()[0]
+    
+    # Recent kessel games  
+    recent_kessel_week = db.execute(
+        "SELECT COUNT(*) FROM kessel_games WHERE datetime(created_at) > datetime(?)", 
+        [one_week_ago.isoformat()]
+    ).fetchone()[0]
+    
+    recent_kessel_month = db.execute(
+        "SELECT COUNT(*) FROM kessel_games WHERE datetime(created_at) > datetime(?)", 
+        [one_month_ago.isoformat()]
+    ).fetchone()[0]
+    
+    games_this_week = recent_traditional_week + recent_corellian_week + recent_kessel_week
+    games_this_month = recent_traditional_month + recent_corellian_month + recent_kessel_month
+    
+    # Get time series data based on selected time range
+    def get_time_series_data(table_name, time_range):
+        if time_range == "week":
+            return get_daily_game_counts(table_name, 7)
+        elif time_range == "month":
+            return get_daily_game_counts(table_name, 30)
+        elif time_range == "year":
+            return get_monthly_game_counts(table_name, 12)
+        elif time_range == "lifetime":
+            return get_monthly_game_counts_lifetime(table_name)
+        else:
+            return get_daily_game_counts(table_name, 30)
+    
+    def get_daily_game_counts(table_name, days):
+        daily_counts = {}
+        for i in range(days):
+            day = datetime.now() - timedelta(days=(days - 1 - i))
+            day_str = day.strftime('%Y-%m-%d')
+            next_day = day + timedelta(days=1)
+            next_day_str = next_day.strftime('%Y-%m-%d')
+            
+            count = db.execute(
+                f"SELECT COUNT(*) FROM {table_name} WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                [day_str, next_day_str]
+            ).fetchone()[0]
+            
+            daily_counts[day_str] = count
+        return daily_counts
+    
+    def get_monthly_game_counts(table_name, months):
+        monthly_counts = {}
+        for i in range(months):
+            # Calculate the first day of the month
+            current_date = datetime.now().replace(day=1)
+            target_month = current_date - timedelta(days=32 * (months - 1 - i))
+            month_start = target_month.replace(day=1)
+            
+            # Calculate the first day of next month
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1)
+            
+            month_str = month_start.strftime('%Y-%m')
+            
+            count = db.execute(
+                f"SELECT COUNT(*) FROM {table_name} WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                [month_start.strftime('%Y-%m-%d'), month_end.strftime('%Y-%m-%d')]
+            ).fetchone()[0]
+            
+            monthly_counts[month_str] = count
+        return monthly_counts
+    
+    def get_monthly_game_counts_lifetime(table_name):
+        # Get the earliest game creation date
+        earliest_result = db.execute(f"SELECT MIN(created_at) FROM {table_name}").fetchone()
+        if not earliest_result[0]:
+            return {}
+        
+        earliest_date = datetime.fromisoformat(earliest_result[0].replace('Z', '+00:00')).replace(tzinfo=None)
+        earliest_month = earliest_date.replace(day=1)
+        current_month = datetime.now().replace(day=1)
+        
+        monthly_counts = {}
+        current = earliest_month
+        
+        while current <= current_month:
+            # Calculate the first day of next month
+            if current.month == 12:
+                next_month = current.replace(year=current.year + 1, month=1)
+            else:
+                next_month = current.replace(month=current.month + 1)
+            
+            month_str = current.strftime('%Y-%m')
+            
+            count = db.execute(
+                f"SELECT COUNT(*) FROM {table_name} WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                [current.strftime('%Y-%m-%d'), next_month.strftime('%Y-%m-%d')]
+            ).fetchone()[0]
+            
+            monthly_counts[month_str] = count
+            current = next_month
+            
+        return monthly_counts
+    
+    # Get time series data for all time ranges
+    def create_time_series_for_range(time_range):
+        traditional_series = get_time_series_data("traditional_games", time_range)
+        corellian_series = get_time_series_data("corellian_spike_games", time_range)
+        kessel_series = get_time_series_data("kessel_games", time_range)
+        
+        # Calculate total counts for each time period
+        dates = list(traditional_series.keys())
+        total_series = {}
+        for date in dates:
+            total_series[date] = (traditional_series.get(date, 0) + 
+                                 corellian_series.get(date, 0) + 
+                                 kessel_series.get(date, 0))
+        
+        return {
+            "dates": dates,
+            "traditional": list(traditional_series.values()),
+            "corellianSpike": list(corellian_series.values()),
+            "kessel": list(kessel_series.values()),
+            "total": list(total_series.values())
+        }
+    
+    # Create time series data for all time ranges
+    time_series_data = {
+        "week": create_time_series_for_range("week"),
+        "month": create_time_series_for_range("month"),
+        "year": create_time_series_for_range("year"),
+        "lifetime": create_time_series_for_range("lifetime")
+    }
+    
+    return jsonify({
+        "totalGames": total_games,
+        "gamesCompleted": total_completed,
+        "completionRate": round((total_completed / total_games * 100) if total_games > 0 else 0, 1),
+        "avgPlayersPerGame": overall_avg_players,
+        "avgMovesPerGame": overall_avg_moves,
+        "traditionalGames": traditional_total,
+        "traditionalCompleted": traditional_completed,
+        "traditionalCompletionRate": round((traditional_completed / traditional_total * 100) if traditional_total > 0 else 0, 1),
+        "traditionalAvgPlayers": traditional_avg_players,
+        "traditionalAvgMoves": traditional_avg_moves,
+        "corellianSpikeGames": corellian_spike_total,
+        "corellianSpikeCompleted": corellian_spike_completed,
+        "corellianSpikeCompletionRate": round((corellian_spike_completed / corellian_spike_total * 100) if corellian_spike_total > 0 else 0, 1),
+        "corellianSpikeAvgPlayers": corellian_avg_players,
+        "corellianSpikeAvgMoves": corellian_avg_moves,
+        "kesselGames": kessel_total,
+        "kesselCompleted": kessel_completed,
+        "kesselCompletionRate": round((kessel_completed / kessel_total * 100) if kessel_total > 0 else 0, 1),
+        "kesselAvgPlayers": kessel_avg_players,
+        "kesselAvgMoves": kessel_avg_moves,
+        "activeGames": total_active,
+        "gamesThisWeek": games_this_week,
+        "gamesThisMonth": games_this_month,
+        "totalPlayers": total_players,
+        "timeSeriesData": time_series_data
+    }), 200
 
 @app.route("/register", methods=["POST"])
 @cross_origin()

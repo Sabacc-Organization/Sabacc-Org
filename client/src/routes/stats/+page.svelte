@@ -10,6 +10,12 @@
     let Chart: any;
     let selectedTimeRange = 'month';
     let chart: any;
+    
+    // Leaderboard ranking options
+    let overallRanking = 'byGames';
+    let traditionalRanking = 'byGames';
+    let corellianSpikeRanking = 'byGames';
+    let kesselRanking = 'byGames';
 
     onMount(async () => {
         loading = false;
@@ -155,7 +161,7 @@
     <p>Loading stats...</p>
 {:else if stats}
     <div class="stats-container">
-        <h3>Player Statistics</h3>
+        <h3>Game Statistics</h3>
         <div class="stats-section">
             <h4>Overall Performance</h4>
             <table>
@@ -243,6 +249,140 @@
                 </div>
             {:else}
                 <p>No timeline data available.</p>
+            {/if}
+        </div>
+
+        <h3>Player Statistics</h3>
+        
+        <div class="stats-section">
+            <div class="leaderboard-header">
+                <h4>Overall Performance Leaderboard</h4>
+                <div class="ranking-selector">
+                    <label for="overallRanking">Rank by:</label>
+                    <select bind:value={overallRanking} id="overallRanking">
+                        <option value="byPayout">Average Payout</option>
+                        <option value="byGames">Games Played</option>
+                    </select>
+                </div>
+            </div>
+            {#if stats.leaderboards?.overall?.[overallRanking]}
+                <table>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Avg Payout</th>
+                        <th>Games Played</th>
+                    </tr>
+                    {#each stats.leaderboards.overall[overallRanking] as player, index}
+                        <tr>
+                            <td>{index + 1}</td>
+                            <td>{player.username}</td>
+                            <td>{player.avgPayout.toFixed(1)}%</td>
+                            <td>{player.gamesPlayed}</td>
+                        </tr>
+                    {/each}
+                </table>
+            {:else}
+                <p>No player data available.</p>
+            {/if}
+        </div>
+
+        <div class="stats-section">
+            <div class="leaderboard-header">
+                <h4>Traditional Games Leaderboard</h4>
+                <div class="ranking-selector">
+                    <label for="traditionalRanking">Rank by:</label>
+                    <select bind:value={traditionalRanking} id="traditionalRanking">
+                        <option value="byPayout">Average Payout</option>
+                        <option value="byGames">Games Played</option>
+                    </select>
+                </div>
+            </div>
+            {#if stats.leaderboards?.traditional?.[traditionalRanking]}
+                <table>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Avg Payout</th>
+                        <th>Games Played</th>
+                    </tr>
+                    {#each stats.leaderboards.traditional[traditionalRanking] as player, index}
+                        <tr>
+                            <td>{index + 1}</td>
+                            <td>{player.username}</td>
+                            <td>{player.avgPayout.toFixed(1)}%</td>
+                            <td>{player.gamesPlayed}</td>
+                        </tr>
+                    {/each}
+                </table>
+            {:else}
+                <p>No traditional game data available.</p>
+            {/if}
+        </div>
+
+        <div class="stats-section">
+            <div class="leaderboard-header">
+                <h4>Corellian Spike Games Leaderboard</h4>
+                <div class="ranking-selector">
+                    <label for="corellianSpikeRanking">Rank by:</label>
+                    <select bind:value={corellianSpikeRanking} id="corellianSpikeRanking">
+                        <option value="byPayout">Average Payout</option>
+                        <option value="byGames">Games Played</option>
+                    </select>
+                </div>
+            </div>
+            {#if stats.leaderboards?.corellianSpike?.[corellianSpikeRanking]}
+                <table>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Avg Payout</th>
+                        <th>Games Played</th>
+                    </tr>
+                    {#each stats.leaderboards.corellianSpike[corellianSpikeRanking] as player, index}
+                        <tr>
+                            <td>{index + 1}</td>
+                            <td>{player.username}</td>
+                            <td>{player.avgPayout.toFixed(1)}%</td>
+                            <td>{player.gamesPlayed}</td>
+                        </tr>
+                    {/each}
+                </table>
+            {:else}
+                <p>No Corellian Spike game data available.</p>
+            {/if}
+        </div>
+
+        <div class="stats-section">
+            <div class="leaderboard-header">
+                <h4>Kessel Games Leaderboard</h4>
+                <div class="ranking-selector">
+                    <label for="kesselRanking">Rank by:</label>
+                    <select bind:value={kesselRanking} id="kesselRanking">
+                        <option value="byPayout">Average Payout</option>
+                        <option value="byGames">Games Played</option>
+                    </select>
+                </div>
+            </div>
+            {#if stats.leaderboards?.kessel?.[kesselRanking]}
+                <table>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Avg Payout</th>
+                        <th>Games Played</th>
+                    </tr>
+                    {#each stats.leaderboards.kessel[kesselRanking] as player, index}
+                        <tr>
+                            <td>{index + 1}</td>
+                            <td>{player.username}</td>
+                            <td>{player.avgPayout.toFixed(1)}%</td>
+                            <td>{player.gamesPlayed}</td>
+                        </tr>
+                    {/each}
+                </table>
+            {:else}
+                <p>No Kessel game data available.</p>
             {/if}
         </div>
     </div>
@@ -341,6 +481,46 @@
     }
 
     .time-range-selector select:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.4);
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .leaderboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .ranking-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ranking-selector label {
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .ranking-selector select {
+        padding: 6px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: inherit;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .ranking-selector select:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .ranking-selector select:focus {
         outline: none;
         border-color: rgba(255, 255, 255, 0.4);
         background-color: rgba(255, 255, 255, 0.15);

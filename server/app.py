@@ -521,6 +521,180 @@ def stats():
         "lifetime": create_time_series_for_range("lifetime")
     }
     
+    # Calculate player leaderboards based on payout
+    def calculate_player_payouts():
+        player_stats = {}
+        
+        # Process Traditional games
+        traditional_games = db.execute("SELECT players, settings, completed FROM traditional_games").fetchall()
+        for game_row in traditional_games:
+            try:
+                players = json.loads(game_row[0])
+                settings = json.loads(game_row[1])
+                completed = game_row[2]
+                starting_credits = settings.get('StartingCredits', 1000)
+                
+                for player in players:
+                    player_id = player['id']
+                    username = player['username']
+                    current_credits = player['credits']
+                    
+                    if player_id not in player_stats:
+                        player_stats[player_id] = {
+                            'username': username,
+                            'overall_payouts': [],
+                            'traditional_payouts': [],
+                            'corellian_spike_payouts': [],
+                            'kessel_payouts': []
+                        }
+                    
+                    # Only calculate payout for completed games, but count all games for games played
+                    if completed:
+                        payout = ((current_credits - starting_credits) / starting_credits) * 100
+                        player_stats[player_id]['overall_payouts'].append(payout)
+                        player_stats[player_id]['traditional_payouts'].append(payout)
+                    else:
+                        # For active games, add None to track game participation without affecting payout average
+                        player_stats[player_id]['overall_payouts'].append(None)
+                        player_stats[player_id]['traditional_payouts'].append(None)
+            except (json.JSONDecodeError, KeyError) as e:
+                continue
+        
+        # Process Corellian Spike games
+        corellian_games = db.execute("SELECT players, settings, completed FROM corellian_spike_games").fetchall()
+        for game_row in corellian_games:
+            try:
+                players = json.loads(game_row[0])
+                settings = json.loads(game_row[1])
+                completed = game_row[2]
+                starting_credits = settings.get('StartingCredits', 1000)
+                
+                for player in players:
+                    player_id = player['id']
+                    username = player['username']
+                    current_credits = player['credits']
+                    
+                    if player_id not in player_stats:
+                        player_stats[player_id] = {
+                            'username': username,
+                            'overall_payouts': [],
+                            'traditional_payouts': [],
+                            'corellian_spike_payouts': [],
+                            'kessel_payouts': []
+                        }
+                    
+                    # Only calculate payout for completed games, but count all games for games played
+                    if completed:
+                        payout = ((current_credits - starting_credits) / starting_credits) * 100
+                        player_stats[player_id]['overall_payouts'].append(payout)
+                        player_stats[player_id]['corellian_spike_payouts'].append(payout)
+                    else:
+                        # For active games, add None to track game participation without affecting payout average
+                        player_stats[player_id]['overall_payouts'].append(None)
+                        player_stats[player_id]['corellian_spike_payouts'].append(None)
+            except (json.JSONDecodeError, KeyError) as e:
+                continue
+        
+        # Process Kessel games (uses chips instead of credits)
+        kessel_games = db.execute("SELECT players, settings, completed FROM kessel_games").fetchall()
+        for game_row in kessel_games:
+            try:
+                players = json.loads(game_row[0])
+                settings = json.loads(game_row[1])
+                completed = game_row[2]
+                starting_chips = settings.get('startingChips', 8)
+                
+                for player in players:
+                    player_id = player['id']
+                    username = player['username']
+                    current_chips = player.get('chips', 0) + player.get('usedChips', 0)  # Total chips
+                    
+                    if player_id not in player_stats:
+                        player_stats[player_id] = {
+                            'username': username,
+                            'overall_payouts': [],
+                            'traditional_payouts': [],
+                            'corellian_spike_payouts': [],
+                            'kessel_payouts': []
+                        }
+                    
+                    # Only calculate payout for completed games, but count all games for games played
+                    if completed:
+                        payout = ((current_chips - starting_chips) / starting_chips) * 100
+                        player_stats[player_id]['overall_payouts'].append(payout)
+                        player_stats[player_id]['kessel_payouts'].append(payout)
+                    else:
+                        # For active games, add None to track game participation without affecting payout average
+                        player_stats[player_id]['overall_payouts'].append(None)
+                        player_stats[player_id]['kessel_payouts'].append(None)
+            except (json.JSONDecodeError, KeyError) as e:
+                continue
+        
+        return player_stats
+    
+    # Generate leaderboards
+    def create_leaderboard_by_payout(player_stats, category, min_games=1):
+        leaderboard = []
+        for player_id, stats in player_stats.items():
+            payouts = stats[f'{category}_payouts']
+            # Filter out None values (active games) for payout calculation
+            completed_payouts = [p for p in payouts if p is not None]
+            total_games = len(payouts)  # Count all games including active ones
+            
+            if total_games >= min_games and len(completed_payouts) > 0:
+                avg_payout = sum(completed_payouts) / len(completed_payouts)
+                leaderboard.append({
+                    'username': stats['username'],
+                    'avgPayout': avg_payout,
+                    'gamesPlayed': total_games
+                })
+        
+        # Sort by average payout descending
+        leaderboard.sort(key=lambda x: x['avgPayout'], reverse=True)
+        return leaderboard[:10]  # Top 10
+    
+    def create_leaderboard_by_games(player_stats, category, min_games=1):
+        leaderboard = []
+        for player_id, stats in player_stats.items():
+            payouts = stats[f'{category}_payouts']
+            # Filter out None values (active games) for payout calculation
+            completed_payouts = [p for p in payouts if p is not None]
+            total_games = len(payouts)  # Count all games including active ones
+            
+            if total_games >= min_games:
+                # Calculate average payout only from completed games, but use 0 if no completed games
+                avg_payout = sum(completed_payouts) / len(completed_payouts) if len(completed_payouts) > 0 else 0
+                leaderboard.append({
+                    'username': stats['username'],
+                    'avgPayout': avg_payout,
+                    'gamesPlayed': total_games
+                })
+        
+        # Sort by games played descending
+        leaderboard.sort(key=lambda x: x['gamesPlayed'], reverse=True)
+        return leaderboard[:10]  # Top 10
+    
+    player_stats = calculate_player_payouts()
+    
+    leaderboards = {
+        'overall': {
+            'byPayout': create_leaderboard_by_payout(player_stats, 'overall'),
+            'byGames': create_leaderboard_by_games(player_stats, 'overall')
+        },
+        'traditional': {
+            'byPayout': create_leaderboard_by_payout(player_stats, 'traditional'),
+            'byGames': create_leaderboard_by_games(player_stats, 'traditional')
+        },
+        'corellianSpike': {
+            'byPayout': create_leaderboard_by_payout(player_stats, 'corellian_spike'),
+            'byGames': create_leaderboard_by_games(player_stats, 'corellian_spike')
+        },
+        'kessel': {
+            'byPayout': create_leaderboard_by_payout(player_stats, 'kessel'),
+            'byGames': create_leaderboard_by_games(player_stats, 'kessel')
+        }
+    }
+    
     return jsonify({
         "totalGames": total_games,
         "gamesCompleted": total_completed,
@@ -546,7 +720,8 @@ def stats():
         "gamesThisWeek": games_this_week,
         "gamesThisMonth": games_this_month,
         "totalPlayers": total_players,
-        "timeSeriesData": time_series_data
+        "timeSeriesData": time_series_data,
+        "leaderboards": leaderboards
     }), 200
 
 @app.route("/register", methods=["POST"])

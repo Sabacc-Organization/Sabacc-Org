@@ -18,8 +18,8 @@ with open("config.yml", "r") as f:
     config = yaml.safe_load(f)
 
 # Connect to database
-conn = sqlite3.connect(config['DATABASE'])
-db = conn.cursor()
+# conn = sqlite3.connect(config['DATABASE'])
+# db = conn.cursor()
 
 class Suit:
     DEFAULT = "NONE"
@@ -42,7 +42,7 @@ class Card:
         }
     @staticmethod
     def fromDict(card:dict) -> object:
-        return Card(val=card['val'], suit=card['suit'])
+        return Card(val=card['val'], suit=card['suit']) if card is not None else None
     
     def toDb(self):
         return json.dumps(self.toDict())
@@ -331,12 +331,16 @@ class Game:
 def getDictsForDB(cursor: sqlite3.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
+    print("Columns: ", columns)
 
     returnList = []
     for row in rows:
         rowDict = {}
+        print("Row: ", row)
+        print("enum: ", enumerate(row))
         for i, col in enumerate(columns):
-            rowDict[col.name] = row[i]
+            print(f"i: {i}, col: {col}")
+            rowDict[col[0]] = row[i]
         returnList.append(rowDict)
     
     return returnList
@@ -371,7 +375,7 @@ def login_required(f):
     return decorated_function
 
 # Attempt to Authenticate User
-def checkLogin(username, password):
+def checkLogin(db, username, password):
     # If username is none
     if not username:
         return {"message": "Must provide username", "status": 401}
@@ -383,7 +387,7 @@ def checkLogin(username, password):
     # Attempt to find the password hash of this user
     orHash = None
     try:
-        db.execute("SELECT * FROM users WHERE username = %s", [username])
+        db.execute("SELECT * FROM users WHERE username = ?", [username])
         orHash = getDictsForDB(db)[0]["hash"]
     except IndexError:
         # If user does not exist

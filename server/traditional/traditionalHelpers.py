@@ -158,6 +158,7 @@ class TraditionalPlayer(Player):
     @staticmethod
     def fromDb(player: Union[str, dict]) -> object:
         if isinstance(player, str):
+            print("player is a string",player)
             return TraditionalPlayer.fromDict(json.loads(player))
         if isinstance(player, dict):
             return TraditionalPlayer.fromDict(player)
@@ -266,7 +267,7 @@ class TraditionalGame(Game):
         game.dealHands()
 
         if db:
-            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, json.dumps(settings)])
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, json.dumps(settings)])
 
         return game
 
@@ -354,13 +355,14 @@ class TraditionalGame(Game):
             'shift': self._shift,
             'completed': self.completed,
             'settings': self.settings,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': self.created_at,
             'move_history': self.move_history
         }
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in game[1]], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=json.loads(game[13]))
+        print("game: ", game[0])
+        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
         if preSettings == False:
             gameObj.settings = json.loads(game[11])
         return gameObj
@@ -540,7 +542,7 @@ class TraditionalGame(Game):
             self.completed,
             self.id
         ]
-        db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, phase = %s, player_turn = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+        db.execute("UPDATE traditional_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
     def cardPhaseAction(self, params:dict, player, db):
         players = self.getActivePlayers()
@@ -642,7 +644,7 @@ class TraditionalGame(Game):
             self.completed,
             self.id
         ]
-        db.execute("UPDATE traditional_games SET deck = %s, players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+        db.execute("UPDATE traditional_games SET deck = ?, players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, player_turn = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
     # overrides parent method
     def action(self, params:dict, db):
@@ -663,7 +665,7 @@ class TraditionalGame(Game):
                 self.p_act,
                 self.id
             ]
-            db.execute("UPDATE traditional_games SET players = %s, p_act = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE traditional_games SET players = ?, p_act = ? WHERE game_id = ?", dbList)
 
         elif params['action'] in ["fold", "check", "bet", "call", "raise"] and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
             self.betPhaseAction(params, player, db)
@@ -695,7 +697,7 @@ class TraditionalGame(Game):
                 self.id
             ]
 
-            db.execute(f"UPDATE traditional_games SET phase = %s, deck = %s, players = %s, player_turn = %s, shift = %s, p_act = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE traditional_games SET phase = ?, deck = ?, players = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = ?", dbList)
 
         elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
             self.nextRound()
@@ -719,7 +721,7 @@ class TraditionalGame(Game):
                 self.id
             ]
 
-            db.execute("UPDATE traditional_games SET players = %s, hand_pot = %s, sabacc_pot = %s, phase = %s, deck = %s, player_turn = %s, cycle_count = %s, p_act = %s, completed = %s WHERE game_id = %s", dbList)
+            db.execute("UPDATE traditional_games SET players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_turn = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         if self == originalSelf:
             return "invalid user input"
@@ -731,6 +733,6 @@ class TraditionalGame(Game):
         else:
             self.move_history = [originalChangedValues]
 
-        db.execute("UPDATE traditional_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
+        db.execute("UPDATE traditional_games SET move_history = ? WHERE game_id = ?", [self.moveHistoryToDb(), self.id])
 
         return self

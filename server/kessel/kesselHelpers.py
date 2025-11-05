@@ -128,7 +128,7 @@ class KesselPlayer(Player):
 
     @staticmethod
     def fromDict(dict: dict):
-        return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=dict['positiveCard'], negativeCard=dict['negativeCard'], extraCard=dict["extraCard"], extraCardIsNegative=dict["extraCardIsNegative"], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=dict["shiftTokens"], outOfGame=dict['outOfGame'])
+        return KesselPlayer(id=dict['id'], username=dict['username'], lastAction=dict['lastAction'], positiveCard=Card.fromDict(dict['positiveCard']), negativeCard=Card.fromDict(dict['negativeCard']), extraCard=Card.fromDict(dict["extraCard"]), extraCardIsNegative=dict["extraCardIsNegative"], chips=dict['chips'], usedChips=dict['usedChips'], shiftTokens=dict["shiftTokens"], outOfGame=dict['outOfGame'])
 
 
 # Default game settings 
@@ -206,7 +206,7 @@ class KesselGame(Game):
         game.rollDice()
 
         if db:
-            db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, activeShiftTokens, player_turn, p_act, settings) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", [
+            db.execute("INSERT INTO kessel_games (players, phase, dice, positiveDeck, negativeDeck, positiveDiscard, negativeDiscard, activeShiftTokens, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
                 game.playersToDb(),
                 game.phase,
                 game.diceToDb(),
@@ -214,7 +214,7 @@ class KesselGame(Game):
                 game.negativeDeckToDb(),
                 game.positiveDiscardToDb(),
                 game.negativeDiscardToDb(),
-                game.activeShiftTokens,
+                game.activeShiftTokensToDb(),
                 game.player_turn,
                 game.p_act,
                 game.settingsToDb()
@@ -268,13 +268,13 @@ class KesselGame(Game):
     @staticmethod
     def fromDb(game: list):
         return KesselGame( id = game[0],
-            players = [KesselPlayer.fromDb(player) for player in game[1]],
+            players = [KesselPlayer.fromDb(player) for player in json.loads(game[1])],
             phase = game[2],
             dice = json.loads(game[3]),
             positiveDeck = KesselDeck.fromDb(game[4]),
             negativeDeck = KesselDeck.fromDb(game[5]),
-            positiveDiscard = [Card.fromDb(i) for i in game[6]],
-            negativeDiscard = [Card.fromDb(i) for i in game[7]],
+            positiveDiscard = [Card.fromDb(i) for i in json.loads(game[6])],
+            negativeDiscard = [Card.fromDb(i) for i in json.loads(game[7])],
             activeShiftTokens = json.loads(game[8]),
             player_turn = game[9],
             p_act = game[10],
@@ -282,7 +282,7 @@ class KesselGame(Game):
             completed = game[12],
             settings = json.loads(game[13]),
             created_at = game[14],
-            move_history = json.loads(game[15])
+            move_history = None if not game[15] else json.loads(game[15])
         )
     
     @staticmethod
@@ -322,7 +322,7 @@ class KesselGame(Game):
             self.p_act,
             self.cycle_count,
             self.completed,
-            self.settingsToDb,
+            self.settingsToDb(),
             self.created_at,
             self.moveHistoryToDb()
         ]
@@ -348,7 +348,7 @@ class KesselGame(Game):
             "cycle_count": self.cycle_count,
             "completed": self.completed,
             "settings": self.settings,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": self.created_at,
             "move_history": self.move_history
         }
 
@@ -979,7 +979,7 @@ class KesselGame(Game):
             self.id
         ]
 
-        db.execute("UPDATE kessel_games SET players = %s, phase = %s, dice = %s, positiveDeck = %s, negativeDeck = %s, positiveDiscard = %s, negativeDiscard = %s, activeShiftTokens = %s, player_turn = %s, p_act = %s, cycle_count = %s, completed = %s WHERE game_id = %s", dbList)
+        db.execute("UPDATE kessel_games SET players = ?, phase = ?, dice = ?, positiveDeck = ?, negativeDeck = ?, positiveDiscard = ?, negativeDiscard = ?, activeShiftTokens = ?, player_turn = ?, p_act = ?, cycle_count = ?, completed = ? WHERE game_id = ?", dbList)
 
         originalChangedValues = self.compare(originalSelf)
         if originalChangedValues == {}:
@@ -992,6 +992,6 @@ class KesselGame(Game):
         else:
             self.move_history = [originalChangedValues]
 
-        db.execute("UPDATE kessel_games SET move_history = %s WHERE game_id = %s", [self.moveHistoryToDb(), self.id])
+        db.execute("UPDATE kessel_games SET move_history = ? WHERE game_id = ?", [self.moveHistoryToDb(), self.id])
 
         return self

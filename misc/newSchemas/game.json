@@ -1,0 +1,31 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "$id": "https://samuelanes.com/schemas/game.json",
+    "type": "object",
+    "properties": {
+        "firstFutureChange": {"type": "integer"},
+        "ignore": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "createdAt": {"type": "string", "format": "date-time"},
+                "settings": {"type": "object"},
+                "completed": {"type": "boolean"}
+            },
+            "required": [
+                "id",
+                "createdAt",
+                "settings",
+                "completed"
+            ]
+        },
+        "track": true,
+        "history": {"$ref": "https://samuelanes.com/schemas/history.json"}
+    },
+    "required": [
+        "firstFutureChange",
+        "ignore",
+        "track",
+        "history"
+    ]
+}

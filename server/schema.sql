@@ -1,12 +1,12 @@
  CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
+    id  INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     hash TEXT NOT NULL,
     created_at TEXT DEFAULT (CURRENT_TIMESTAMP) -- ISO 8601 (UTC)
 );
 
 CREATE TABLE IF NOT EXISTS traditional_games (
-    game_id SERIAL PRIMARY KEY,
+    game_id INTEGER PRIMARY KEY AUTOINCREMENT,
     players TEXT, -- TraditionalPlayer[]
     hand_pot INTEGER NOT NULL DEFAULT 0,
     sabacc_pot INTEGER NOT NULL DEFAULT 0,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS traditional_games (
 );
 
 CREATE TABLE IF NOT EXISTS corellian_spike_games (
-    game_id SERIAL PRIMARY KEY,
+    game_id INTEGER PRIMARY KEY AUTOINCREMENT,
     players TEXT, -- CorellianSpikePlayer[]
     hand_pot INTEGER NOT NULL DEFAULT 0,
     sabacc_pot INTEGER NOT NULL DEFAULT 0,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS corellian_spike_games (
 );
 
 CREATE TABLE IF NOT EXISTS kessel_games (
-    game_id SERIAL PRIMARY KEY,
+    game_id INTEGER PRIMARY KEY AUTOINCREMENT,
     players TEXT, -- KesselPlayer[]
     phase TEXT NOT NULL DEFAULT 'draw',
     dice TEXT NOT NULL DEFAULT '1,1', -- INTEGER[2]
@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS kessel_games (
     player_turn INTEGER,
     p_act TEXT,
     cycle_count INTEGER NOT NULL DEFAULT 0,
-    shift BOOLEAN NOT NULL DEFAULT FALSE,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     settings TEXT NOT NULL DEFAULT '{"startingChips": 8, "playersChooseShiftTokens": false}',
     created_at TEXT DEFAULT (CURRENT_TIMESTAMP), -- ISO 8601 (UTC)

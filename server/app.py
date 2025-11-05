@@ -78,6 +78,9 @@ sqlite_db.executescript(query)
 conn.commit()
 # conn.close()
 
+# important variable to make sure psql doesn't get used
+usingPsql = False
+
 
 
 """ DB Conversions: """
@@ -102,6 +105,8 @@ conn.commit()
 """ convert PSQL data to sqlite3 """ # Uncomment to run - DO NOT DELETE
 # import dbConversion.dbConversion as dbConversion
 # psql_conn = psycopg.connect(config['PSQL_DATABASE'])
+
+# usingPsql = True
 
 # dbConversion.convertPsqlToSqlite(sqlite_db, psql_conn)
 # conn.commit()
@@ -521,7 +526,8 @@ def handle_sigint(signum, frame):
 
     # close db connection
     conn.close()
-    psql_conn.close()
+    if usingPsql:
+        psql_conn.close()
 
     # After cleanup, raise KeyboardInterrupt to allow the normal exit process
     raise KeyboardInterrupt

@@ -83,32 +83,32 @@
                     labels: currentData.dates || [],
                     datasets: [
                         {
-                            label: 'Traditional',
-                            data: currentData.traditional || [],
+                            label: 'Total',
+                            data: currentData.total || [],
                             borderColor: 'rgb(255, 99, 132)',
                             backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            borderWidth: 3,
                             tension: 0.1
                         },
                         {
-                            label: 'Corellian Spike',
-                            data: currentData.corellianSpike || [],
+                            label: 'Traditional',
+                            data: currentData.traditional || [],
                             borderColor: 'rgb(54, 162, 235)',
                             backgroundColor: 'rgba(54, 162, 235, 0.1)',
                             tension: 0.1
                         },
                         {
-                            label: 'Kessel',
-                            data: currentData.kessel || [],
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            label: 'Corellian Spike',
+                            data: currentData.corellianSpike || [],
+                            borderColor: 'rgb(75, 192, 75)',
+                            backgroundColor: 'rgba(75, 192, 75, 0.1)',
                             tension: 0.1
                         },
                         {
-                            label: 'Total',
-                            data: currentData.total || [],
+                            label: 'Kessel',
+                            data: currentData.kessel || [],
                             borderColor: 'rgb(255, 206, 86)',
                             backgroundColor: 'rgba(255, 206, 86, 0.1)',
-                            borderWidth: 3,
                             tension: 0.1
                         }
                     ]
@@ -152,10 +152,10 @@
 </script>
 
 <svelte:head>
-    <title>Sabacc: Game Stats</title>
+    <title>Sabacc: Data & Stats</title>
 </svelte:head>
 
-<h2>Game Statistics</h2>
+<h2>Data & Statistics</h2>
 
 {#if loading}
     <p>Loading stats...</p>
@@ -404,26 +404,6 @@
         border-radius: 8px;
     }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-
-    th, td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    th {
-        font-weight: bold;
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    tr:hover {
-        background-color: rgba(255, 255, 255, 0.02);
-    }
 
     h3 {
         margin-bottom: 20px;

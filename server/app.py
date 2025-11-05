@@ -79,8 +79,8 @@ sqlite_db.executescript(query)
 conn.commit()
 # conn.close()
 
-# important variable to make sure psql doesn't get used
-usingPsql = False
+# important to have this here even if it's just None
+psql_conn = None
 
 
 
@@ -107,65 +107,7 @@ usingPsql = False
 # import dbConversion.dbConversion as dbConversion
 # psql_conn = psycopg.connect(config['PSQL_DATABASE'])
 
-# usingPsql = True
-
 # dbConversion.convertPsqlToSqlite(sqlite_db, psql_conn)
-# conn.commit()
-
-# psql_db = psql_conn.cursor()
-
-# from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame as psql_TraditionalGame
-# from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame as psql_CorellianSpikeGame
-# from dbConversion.psql_helpers.psql_kesselHelpers import KesselGame as psql_KesselGame
-
-# # register Traditional custom types
-# traditionalCardType = CompositeInfo.fetch(psql_conn, 'traditionalcard')
-# traditionalPlayerType = CompositeInfo.fetch(psql_conn, 'traditionalplayer')
-# register_composite(traditionalCardType, psql_db)
-# register_composite(traditionalPlayerType, psql_db)
-
-# print("Registered Traditional custom types")
-
-# # register Corellian custom types
-# corellianSpikeCardType = CompositeInfo.fetch(psql_conn, 'corellianspikecard')
-# corellianSpikePlayerType = CompositeInfo.fetch(psql_conn, 'corellianspikeplayer')
-# register_composite(corellianSpikeCardType, psql_db)
-# register_composite(corellianSpikePlayerType, psql_db)
-
-# print("Registered Corellian custom types")
-
-# # register Kessel custom types
-# kesselCardType = CompositeInfo.fetch(psql_conn, 'kesselcard')
-# kesselPlayerType = CompositeInfo.fetch(psql_conn, 'kesselplayer')
-# register_composite(kesselCardType, psql_db)
-# register_composite(kesselPlayerType, psql_db)
-
-# print("Registered Kessel custom types")
-
-# psql_users = psql_db.execute("SELECT username, hash FROM users ORDER BY id ASC").fetchall()
-# for user in psql_users:
-#     sqlite_db.execute("INSERT INTO users (username, hash, created_at) VALUES (?, ?, ?)", [user[0], user[1], None])
-
-# print("Users copied over")
-
-# psql_traditionalGames = psql_db.execute("SELECT * FROM traditional_games ORDER BY game_id ASC").fetchall()
-# psql_corellianSpikeGames = psql_db.execute("SELECT * FROM corellian_spike_games ORDER BY game_id ASC").fetchall()
-# psql_kesselGames = psql_db.execute("SELECT * FROM kessel_games ORDER BY game_id ASC").fetchall()
-
-# for game in psql_traditionalGames:
-#     dbGame = TraditionalGame.fromDict(psql_TraditionalGame.fromDb(game).toDict()).toDb(includeId=False)
-#     sqlite_db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, phase, deck, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
-
-# for game in psql_corellianSpikeGames:
-#     dbGame = CorellianSpikeGame.fromDict(psql_CorellianSpikeGame.fromDb(game).toDict()).toDb(includeId=False)
-#     sqlite_db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, phase, deck, discard_pile, player_turn, p_act, cycle_count, shift, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
-
-# for game in psql_kesselGames:
-#     dbGame = KesselGame.fromDict(psql_KesselGame.fromDb(game).toDict()).toDb(includeId=False)
-#     sqlite_db.execute("INSERT INTO kessel_games (players, phase, dice, positivedeck, negativedeck, positivediscard, negativediscard, activeshifttokens, player_turn, p_act, cycle_count, completed, settings, created_at, move_history) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", dbGame)
-
-# print("Games copied over")
-
 # conn.commit()
 
 
@@ -724,6 +666,505 @@ def stats():
         "leaderboards": leaderboards
     }), 200
 
+@app.route("/player", methods=["POST"])
+@cross_origin()
+def player_info():
+    """ Get detailed information about a specific player """
+    
+    db = conn.cursor()
+    
+    # Get username from request
+    username = request.json.get("username")
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
+    
+    # Check if player exists
+    user_result = db.execute("SELECT id, username, created_at FROM users WHERE username = ?", [username]).fetchone()
+    if not user_result:
+        return jsonify({"error": "Player not found"}), 404
+    
+    print("USER_RESULT:",user_result)
+    
+    user_id = user_result[0]
+    user_username = user_result[1]
+    date_joined = user_result[2] if len(user_result) > 2 else None
+    
+    # Calculate player statistics similar to leaderboard logic
+    def calculate_player_stats(player_id):
+        player_stats = {
+            'overall_payouts': [],
+            'traditional_payouts': [],
+            'corellian_spike_payouts': [],
+            'kessel_payouts': []
+        }
+        
+        # Process Traditional games
+        traditional_games = db.execute("SELECT players, settings, completed FROM traditional_games").fetchall()
+        for game_row in traditional_games:
+            try:
+                players = json.loads(game_row[0])
+                settings = json.loads(game_row[1])
+                completed = game_row[2]
+                starting_credits = settings.get('StartingCredits', 1000)
+                
+                for player in players:
+                    if player['id'] == player_id:
+                        current_credits = player['credits']
+                        
+                        if completed:
+                            payout = ((current_credits - starting_credits) / starting_credits) * 100
+                            player_stats['overall_payouts'].append(payout)
+                            player_stats['traditional_payouts'].append(payout)
+                        else:
+                            player_stats['overall_payouts'].append(None)
+                            player_stats['traditional_payouts'].append(None)
+                        break
+            except (json.JSONDecodeError, KeyError):
+                continue
+        
+        # Process Corellian Spike games
+        corellian_games = db.execute("SELECT players, settings, completed FROM corellian_spike_games").fetchall()
+        for game_row in corellian_games:
+            try:
+                players = json.loads(game_row[0])
+                settings = json.loads(game_row[1])
+                completed = game_row[2]
+                starting_credits = settings.get('StartingCredits', 1000)
+                
+                for player in players:
+                    if player['id'] == player_id:
+                        current_credits = player['credits']
+                        
+                        if completed:
+                            payout = ((current_credits - starting_credits) / starting_credits) * 100
+                            player_stats['overall_payouts'].append(payout)
+                            player_stats['corellian_spike_payouts'].append(payout)
+                        else:
+                            player_stats['overall_payouts'].append(None)
+                            player_stats['corellian_spike_payouts'].append(None)
+                        break
+            except (json.JSONDecodeError, KeyError):
+                continue
+        
+        # Process Kessel games
+        kessel_games = db.execute("SELECT players, settings, completed FROM kessel_games").fetchall()
+        for game_row in kessel_games:
+            try:
+                players = json.loads(game_row[0])
+                settings = json.loads(game_row[1])
+                completed = game_row[2]
+                starting_chips = settings.get('startingChips', 8)
+                
+                for player in players:
+                    if player['id'] == player_id:
+                        current_chips = player.get('chips', 0) + player.get('usedChips', 0)
+                        
+                        if completed:
+                            payout = ((current_chips - starting_chips) / starting_chips) * 100
+                            player_stats['overall_payouts'].append(payout)
+                            player_stats['kessel_payouts'].append(payout)
+                        else:
+                            player_stats['overall_payouts'].append(None)
+                            player_stats['kessel_payouts'].append(None)
+                        break
+            except (json.JSONDecodeError, KeyError):
+                continue
+        
+        return player_stats
+    
+    # Calculate game history time series for this player
+    def get_player_time_series_data(player_id, time_range):
+        if time_range == "week":
+            return get_player_daily_game_counts(player_id, 7)
+        elif time_range == "month":
+            return get_player_daily_game_counts(player_id, 30)
+        elif time_range == "year":
+            return get_player_monthly_game_counts(player_id, 12)
+        elif time_range == "lifetime":
+            return get_player_monthly_game_counts_lifetime(player_id)
+        else:
+            return get_player_daily_game_counts(player_id, 30)
+    
+    def get_player_daily_game_counts(player_id, days):
+        daily_counts = {"traditional": {}, "corellian_spike": {}, "kessel": {}}
+        
+        for i in range(days):
+            day = datetime.now() - timedelta(days=(days - 1 - i))
+            day_str = day.strftime('%Y-%m-%d')
+            next_day = day + timedelta(days=1)
+            next_day_str = next_day.strftime('%Y-%m-%d')
+            
+            # Count traditional games
+            traditional_count = 0
+            traditional_games = db.execute(
+                "SELECT players FROM traditional_games WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                [day_str, next_day_str]
+            ).fetchall()
+            for game_row in traditional_games:
+                try:
+                    players = json.loads(game_row[0])
+                    if any(player['id'] == player_id for player in players):
+                        traditional_count += 1
+                except (json.JSONDecodeError, KeyError):
+                    continue
+            daily_counts["traditional"][day_str] = traditional_count
+            
+            # Count corellian spike games
+            corellian_count = 0
+            corellian_games = db.execute(
+                "SELECT players FROM corellian_spike_games WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                [day_str, next_day_str]
+            ).fetchall()
+            for game_row in corellian_games:
+                try:
+                    players = json.loads(game_row[0])
+                    if any(player['id'] == player_id for player in players):
+                        corellian_count += 1
+                except (json.JSONDecodeError, KeyError):
+                    continue
+            daily_counts["corellian_spike"][day_str] = corellian_count
+            
+            # Count kessel games
+            kessel_count = 0
+            kessel_games = db.execute(
+                "SELECT players FROM kessel_games WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                [day_str, next_day_str]
+            ).fetchall()
+            for game_row in kessel_games:
+                try:
+                    players = json.loads(game_row[0])
+                    if any(player['id'] == player_id for player in players):
+                        kessel_count += 1
+                except (json.JSONDecodeError, KeyError):
+                    continue
+            daily_counts["kessel"][day_str] = kessel_count
+        
+        return daily_counts
+    
+    def get_player_monthly_game_counts(player_id, months):
+        monthly_counts = {"traditional": {}, "corellian_spike": {}, "kessel": {}}
+        
+        for i in range(months):
+            current_date = datetime.now().replace(day=1)
+            target_month = current_date - timedelta(days=32 * (months - 1 - i))
+            month_start = target_month.replace(day=1)
+            
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1)
+            
+            month_str = month_start.strftime('%Y-%m')
+            
+            # Count each game type for this month
+            for table_name, key in [("traditional_games", "traditional"), ("corellian_spike_games", "corellian_spike"), ("kessel_games", "kessel")]:
+                count = 0
+                games = db.execute(
+                    f"SELECT players FROM {table_name} WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                    [month_start.strftime('%Y-%m-%d'), month_end.strftime('%Y-%m-%d')]
+                ).fetchall()
+                for game_row in games:
+                    try:
+                        players = json.loads(game_row[0])
+                        if any(player['id'] == player_id for player in players):
+                            count += 1
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+                monthly_counts[key][month_str] = count
+        
+        return monthly_counts
+    
+    def get_player_monthly_game_counts_lifetime(player_id):
+        # Get the earliest game creation date across all tables
+        earliest_dates = []
+        for table_name in ["traditional_games", "corellian_spike_games", "kessel_games"]:
+            result = db.execute(f"SELECT MIN(created_at) FROM {table_name}").fetchone()
+            if result[0]:
+                earliest_dates.append(datetime.fromisoformat(result[0].replace('Z', '+00:00')).replace(tzinfo=None))
+        
+        if not earliest_dates:
+            return {"traditional": {}, "corellian_spike": {}, "kessel": {}}
+        
+        earliest_date = min(earliest_dates)
+        earliest_month = earliest_date.replace(day=1)
+        current_month = datetime.now().replace(day=1)
+        
+        monthly_counts = {"traditional": {}, "corellian_spike": {}, "kessel": {}}
+        current = earliest_month
+        
+        while current <= current_month:
+            if current.month == 12:
+                next_month = current.replace(year=current.year + 1, month=1)
+            else:
+                next_month = current.replace(month=current.month + 1)
+            
+            month_str = current.strftime('%Y-%m')
+            
+            # Count each game type for this month
+            for table_name, key in [("traditional_games", "traditional"), ("corellian_spike_games", "corellian_spike"), ("kessel_games", "kessel")]:
+                count = 0
+                games = db.execute(
+                    f"SELECT players FROM {table_name} WHERE date(created_at) >= date(?) AND date(created_at) < date(?)",
+                    [current.strftime('%Y-%m-%d'), next_month.strftime('%Y-%m-%d')]
+                ).fetchall()
+                for game_row in games:
+                    try:
+                        players = json.loads(game_row[0])
+                        if any(player['id'] == player_id for player in players):
+                            count += 1
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+                monthly_counts[key][month_str] = count
+            
+            current = next_month
+        
+        return monthly_counts
+    
+    # Format time series data for chart
+    def create_player_time_series_for_range(player_id, time_range):
+        counts = get_player_time_series_data(player_id, time_range)
+        dates = list(counts["traditional"].keys())
+        
+        return {
+            "dates": dates,
+            "traditional": list(counts["traditional"].values()),
+            "corellianSpike": list(counts["corellian_spike"].values()),
+            "kessel": list(counts["kessel"].values()),
+            "total": [counts["traditional"][date] + counts["corellian_spike"][date] + counts["kessel"][date] for date in dates]
+        }
+    
+    # Get player statistics
+    print("USER_ID", user_id)
+    player_stats = calculate_player_stats(user_id)
+    
+    # Calculate summary statistics
+    def calculate_summary_stats(payouts_list):
+        all_games = len(payouts_list)
+        completed_payouts = [p for p in payouts_list if p is not None]
+        completed_games = len(completed_payouts)
+        avg_payout = sum(completed_payouts) / len(completed_payouts) if completed_payouts else None
+        
+        return {
+            "gamesPlayed": all_games,
+            "gamesCompleted": completed_games,
+            "avgPayout": avg_payout
+        }
+    
+    overall_stats = calculate_summary_stats(player_stats['overall_payouts'])
+    traditional_stats = calculate_summary_stats(player_stats['traditional_payouts'])
+    corellian_stats = calculate_summary_stats(player_stats['corellian_spike_payouts'])
+    kessel_stats = calculate_summary_stats(player_stats['kessel_payouts'])
+    
+    # Create game history data for all time ranges
+    game_history = {
+        "week": create_player_time_series_for_range(user_id, "week"),
+        "month": create_player_time_series_for_range(user_id, "month"),
+        "year": create_player_time_series_for_range(user_id, "year"),
+        "lifetime": create_player_time_series_for_range(user_id, "lifetime")
+    }
+    
+    # Collect all games the player participated in
+    def get_player_games(player_id):
+        player_games = {
+            "traditional": [],
+            "corellianSpike": [],
+            "kessel": []
+        }
+        
+        # Traditional games
+        traditional_games = db.execute(
+            "SELECT game_id, players, created_at, completed, move_history FROM traditional_games ORDER BY created_at DESC"
+        ).fetchall()
+        for game_row in traditional_games:
+            try:
+                game_id, players_json, created_at, completed, move_history = game_row
+                players = json.loads(players_json)
+                
+                # Check if this player is in the game
+                player_in_game = False
+                player_turn = None
+                for player in players:
+                    if player['id'] == player_id:
+                        player_in_game = True
+                        break
+                
+                if player_in_game:
+                    # Determine whose turn it is (similar to index page logic)
+                    if not completed and players:
+                        try:
+                            move_history_data = json.loads(move_history) if move_history else []
+                            if move_history_data:
+                                # Get the current player turn from game logic
+                                player_turn = "N/A"  # Simplified for now
+                            else:
+                                player_turn = players[0]['username'] if players else "N/A"
+                        except:
+                            player_turn = "N/A"
+                    else:
+                        player_turn = "Completed" if completed else "N/A"
+                    
+                    # Get last move info
+                    p_act = ""
+                    last_move_date = None
+                    if move_history:
+                        try:
+                            move_history_data = json.loads(move_history)
+                            if move_history_data:
+                                last_move = move_history_data[-1]
+                                p_act = last_move.get('action', '')
+                                last_move_date = last_move.get('timestamp')
+                        except:
+                            pass
+                    
+                    player_games["traditional"].append({
+                        "id": game_id,
+                        "players": players,
+                        "created_at": created_at,
+                        "completed": completed,
+                        "player_turn": player_turn,
+                        "p_act": p_act,
+                        "move_history": json.loads(move_history) if move_history else None,
+                        "last_move_date": last_move_date
+                    })
+            except (json.JSONDecodeError, KeyError):
+                continue
+        
+        # Corellian Spike games
+        corellian_games = db.execute(
+            "SELECT game_id, players, created_at, completed, move_history FROM corellian_spike_games ORDER BY created_at DESC"
+        ).fetchall()
+        for game_row in corellian_games:
+            try:
+                game_id, players_json, created_at, completed, move_history = game_row
+                players = json.loads(players_json)
+                
+                # Check if this player is in the game
+                player_in_game = False
+                for player in players:
+                    if player['id'] == player_id:
+                        player_in_game = True
+                        break
+                
+                if player_in_game:
+                    # Determine whose turn it is
+                    if not completed and players:
+                        try:
+                            move_history_data = json.loads(move_history) if move_history else []
+                            if move_history_data:
+                                player_turn = "N/A"  # Simplified for now
+                            else:
+                                player_turn = players[0]['username'] if players else "N/A"
+                        except:
+                            player_turn = "N/A"
+                    else:
+                        player_turn = "Completed" if completed else "N/A"
+                    
+                    # Get last move info
+                    p_act = ""
+                    last_move_date = None
+                    if move_history:
+                        try:
+                            move_history_data = json.loads(move_history)
+                            if move_history_data:
+                                last_move = move_history_data[-1]
+                                p_act = last_move.get('action', '')
+                                last_move_date = last_move.get('timestamp')
+                        except:
+                            pass
+                    
+                    player_games["corellianSpike"].append({
+                        "id": game_id,
+                        "players": players,
+                        "created_at": created_at,
+                        "completed": completed,
+                        "player_turn": player_turn,
+                        "p_act": p_act,
+                        "move_history": json.loads(move_history) if move_history else None,
+                        "last_move_date": last_move_date
+                    })
+            except (json.JSONDecodeError, KeyError):
+                continue
+        
+        # Kessel games
+        kessel_games = db.execute(
+            "SELECT game_id, players, created_at, completed, move_history FROM kessel_games ORDER BY created_at DESC"
+        ).fetchall()
+        for game_row in kessel_games:
+            try:
+                game_id, players_json, created_at, completed, move_history = game_row
+                players = json.loads(players_json)
+                
+                # Check if this player is in the game
+                player_in_game = False
+                for player in players:
+                    if player['id'] == player_id:
+                        player_in_game = True
+                        break
+                
+                if player_in_game:
+                    # Determine whose turn it is
+                    if not completed and players:
+                        try:
+                            move_history_data = json.loads(move_history) if move_history else []
+                            if move_history_data:
+                                player_turn = "N/A"  # Simplified for now
+                            else:
+                                player_turn = players[0]['username'] if players else "N/A"
+                        except:
+                            player_turn = "N/A"
+                    else:
+                        player_turn = "Completed" if completed else "N/A"
+                    
+                    # Get last move info
+                    p_act = ""
+                    last_move_date = None
+                    if move_history:
+                        try:
+                            move_history_data = json.loads(move_history)
+                            if move_history_data:
+                                last_move = move_history_data[-1]
+                                p_act = last_move.get('action', '')
+                                last_move_date = last_move.get('timestamp')
+                        except:
+                            pass
+                    
+                    player_games["kessel"].append({
+                        "id": game_id,
+                        "players": players,
+                        "created_at": created_at,
+                        "completed": completed,
+                        "player_turn": player_turn,
+                        "p_act": p_act,
+                        "move_history": json.loads(move_history) if move_history else None,
+                        "last_move_date": last_move_date
+                    })
+            except (json.JSONDecodeError, KeyError):
+                continue
+        
+        return player_games
+    
+    # Get player's games
+    player_games = get_player_games(user_id)
+    
+    return jsonify({
+        "username": user_username,
+        "dateJoined": date_joined,
+        "totalGamesPlayed": overall_stats["gamesPlayed"],
+        "gamesCompleted": overall_stats["gamesCompleted"],
+        "overallAvgPayout": overall_stats["avgPayout"],
+        "traditionalGamesPlayed": traditional_stats["gamesPlayed"],
+        "traditionalGamesCompleted": traditional_stats["gamesCompleted"],
+        "traditionalAvgPayout": traditional_stats["avgPayout"],
+        "corellianSpikeGamesPlayed": corellian_stats["gamesPlayed"],
+        "corellianSpikeGamesCompleted": corellian_stats["gamesCompleted"],
+        "corellianSpikeAvgPayout": corellian_stats["avgPayout"],
+        "kesselGamesPlayed": kessel_stats["gamesPlayed"],
+        "kesselGamesCompleted": kessel_stats["gamesCompleted"],
+        "kesselAvgPayout": kessel_stats["avgPayout"],
+        "gameHistory": game_history,
+        "games": player_games
+    }), 200
+
 @app.route("/register", methods=["POST"])
 @cross_origin()
 def register():
@@ -867,7 +1308,7 @@ def host():
     # Create game in database
     conn.commit()
 
-    print(game_variant)
+    # print(game_variant)
 
     # Get game ID
     game_id = db.execute(f"SELECT game_id FROM {game_variant}_games ORDER BY game_id DESC").fetchone()[0]
@@ -970,7 +1411,7 @@ def handle_sigint(signum, frame):
 
     # close db connection
     conn.close()
-    if usingPsql:
+    if psql_conn:
         psql_conn.close()
 
     # After cleanup, raise KeyboardInterrupt to allow the normal exit process

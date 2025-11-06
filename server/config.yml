@@ -2,7 +2,7 @@
 DEBUG: False
 IP: 127.0.0.1
 DOMAIN: "https://heinoushare.pythonanywhere.com"
-CROSS_ORIGIN: "https://sabacc.pages.dev"
+CROSS_ORIGIN: "https://sabacc.samuelanes.com"
 PORT: 5000
 DATABASE: "sabacc.db"
 PSQL_DATABASE: "host=localhost port=5432 dbname=sabacc user=postgres password=postgres"

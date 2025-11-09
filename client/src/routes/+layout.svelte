@@ -62,7 +62,7 @@
     </head>
     <body>
 
-        <nav class="navbar navbar-expand-md border" class:navbar-light={dark!="true"} class:bg-light={dark!="true"} class:navbar-dark={dark==="true"} class:bg-dark={dark==="true"}>
+        <nav class="navbar navbar-expand-md border" class:navbar-light={dark!=true} class:bg-light={dark!=true} class:navbar-dark={dark===true} class:bg-dark={dark===true}>
             <a class="navbar-brand" href="/"><span class="blue">Sabacc</span></a>
             <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbar" data-toggle="collapse" type="button">
                 <span class="navbar-toggler-icon"></span>
@@ -103,7 +103,7 @@
         </main>
 
         {#if loggedIn === true}
-            {#if dark === "true"}
+            {#if dark === true}
                 <!-- Light/Dark mode -->
                 <link href="/styles/main/dark.css" rel="stylesheet">
             {/if}

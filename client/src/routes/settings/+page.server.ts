@@ -9,11 +9,11 @@ import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies }) {
-    if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
+    if (!cookies.get("username") || !cookies.get("password")) {
         throw redirect(303, "/login");
     }
     
-	if (await checkLogin(cookies.get("username"), cookies.get("password"), BACKEND_URL) === false) {
+	if (await checkLogin(cookies.get("username")!, cookies.get("password")!, BACKEND_URL) === false) {
         throw redirect(303, "/login");
     }
 
@@ -21,7 +21,7 @@ export async function load({ cookies }) {
 }
 
 export const actions = {
-	default: async ({cookies, request}) => {
+	default: async ({cookies, request}: {"cookies": any, "request": any}) => {
         const formData = await request.formData();
         const dark = formData.get('dark')?.toString();
         const cardDesign = formData.get('cardDesign')?.toString();
@@ -31,12 +31,12 @@ export const actions = {
             return {error: "Missing required fields"};
         }
 
-        let darkString;
+        let darkBool;
 
         if (dark === "on") {
-            darkString = "true";
+            darkBool = true;
         } else {
-            darkString = "false";
+            darkBool = false;
         }
 
         if (typeof cardDesign !== "string" || typeof theme !== "string") {
@@ -53,21 +53,21 @@ export const actions = {
             return {error: "Invalid theme"}
         }
 
-        cookies.set('dark', darkString, {
-            path: '/',
-            httpOnly: false,
-            secure: false,
-            maxAge: 60 * 60 * 24 * 30});
-        cookies.set('theme', theme, {
-            path: '/',
-            httpOnly: false,
-            secure: false,
-            maxAge: 60 * 60 * 24 * 30});
-        cookies.set('cardDesign', cardDesign, {
-            path: '/',
-            httpOnly: false,
-            secure: false,
-            maxAge: 60 * 60 * 24 * 30});
+        let requestData = {
+            username: cookies.get("username"),
+            password: cookies.get("password"),
+            dark: darkBool,
+            theme: theme,
+            cardDesign: cardDesign
+        }
+
+        fetch(BACKEND_URL + "/preferences", {
+            method: 'POST', // Set the method to POST
+            headers: {
+                'Content-Type': 'application/json' // Set the headers appropriately
+            },
+            body: JSON.stringify(requestData) // Convert your data to JSON
+        });
 
         throw redirect(303, "/");
 	}

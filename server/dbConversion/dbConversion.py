@@ -300,3 +300,22 @@ def convertDBToTimestamptz(db, alterTables=True):
 
     for game in corellianSpikeGames:
         db.execute("UPDATE corellian_spike_games SET created_at = %s WHERE game_id = %s;", (datetime(game.created_at.year, game.created_at.month, game.created_at.day, game.created_at.hour, game.created_at.minute, game.created_at.second, game.created_at.microsecond, tzinfo=timezone.utc), game.id))
+
+def update0(conn: sqlite3.Connection):
+    db = conn.cursor()
+    db.execute("""ALTER TABLE users ADD COLUMN preferences TEXT NOT NULL DEFAULT '{"dark": true, "theme": "modern", "cardDesign": "pescado"}'""")
+    db.execute("PRAGMA user_version = 1")
+    print("updating from version 0 to version 1    ... adding preferences to user database")
+
+updateFunctions = [
+    update0 # this function (index 0) updates a database from version 0 to version 1
+]
+
+# Checks the current db version and incrementally runs each update function up to the desired version.
+def updateDbToVersion(conn: sqlite3.Connection, version: int):
+    db = conn.cursor()
+    currentVersion = db.execute("PRAGMA user_version;").fetchone()[0]
+    print(f"current database version: {currentVersion}")
+    for i in range(currentVersion, version):
+        updateFunctions[i](conn)
+    conn.commit()

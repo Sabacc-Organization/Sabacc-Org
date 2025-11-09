@@ -23,6 +23,8 @@ from psycopg.types.composite import CompositeInfo, register_composite
 import signal
 from datetime import datetime
 
+TARGET_DB_VERSION = 1
+
 # Get config.yml data
 config = {}
 with open("config.yml", "r") as f:
@@ -60,7 +62,7 @@ CORS(app, origins=allowedCORS)
 # links the socketio session to a users username and id
 clientUserMap = {}
 
-# Connect to postgresql database
+# Connect to sqlite database
 conn = sqlite3.connect(config['DATABASE'], check_same_thread=False)
 print(conn)
 
@@ -167,6 +169,8 @@ usingPsql = False
 
 # conn.commit()
 
+from dbConversion.dbConversion import updateDbToVersion
+updateDbToVersion(conn, TARGET_DB_VERSION)
 
 """ REST APIs """
 
@@ -290,31 +294,31 @@ def register():
     # Ensure username was submitted
     username = request.json.get("username")
     if not username:
-        return jsonify({"message": "Must provide username"}), 401
+        return jsonify({"message": "Must provide username"}), 400
 
     if " " in username:
-        return jsonify({"message": "Please do not put spaces in your username"}), 401
+        return jsonify({"message": "Please do not put spaces in your username"}), 400
 
     # Check that username has not already been taken
     if db.execute("SELECT * FROM users WHERE username = ?", [username]).fetchall() != []:
-        return jsonify({"message": "Username has already been taken"}), 401
+        return jsonify({"message": "Username has already been taken"}), 409
 
     # Ensure password is valid
     password = request.json.get("password")
     if not password:
-        return jsonify({"message": "Must provide password"}), 401
+        return jsonify({"message": "Must provide password"}), 400
 
     # Ensure confirmation password is valid
     confirmation = request.json.get("confirmPassword")
 
     if not confirmation:
-        return jsonify({"message": "Must provide confirmation password"}), 401
+        return jsonify({"message": "Must provide confirmation password"}), 400
 
     if confirmation != password:
-        return jsonify({"message": "Confirmation and password do not match"}), 401
+        return jsonify({"message": "Confirmation and password do not match"}), 400
 
     if " " in password:
-        return jsonify({"message": "Please do not put spaces in your password"}), 401
+        return jsonify({"message": "Please do not put spaces in your password"}), 400
 
     # Complete registration
     passHash = generate_password_hash(password)
@@ -391,11 +395,11 @@ def host():
             db.execute("SELECT * FROM users WHERE username = ?", [pForm])
             p = getDictsForDB(db)
             if len(p) == 0:
-                return jsonify({"message": f"Player {pForm} does not exist"}), 401
+                return jsonify({"message": f"Player {pForm} does not exist"}), 400
             if str(p[0]["id"]) == str(user_id):
-                return jsonify({"message": "You cannot play with yourself"}), 401
+                return jsonify({"message": "You cannot play with yourself"}), 400
             if p[0]["id"] in playerIds:
-                return jsonify({"message": "All players must be different"}), 401
+                return jsonify({"message": "All players must be different"}), 400
 
             playerIds.append(p[0]["id"])
             playerUsernames.append(p[0]["username"])
@@ -404,7 +408,7 @@ def host():
     game = None
 
     if not game_variant in ('traditional', 'corellian_spike', 'kessel'):
-        return jsonify({"message": "Invalid game variant"}), 401
+        return jsonify({"message": "Invalid game variant"}), 400
 
     # Create new game
     if game_variant == "traditional":
@@ -415,10 +419,10 @@ def host():
         game = KesselGame.newGame(playerIds=playerIds, playerUsernames=playerUsernames, db=db, settings=request.json.get("settings"))
 
     if not game:
-        return jsonify({"message": "Invalid game variant"}), 401
+        return jsonify({"message": "Invalid game variant"}), 400
 
     if type(game) == str:
-        return jsonify({"message": game}), 401
+        return jsonify({"message": game}), 400
 
     # Create game in database
     conn.commit()
@@ -430,6 +434,41 @@ def host():
 
     # Redirect user to game
     return jsonify({"message": "Game hosted!", "redirect": f"/game/{game_variant.replace('_', '-')}/{game_id}"}), 200
+
+@app.route("/preferences", methods=["POST"])
+@cross_origin()
+def preferences():
+    """ change user preferences """
+    db = conn.cursor()
+    jsonData: dict = request.get_json()
+    # print(jsonData)
+
+    # Authenticate User
+    username = jsonData.get("username")
+    password = jsonData.get("password")
+    check = checkLogin(db, username, password)
+    if check["status"] != 200:
+        return jsonify({"message": check["message"]}), check["status"]
+
+    # Get User ID
+    db.execute("SELECT id FROM users WHERE username = ?", [username])
+    user_id = getDictsForDB(db)[0]["id"]
+
+    current = json.loads(db.execute("SELECT preferences FROM users WHERE id = ?", [user_id]).fetchall()[0][0])
+    setsSomething = False
+    if ("dark" in jsonData):
+        current["dark"] = jsonData["dark"]
+        setsSomething = True
+    if ("theme" in jsonData):
+        current["theme"] = jsonData["theme"]
+        setsSomething = True
+    if ("cardDesign" in jsonData):
+        current["cardDesign"] = jsonData["cardDesign"]
+        setsSomething = True
+
+    if setsSomething:
+        db.execute("UPDATE users SET preferences = ? WHERE id = ?", [json.dumps(current), user_id])
+    return jsonify({"message": "Preferences Updated!", "dark": current["dark"], "theme": current["theme"], "cardDesign": current["cardDesign"]}), 200
 
 """ Gameplay REST APIs """
 
@@ -449,7 +488,7 @@ def gameAction(clientInfo):
     user_id = db.execute("SELECT id FROM users WHERE username = ?", [username]).fetchone()
 
     if not user_id:
-        return jsonify({"message": "User does not exist"}), 401
+        return jsonify({"message": "User does not exist"}), 400
 
     # Get game info
     game_variant = clientInfo["game_variant"]

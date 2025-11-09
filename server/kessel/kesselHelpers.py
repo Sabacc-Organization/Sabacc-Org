@@ -616,7 +616,7 @@ class KesselGame(Game):
     def shiftTokenUse(self, player: KesselPlayer, shiftToken: str):
         if shiftToken == "freeDraw":
             self.activeShiftTokens.append(["freeDraw", str(player.id)])
-            self.p_act = f'{player.username} used free draw shift token, thier next draw will be free.'
+            self.p_act = f'{player.username} used free draw shift token, their next draw will be free.'
             player.lastAction = 'uses free draw'
 
         elif shiftToken == "refund":

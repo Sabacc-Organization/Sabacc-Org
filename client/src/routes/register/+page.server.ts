@@ -9,7 +9,7 @@ import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, platform }) {
-    if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
+    if (!cookies.get("username") || !cookies.get("password")) {
         return;
     }
     
@@ -21,7 +21,7 @@ export async function load({ cookies, platform }) {
 }
 
 export const actions = {
-	default: async ({cookies, request}) => {
+	default: async ({cookies, request}: {"cookies": any, "request": any}) => {
         const formData = await request.formData();
         const username = formData.get('username')?.toString();
         const password = formData.get('password')?.toString();
@@ -60,22 +60,6 @@ export const actions = {
                     httpOnly: false,
                     secure: false,
                     maxAge: 60 * 60 * 24 * 30});
-                cookies.set('dark', "false", {
-                    path: '/',
-                    httpOnly: false,
-                    secure: false,
-                    maxAge: 60 * 60 * 24 * 30});
-                cookies.set('theme', "modern", {
-                    path: '/',
-                    httpOnly: false,
-                    secure: false,
-                    maxAge: 60 * 60 * 24 * 30});
-                cookies.set('cardDesign', "auto", {
-                    path: '/',
-                    httpOnly: false,
-                    secure: false,
-                    maxAge: 60 * 60 * 24 * 30});
-
                 throw redirect(303, "/");
             }
             return {error: res["message"]};

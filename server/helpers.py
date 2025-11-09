@@ -331,15 +331,15 @@ class Game:
 def getDictsForDB(cursor: sqlite3.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
-    print("Columns: ", columns)
+    # print("Columns: ", columns)
 
     returnList = []
     for row in rows:
         rowDict = {}
-        print("Row: ", row)
-        print("enum: ", enumerate(row))
+        # print("Row: ", row)
+        # print("enum: ", enumerate(row))
         for i, col in enumerate(columns):
-            print(f"i: {i}, col: {col}")
+            # print(f"i: {i}, col: {col}")
             rowDict[col[0]] = row[i]
         returnList.append(rowDict)
     
@@ -387,6 +387,7 @@ def checkLogin(db, username, password):
     # Attempt to find the password hash of this user
     orHash = None
     try:
+        # print("username", username, "type", type(username))
         db.execute("SELECT * FROM users WHERE username = ?", [username])
         orHash = getDictsForDB(db)[0]["hash"]
     except IndexError:
@@ -394,6 +395,7 @@ def checkLogin(db, username, password):
         return {"message": f"User {username} does not exist", "status": 401}
 
     # Check if password is correct using password hashes
+    # print("hwere2342", orHash, password)
     if check_password_hash(orHash, password) == False:
         return {"message": f"Incorrect password", "status": 401}
     

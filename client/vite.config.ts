@@ -12,5 +12,30 @@ export default defineConfig({
 			],
 		},
 	},
-	plugins: [sveltekit()]
+	plugins: [sveltekit()],
+	optimizeDeps: {
+		include: ['chart.js', 'chart.js/auto', 'socket.io-client']
+	},
+	build: {
+		rollupOptions: {
+			output: {
+				manualChunks: (id) => {
+					if (id.includes('chart.js')) {
+						return 'chart';
+					}
+					if (id.includes('socket.io-client')) {
+						return 'socketio';
+					}
+				}
+			}
+		}
+	},
+	ssr: {
+		noExternal: ['chart.js', 'socket.io-client']
+	},
+	resolve: {
+		alias: {
+			'chart.js/auto': 'chart.js/auto'
+		}
+	}
 })

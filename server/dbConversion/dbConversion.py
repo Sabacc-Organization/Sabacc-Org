@@ -48,9 +48,9 @@ def convertPsqlToSqlite(sqlite_db, psql_conn):
 
     print("Registered Kessel custom types")
 
-    psql_users = psql_db.execute("SELECT username, hash FROM users ORDER BY id ASC").fetchall()
+    psql_users = psql_db.execute("SELECT * FROM users ORDER BY id ASC").fetchall()
     for user in psql_users:
-        sqlite_db.execute("INSERT INTO users (username, hash, created_at) VALUES (?, ?, ?)", [user[0], user[1], None])
+        sqlite_db.execute("INSERT INTO users (id, username, hash, created_at) VALUES (?, ?, ?, ?)", [user[0], user[1], user[2], None])
 
     print("Users copied over")
 

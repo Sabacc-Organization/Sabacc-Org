@@ -15,13 +15,12 @@ import sqlite3
 import psycopg
 from psycopg.types.composite import CompositeInfo, register_composite
 
-from dbConversion.psql_helpers.psql_traditionalHelpers import *
-from dbConversion.psql_helpers.psql_corellianHelpers import *
-from dbConversion.psql_helpers.psql_kesselHelpers import *
-
 
 # convert from psql to sqlite3
 def convertPsqlToSqlite(sqlite_db, psql_conn):
+    from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame
+    from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame
+    from dbConversion.psql_helpers.psql_kesselHelpers import KesselGame
 
     psql_db = psql_conn.cursor()
 
@@ -107,7 +106,7 @@ def cleanDeckData(sqlite3_db):
 
 # copy over data from sqlite3 to postgresql db with only traditional (pre CS)
 def convertSqliteToPsql(db, card_type, player_type):
-
+    from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame, TraditionalCard, TraditionalPlayer
     """ Verify PostgreSQL db is empty - VERY IMPORTANT """
     if len(db.execute("SELECT * FROM users").fetchall()) > 0 or len(db.execute("SELECT * FROM games").fetchall()) > 0:
         print(f"{Fore.RED}PostgreSQL database is not empty. THIS SCRIPT IS NOT MEANT FOR THIS! PLEASE REVIEW! RISK OF DATA LOSS!{Fore.WHITE}")
@@ -218,6 +217,7 @@ def convertSqliteToPsql(db, card_type, player_type):
 # copy over data from postgresql db with only traditional to db with traditional and CS
 # only needs to modify the games table and game data
 def transferTraditionalGames(db, traditional_card_type, traditional_player_type):
+    from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame
     allTraditionalGames = [TraditionalGame.fromDb(game) for game in db.execute("SELECT * FROM games").fetchall()]
 
     numGamesCopied = 0
@@ -260,6 +260,8 @@ defaultCorellianSpikeSettings = {
 
 # Accounts for settings that are not in the original psql database and adds poker style betting
 def convertPreSettingsToPostSettings(db, traditional_card_type, traditional_player_type, corellian_spike_card_type, corellian_spike_player_type):
+    from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame
+    from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame
     allTraditionalGames = [TraditionalGame.fromDb(game, preSettings=True) for game in db.execute("SELECT * FROM traditional_games ORDER BY game_id ASC;").fetchall()]
     db.execute("DROP TABLE traditional_games;")
     db.execute("CREATE TABLE IF NOT EXISTS traditional_games (game_id SERIAL PRIMARY KEY, players TraditionalPlayer[], hand_pot INTEGER NOT NULL DEFAULT 0, sabacc_pot INTEGER NOT NULL DEFAULT 0, phase TEXT NOT NULL DEFAULT 'betting', deck TraditionalCard[], player_turn INTEGER, p_act TEXT, cycle_count INTEGER NOT NULL DEFAULT 0, shift BOOL NOT NULL DEFAULT false, completed BOOL NOT NULL DEFAULT false, settings JSONB NOT NULL DEFAULT '{ \"PokerStyleBetting\" : false, \"SmallBlind\" : 1, \"BigBlind\" : 2, \"HandPotAnte\": 5, \"SabaccPotAnte\": 10, \"StartingCredits\" : 1000 }', created_at TIMESTAMP DEFAULT NOW());")
@@ -285,6 +287,8 @@ def convertPreSettingsToPostSettings(db, traditional_card_type, traditional_play
 
 # converting games tables created_at from TIMESTAMP to TIMESTAMPTZ
 def convertDBToTimestamptz(db, alterTables=True):
+    from dbConversion.psql_helpers.psql_traditionalHelpers import TraditionalGame
+    from dbConversion.psql_helpers.psql_corellianHelpers import CorellianSpikeGame
     if alterTables:
         db.execute("ALTER TABLE traditional_games ALTER COLUMN created_at TYPE TIMESTAMPTZ;")
         db.execute("ALTER TABLE traditional_games ALTER COLUMN created_at SET DEFAULT NOW();")

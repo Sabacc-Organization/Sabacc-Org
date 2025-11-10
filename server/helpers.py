@@ -233,20 +233,42 @@ class Game:
     @abstractmethod
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
-
+    
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
 
         gameDict = self.toDict()
         gameDict.pop('deck')
         if self.completed is False:
-            for p in gameDict['players']:
-                if p['id'] == player.id:
+            for p in range(len(gameDict['players'])):
+                if gameDict["players"][p]['id'] == player.id:
                     continue
 
-                for card in p['hand']:
+                for card in gameDict["players"][p]['hand']:
                     card['suit'] = 'hidden'
                     card['val'] = 0
+
+            followGameDict = self.toDict()
+
+            for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                for key, value in gameDict["move_history"][i].items():
+                    followGameDict[key] = value
+                if followGameDict["completed"] is True:
+                    gameDict["move_history"][i]["players"] = followGameDict["players"]
+                    gameDict["move_history"][i]["deck"] = followGameDict["deck"]
+                    break
+
+                if "players" in gameDict["move_history"][i]:
+                    for p in range(len(gameDict["move_history"][i]['players'])):
+                        if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                            continue
+
+                        for card in gameDict["move_history"][i]["players"][p]['hand']:
+                            card['suit'] = 'hidden'
+                            card['val'] = 0
+
+                if "deck" in gameDict["move_history"][i]:
+                    gameDict["move_history"][i].pop("deck")
 
         users = [i.username for i in self.getActivePlayers()]
 
@@ -375,7 +397,8 @@ def login_required(f):
     return decorated_function
 
 # Attempt to Authenticate User
-def checkLogin(db, username, password):
+def checkLogin(conn: sqlite3.Connection, username, password):
+    db = conn.cursor()
     # If username is none
     if not username:
         return {"message": "Must provide username", "status": 401}

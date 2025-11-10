@@ -530,7 +530,7 @@ class CorellianSpikeGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
+        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=bool(game[10]), completed=bool(game[11]), settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
 
         if preSettings == False:
             gameObj.settings = json.loads(game[12])

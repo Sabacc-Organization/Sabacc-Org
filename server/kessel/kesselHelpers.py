@@ -229,18 +229,47 @@ class KesselGame(Game):
         users = [i.username for i in self.getActivePlayers()]
 
         if (self.completed is False) and (not self.phase in ('reveal', 'imposterRoll', 'imposterChoice')):
-            for p in gameDict['players']:
-                if p['id'] == player.id:
+            for p in range(len(gameDict['players'])):
+                if gameDict["players"][p]['id'] == player.id:
                     continue
 
-                p['positiveCard']['suit'] = 'hidden'
-                p['positiveCard']['val'] = 0
-                p['negativeCard']['suit'] = 'hidden'
-                p['negativeCard']['val'] = 0
+                gameDict["players"][p]['positiveCard']['suit'] = 'hidden'
+                gameDict["players"][p]['positiveCard']['val'] = 0
+                gameDict["players"][p]['negativeCard']['suit'] = 'hidden'
+                gameDict["players"][p]['negativeCard']['val'] = 0
 
-                if p['extraCard'] is not None:
-                    p['extraCard']['suit'] = 'hidden'
-                    p['extraCard']['val'] = 0
+                if gameDict["players"][p]['extraCard'] is not None:
+                    gameDict["players"][p]['extraCard']['suit'] = 'hidden'
+                    gameDict["players"][p]['extraCard']['val'] = 0
+
+            followGameDict = self.toDict()
+
+            for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                for key, value in gameDict["move_history"][i].items():
+                    followGameDict[key] = value
+                if followGameDict["completed"] is True or followGameDict["phase"] in ('reveal', 'imposterRoll', 'imposterChoice'):
+                    gameDict["move_history"][i]["players"] = followGameDict["players"]
+                    gameDict["move_history"][i]["positiveDeck"] = followGameDict["positiveDeck"]
+                    gameDict["move_history"][i]["negativeDeck"] = followGameDict["negativeDeck"]
+                    break
+                
+                if "players" in gameDict["move_history"][i]:
+                    for p in range(len(gameDict["move_history"][i]['players'])):
+                        if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                            continue
+
+                        gameDict["move_history"][i]["players"][p]['positiveCard']['suit'] = 'hidden'
+                        gameDict["move_history"][i]["players"][p]['positiveCard']['val'] = 0
+                        gameDict["move_history"][i]["players"][p]['negativeCard']['suit'] = 'hidden'
+                        gameDict["move_history"][i]["players"][p]['negativeCard']['val'] = 0
+
+                        if gameDict["move_history"][i]["players"][p]['extraCard'] is not None:
+                            gameDict["move_history"][i]["players"][p]['extraCard']['suit'] = 'hidden'
+                            gameDict["move_history"][i]["players"][p]['extraCard']['val'] = 0
+                if "positiveDeck" in gameDict["move_history"][i]:
+                    gameDict["move_history"][i].pop("positiveDeck")
+                if "negativeDeck" in gameDict["move_history"][i]:
+                    gameDict["move_history"][i].pop("negativeDeck")
 
         gameDict.pop("positiveDeck")
         gameDict.pop("negativeDeck")
@@ -279,7 +308,7 @@ class KesselGame(Game):
             player_turn = game[9],
             p_act = game[10],
             cycle_count = game[11],
-            completed = game[12],
+            completed = bool(game[12]),
             settings = json.loads(game[13]),
             created_at = game[14],
             move_history = None if not game[15] else json.loads(game[15])

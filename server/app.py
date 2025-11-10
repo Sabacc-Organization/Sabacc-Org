@@ -22,6 +22,8 @@ import sqlite3
 from psycopg.types.composite import CompositeInfo, register_composite
 import signal
 from datetime import datetime
+from threading import local as threading_local
+from atexit import register as registerExit
 
 TARGET_DB_VERSION = 1
 
@@ -62,13 +64,30 @@ CORS(app, origins=allowedCORS)
 # links the socketio session to a users username and id
 clientUserMap = {}
 
+
+threadLocal = threading_local() # threadLocal refers to a variable that is unique to each thread
+# function that returns a thread safe connection
+def getConn():
+    conn = getattr(threadLocal, "conn", None)
+    if conn is None:
+        conn = sqlite3.connect(config["DATABASE"])
+        conn.row_factory = sqlite3.Row
+        threadLocal.conn = conn
+    return conn
+
+def closeConn():
+    conn = getattr(threadLocal, "conn", None)
+    if conn is not None:
+        conn.close()
+
+registerExit(closeConn)
+
+@socketio.on("disconnect")
+def cleanup():
+    closeConn()
+
 # Connect to sqlite database
-conn = sqlite3.connect(config['DATABASE'], check_same_thread=False)
-print(conn)
-
-
-# Open a cursor to perform database operations
-sqlite_db = conn.cursor()
+print(getConn())
 
 # Make sure all tables exist in the db
 query = ""
@@ -76,8 +95,8 @@ with open('schema.sql', 'r') as f:
     query = f.read()
 
 # Execute the query
-sqlite_db.executescript(query)
-conn.commit()
+getConn().cursor().executescript(query)
+getConn().commit()
 # conn.close()
 
 # important variable to make sure psql doesn't get used
@@ -170,7 +189,7 @@ usingPsql = False
 # conn.commit()
 
 from dbConversion.dbConversion import updateDbToVersion
-updateDbToVersion(conn, TARGET_DB_VERSION)
+updateDbToVersion(getConn(), TARGET_DB_VERSION)
 
 """ REST APIs """
 
@@ -179,12 +198,10 @@ updateDbToVersion(conn, TARGET_DB_VERSION)
 def login():
     """Log user in"""
 
-    db = conn.cursor()
-
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(db, username, password)
+    check = checkLogin(getConn(), username, password)
     if check["status"] != 200:
         print(f'error was here, {check}')
         return jsonify({"message": check["message"]}), check["status"]
@@ -225,12 +242,12 @@ def index():
 
     """ Get Info for Home Page """
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(db, username, password)
+    check = checkLogin(getConn(), username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
@@ -289,7 +306,7 @@ def index():
 def register():
     """Register user"""
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     # Ensure username was submitted
     username = request.json.get("username")
@@ -323,14 +340,14 @@ def register():
     # Complete registration
     passHash = generate_password_hash(password)
     db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", [username, str(passHash)])
-    conn.commit()
+    getConn().commit()
 
     # Redirect user to home page
     return jsonify({"message": "Registered!"}), 200
 
 def getGameFromDb(game_variant, game_id):
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     if game_variant == 'traditional':
         return TraditionalGame.fromDb(db.execute("SELECT * FROM traditional_games WHERE game_id = ?", [int(game_id)]).fetchall()[0])
@@ -345,7 +362,7 @@ def getGameFromDb(game_variant, game_id):
 @socketio.on('getGame')
 def getGameClientInfo(clientInfo):
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     user_id = -1
     if clientInfo["username"] != "":
@@ -367,12 +384,12 @@ def getGameClientInfo(clientInfo):
 def host():
     """ Make a new game of Sabacc """
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
-    check = checkLogin(db, username, password)
+    check = checkLogin(getConn(), username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
@@ -425,7 +442,7 @@ def host():
         return jsonify({"message": game}), 400
 
     # Create game in database
-    conn.commit()
+    getConn().commit()
 
     print(game_variant)
 
@@ -439,14 +456,14 @@ def host():
 @cross_origin()
 def preferences():
     """ change user preferences """
-    db = conn.cursor()
+    db = getConn().cursor()
     jsonData: dict = request.get_json()
     # print(jsonData)
 
     # Authenticate User
     username = jsonData.get("username")
     password = jsonData.get("password")
-    check = checkLogin(db, username, password)
+    check = checkLogin(getConn(), username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
@@ -468,6 +485,7 @@ def preferences():
 
     if setsSomething:
         db.execute("UPDATE users SET preferences = ? WHERE id = ?", [json.dumps(current), user_id])
+    getConn().commit()
     return jsonify({"message": "Preferences Updated!", "dark": current["dark"], "theme": current["theme"], "cardDesign": current["cardDesign"]}), 200
 
 """ Gameplay REST APIs """
@@ -476,12 +494,12 @@ def preferences():
 def gameAction(clientInfo):
     """ Perform an action in a game """
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     # Authenticate User
     username = clientInfo["username"]
     password = clientInfo["password"]
-    check = checkLogin(db, username, password)
+    check = checkLogin(getConn(), username, password)
     if check["status"] != 200:
         return jsonify({"message": check["message"]}), check["status"]
 
@@ -504,7 +522,7 @@ def gameAction(clientInfo):
     if isinstance(response, str):
         return jsonify({"message": response}), 401
 
-    conn.commit()
+    getConn().commit()
 
     game = getGameFromDb(game_variant, game_id)
     clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')
@@ -527,7 +545,7 @@ def chat():
 
     """Global Chat using Socket.IO"""
 
-    db = conn.cursor()
+    db = getConn().cursor()
 
     # Tell the client what their username is
     user_id = session.get("user_id")
@@ -564,7 +582,7 @@ def handle_sigint(signum, frame):
     print("\nCleaning up resources before shutdown...")
 
     # close db connection
-    conn.close()
+    getConn().close()
     if usingPsql:
         psql_conn.close()
 

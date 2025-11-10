@@ -36,6 +36,36 @@ export async function checkLogin(username, password, BACKEND_URL) {
     }
 }
 
+/**
+ * @param {string} username
+ * @param {string} password
+ * @param {string} BACKEND_URL
+ */
+export async function getPreferences(username, password, BACKEND_URL) {
+
+    try {
+
+        let requestData = {
+            "username": username,
+            "password": password
+        };
+
+        const response = await fetch(BACKEND_URL + "/preferences", {
+            method: 'POST', // Set the method to POST
+            headers: {
+                'Content-Type': 'application/json' // Set the headers appropriately
+            },
+            body: JSON.stringify(requestData) // Convert your data to JSON
+        });
+        // console.log("awer", await response.text());
+        let res = await response.json();
+        // console.log("awer2", await res);
+        return await res;
+    } catch (e) {
+        console.log(e);
+        return {"dark": true, "theme": "modern", "cardDesign": "pescado"};
+    }
+}
 
 /**
  * @param {string} username

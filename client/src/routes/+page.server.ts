@@ -1,19 +1,21 @@
 /** @type {import('./$types').PageServerLoad} */
 
-import { backendPostRequest, checkLogin } from "$lib";
+import { backendPostRequest, checkLogin, getPreferences } from "$lib";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export async function load({ cookies, platform }) {
 
     let loggedIn;
-    if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
+    const username = cookies.get("username");
+    const password = cookies.get("password");
+    if (!username || !password) {
         return {loggedIn: false};
     }
     
-	loggedIn = await checkLogin(cookies.get("username"), cookies.get("password"), BACKEND_URL);
+	loggedIn = await checkLogin(username, password, BACKEND_URL);
 
     return {
-        gamesData: await backendPostRequest(cookies.get("username"), cookies.get("password"), BACKEND_URL + "/")
+        gamesData: await backendPostRequest(username, password, BACKEND_URL + "/")
     }
 }

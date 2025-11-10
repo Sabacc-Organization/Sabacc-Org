@@ -8,6 +8,10 @@
             "type": {
                 "type": "string"
             },
+            "time": {
+                "type": "string",
+                "format": "date-time"
+            },
             "changes": {
                 "type": "array",
                 "items": {

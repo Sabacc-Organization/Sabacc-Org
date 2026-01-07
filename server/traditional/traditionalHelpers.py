@@ -270,7 +270,51 @@ class TraditionalGame(Game):
             db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, json.dumps(settings)])
 
         return game
-    
+
+    def getClientData(self, user_id = None, username = None):
+        player: Player = self.getPlayer(username, user_id)
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        if self.completed is False:
+            for p in range(len(gameDict['players'])):
+                if gameDict["players"][p]['id'] == player.id:
+                    continue
+
+                for card in range(len(gameDict["players"][p]['hand'])):
+                    if gameDict["players"][p]["hand"][card]['prot'] is True:
+                        continue
+                    gameDict["players"][p]["hand"][card]['suit'] = 'hidden'
+                    gameDict["players"][p]["hand"][card]['val'] = 0
+
+            followGameDict = self.toDict()
+
+            for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                for key, value in gameDict["move_history"][i].items():
+                    followGameDict[key] = value
+                if followGameDict["completed"] is True:
+                    gameDict["move_history"][i]["players"] = followGameDict["players"]
+                    gameDict["move_history"][i]["deck"] = followGameDict["deck"]
+                    break
+
+                if "players" in gameDict["move_history"][i]:
+                    for p in range(len(gameDict["move_history"][i]['players'])):
+                        if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                            continue
+
+                        for card in range(len(gameDict["move_history"][i]["players"][p]['hand'])):
+                            if gameDict["move_history"][i]["players"][p]["hand"][card]['prot'] is True:
+                                continue
+                            gameDict["move_history"][i]["players"][p]["hand"][card]['suit'] = 'hidden'
+                            gameDict["move_history"][i]["players"][p]["hand"][card]['val'] = 0
+
+                if "deck" in gameDict["move_history"][i]:
+                    gameDict["move_history"][i].pop("deck")
+                
+        users = [i.username for i in self.getActivePlayers()]
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
+
     # sets up for next round
     def nextRound(self):
         # rotate dealer (1st in list is always dealer) - move 1st player to end
@@ -341,8 +385,8 @@ class TraditionalGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        print("game: ", game[0])
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
+        # print("game: ", game[0])
+        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=bool(game[9]),completed=bool(game[10]),settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
         if preSettings == False:
             gameObj.settings = json.loads(game[11])
         return gameObj

@@ -233,15 +233,44 @@ class Game:
     @abstractmethod
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
-
+    
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
 
         gameDict = self.toDict()
         gameDict.pop('deck')
+        if self.completed is False:
+            for p in range(len(gameDict['players'])):
+                if gameDict["players"][p]['id'] == player.id:
+                    continue
+
+                for card in gameDict["players"][p]['hand']:
+                    card['suit'] = 'hidden'
+                    card['val'] = 0
+
+            followGameDict = self.toDict()
+
+            for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                for key, value in gameDict["move_history"][i].items():
+                    followGameDict[key] = value
+                if followGameDict["completed"] is True:
+                    gameDict["move_history"][i]["players"] = followGameDict["players"]
+                    gameDict["move_history"][i]["deck"] = followGameDict["deck"]
+                    break
+
+                if "players" in gameDict["move_history"][i]:
+                    for p in range(len(gameDict["move_history"][i]['players'])):
+                        if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                            continue
+
+                        for card in gameDict["move_history"][i]["players"][p]['hand']:
+                            card['suit'] = 'hidden'
+                            card['val'] = 0
+
+                if "deck" in gameDict["move_history"][i]:
+                    gameDict["move_history"][i].pop("deck")
+
         users = [i.username for i in self.getActivePlayers()]
-        # print(gameDict)
-        # print(f'\n\n{self.player_turn}\n\n')
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
 
@@ -324,15 +353,15 @@ class Game:
 def getDictsForDB(cursor: sqlite3.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
-    print("Columns: ", columns)
+    # print("Columns: ", columns)
 
     returnList = []
     for row in rows:
         rowDict = {}
-        print("Row: ", row)
-        print("enum: ", enumerate(row))
+        # print("Row: ", row)
+        # print("enum: ", enumerate(row))
         for i, col in enumerate(columns):
-            print(f"i: {i}, col: {col}")
+            # print(f"i: {i}, col: {col}")
             rowDict[col[0]] = row[i]
         returnList.append(rowDict)
     
@@ -368,7 +397,8 @@ def login_required(f):
     return decorated_function
 
 # Attempt to Authenticate User
-def checkLogin(db, username, password):
+def checkLogin(conn: sqlite3.Connection, username, password):
+    db = conn.cursor()
     # If username is none
     if not username:
         return {"message": "Must provide username", "status": 401}
@@ -380,6 +410,7 @@ def checkLogin(db, username, password):
     # Attempt to find the password hash of this user
     orHash = None
     try:
+        # print("username", username, "type", type(username))
         db.execute("SELECT * FROM users WHERE username = ?", [username])
         orHash = getDictsForDB(db)[0]["hash"]
     except IndexError:
@@ -387,6 +418,7 @@ def checkLogin(db, username, password):
         return {"message": f"User {username} does not exist", "status": 401}
 
     # Check if password is correct using password hashes
+    # print("hwere2342", orHash, password)
     if check_password_hash(orHash, password) == False:
         return {"message": f"Incorrect password", "status": 401}
     

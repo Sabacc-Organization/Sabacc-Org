@@ -1,23 +1,26 @@
 /** @type {import('./$types').PageServerLoad} */
 
-import { checkLogin } from "$lib";
+import { checkLogin, getPreferences } from "$lib";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export async function load({ cookies, platform }) {
 
     let loggedIn;
-    if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
+    const username = cookies.get("username");
+    const password = cookies.get("password");
+    if (!username || !password) {
         return {loggedIn: false};
     }
     
-	loggedIn = await checkLogin(cookies.get("username"), cookies.get("password"), BACKEND_URL);
+	loggedIn = await checkLogin(username, password, BACKEND_URL);
+    const preferences: {"dark": boolean, "theme": string, "cardDesign": string} = await getPreferences(username, password, BACKEND_URL);
 
     return {
         loggedIn: loggedIn,
-        username: cookies.get("username"),
-        dark: cookies.get("dark"),
-        theme: cookies.get("theme"),
-        cardDesign: cookies.get("cardDesign")
-    }
+        username: username,
+        dark: preferences["dark"],
+        theme: preferences["theme"],
+        cardDesign: preferences["cardDesign"]
+    };
 }

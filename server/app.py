@@ -25,12 +25,17 @@ from threading import local as threading_local
 from atexit import register as registerExit
 from datetime import datetime, timedelta
 import json
-
-TARGET_DB_VERSION = 1
+from pathlib import Path
 
 # Get config.yml data
+# users can have a config.local.yml or local.config.yml that isn't tracked by git so they dont accidentally commit personal information
+configPath = "config.yml"
+for potentialPath in ["config.local.yml", "local.config.yml", "config.yml"]:
+    if Path(potentialPath).exists():
+        configPath = configPath
+        break
 config = {}
-with open("config.yml", "r") as f:
+with open(configPath, "r") as f:
     config = yaml.safe_load(f)
 
 # Configure application
@@ -132,6 +137,8 @@ psql_conn = None
 # conn.commit()
 
 from dbConversion.dbConversion import updateDbToVersion
+TARGET_DB_VERSION = config["TARGET_DB_VERSION"]
+usingPsql = TARGET_DB_VERSION < 0
 updateDbToVersion(getConn(), TARGET_DB_VERSION)
 
 """ REST APIs """
@@ -144,6 +151,7 @@ def login():
     # Authenticate User
     username = request.json.get("username")
     password = request.json.get("password")
+    print(f"login attempt with username {username}")
     check = checkLogin(getConn(), username, password)
     if check["status"] != 200:
         print(f'error was here, {check}')
@@ -248,7 +256,7 @@ def index():
 def stats():
     """ Get game statistics """
     
-    db = conn.cursor()
+    db = getConn().cursor()
     
     # Get total number of games for each type
     traditional_total = db.execute("SELECT COUNT(*) FROM traditional_games").fetchone()[0]
@@ -692,7 +700,7 @@ def stats():
 def player_info():
     """ Get detailed information about a specific player """
     
-    db = conn.cursor()
+    db = getConn().cursor()
     
     # Get username from request
     username = request.json.get("username")
@@ -1467,7 +1475,7 @@ def handle_sigint(signum, frame):
     print("\nCleaning up resources before shutdown...")
 
     # close db connection
-    getConn().close()
+    closeConn()
     if usingPsql:
         psql_conn.close()
 

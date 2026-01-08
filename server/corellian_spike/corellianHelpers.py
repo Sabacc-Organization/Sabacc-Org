@@ -397,6 +397,9 @@ class CorellianSpikeGame(Game):
             return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
 
         return
+    
+    def getVariant(self):
+        return "corellian_spike"
 
     def discardPileToDb(self):
         return json.dumps(self.discardPileToDict())
@@ -556,6 +559,14 @@ class CorellianSpikeGame(Game):
             created_at=dict['created_at'],
             move_history=dict['move_history']
         )
+    
+    def getNextPhase(self):
+        if self.phase == "card":
+            return "betting"
+        elif self.phase == "betting":
+            return "shift"
+        elif self.phase == "shift":
+            return "card"
 
     # overrides parent method
     def action(self, params:dict, db):
@@ -563,7 +574,22 @@ class CorellianSpikeGame(Game):
 
         player = self.getPlayer(username=params["username"])
 
-        if (params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard", "alderaan"]) and (self.phase in ["card", "alderaan"]) and (self.player_turn == player.id) and (self.completed == False):
+        if params["action"] == "quit":
+            self.quitPlayer(player)
+
+            dbList = [
+                self.playersToDb(),
+                self.hand_pot,
+                self.phase,
+                self.player_turn,
+                self.p_act,
+                self.completed,
+                self.id
+            ]
+
+            db.execute("UPDATE corellian_spike_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+
+        elif (params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard", "alderaan"]) and (self.phase in ["card", "alderaan"]) and (self.player_turn == player.id) and (self.completed == False):
 
             if params["action"] == "deckDraw":
                 self.buyFromDeck(player)
@@ -661,21 +687,7 @@ class CorellianSpikeGame(Game):
                 player.lastAction = f'raises to {params["amount"]}'
 
             players = self.getActivePlayers()
-
-            nextPlayer = None
-
-            if not self.settings["PokerStyleBetting"]:
-                betAmount = [i.getBet() for i in self.players]
-                betAmount.append(0)
-                betAmount = max(betAmount)
-                for i in players:
-                    iBet = i.bet if i.bet != None else -1
-                    if iBet < betAmount:
-                        nextPlayer = i.id
-                        break
-            elif self.settings["PokerStyleBetting"]:
-                if self.getNextPlayer(player).getBet() < self.getGreatestBet() or self.getNextPlayer(player).bet == None:
-                    nextPlayer = self.getNextPlayer(player).id
+            nextPlayer = self.getNextPlayerInPhase(player)
 
             if len(players) <= 1:
                 winningPlayer = players[0]

@@ -127,35 +127,7 @@ def login():
     if check["status"] != 200:
         print(f'error was here, {check}')
         return jsonify({"message": check["message"]}), check["status"]
-
-    # If the user wants to change their password, do so
-    # change = request.json.get("change")
-    # if change != None:
-
-    #     # Check that passwords are valid
-    #     newPassword = request.json.get("newPassword")
-    #     if not newPassword:
-    #         return jsonify({"message": "Missing new password"}), 401
-
-    #     passCon = request.json.get("passCon")
-    #     if not passCon:
-    #         return apology("Missing new password confirmation") # TODO LEFT OFF HERE
-
-    #     if password != passCon:
-    #         return apology("New passwords do not match")
-
-    #     # Change user's password
-    #     passHash = str(generate_password_hash(password))
-    #     db.execute(f"UPDATE users SET hash = ? WHERE username = ?", passHash, username)
-
-    # Remember which user has logged in
-    # session["user_id"] = rows[0]["id"]
-
-    # # Set default themes
-    # session["dark"] = False
-    # session["theme"] = "rebels"
-
-    # User has logged in successfully!
+    
     return jsonify({"message": "Logged in!"}), 200
 
 @app.route("/", methods=["POST"])
@@ -683,8 +655,6 @@ def player_info():
     if not user_result:
         return jsonify({"error": "Player not found"}), 404
     
-    print("USER_RESULT:",user_result)
-    
     user_id = user_result[0]
     user_username = user_result[1]
     date_joined = user_result[2] if len(user_result) > 2 else None
@@ -934,7 +904,6 @@ def player_info():
         }
     
     # Get player statistics
-    print("USER_ID", user_id)
     player_stats = calculate_player_stats(user_id)
     
     # Calculate summary statistics
@@ -1344,6 +1313,9 @@ def gameAction(clientInfo):
 
     if not game.getPlayer(username=username):
         return jsonify({"message": "You are not in this game"}), 401
+    
+    if clientInfo["action"] == "playAgain" and len(game.players) <= 1:
+        return jsonify({"message": "You may not play again with less than two players"}), 401
 
     response = game.action(clientInfo, db)
 
@@ -1355,7 +1327,7 @@ def gameAction(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')
     for i in clients:
-        emit('gameUpdate', game.getClientData(clientUserMap[i[0]][0]), to=i[0])
+        emit('gameUpdate', game.getGameData(), to=i[0])
 
 """ Old Socket Stuff - May be brought back in the future"""
 

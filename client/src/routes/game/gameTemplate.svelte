@@ -23,7 +23,8 @@
         requestGameUpdate,
         updateClientGame,
         updateClientInfo,
-        camelToSpaced
+        camelToSpaced,
+        quitGame
     } from './gameLogic'
 
     // Template Components
@@ -125,7 +126,7 @@
 {#if $dataToRender}
     <h1 class="header">{$header}</h1>
     <h2 class="header">round {$game["cycle_count"] + 1} during {camelToSpaced($game["phase"])} phase</h2>
-
+    
     <div id="tableCont">
         <div id="table"></div>
         <h2 id="pAction" class:playing={$u_dex != -1}>{$game["p_act"]}</h2>
@@ -141,6 +142,12 @@
     {#if $game["move_history"] !== undefined && $game["move_history"] !== null}
         <GamePlayback />
     {/if}
+
+    <div style="text-align: center; margin: 10px;">
+        <button on:click={quitGame} class="btn btn-danger" style="background-color: red; color: white; padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">
+            Quit Game
+        </button>
+    </div>
 
     <br>
 

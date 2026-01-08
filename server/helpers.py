@@ -153,6 +153,10 @@ class Player:
         self.hand = copy.deepcopy(hand)
         self.folded = folded
         self.lastAction = lastAction
+
+    @abstractmethod
+    def getVariant(self):
+        pass
         
     def addToHand(self, cards):
         if not isinstance(cards, list):
@@ -240,10 +244,16 @@ class Game:
         gameDict = self.toDict()
         gameDict.pop('deck')
         users = [i.username for i in self.getActivePlayers()]
-        # print(gameDict)
-        # print(f'\n\n{self.player_turn}\n\n')
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
+    
+    def getGameData(self):
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        users = [i.username for i in self.getActivePlayers()]
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users}
 
     # shuffle deck
     def shuffleDeck(self):
@@ -268,14 +278,44 @@ class Game:
             if not player.folded:
                 return player
     
-    def getNextPlayer(self, player):
-        for player in self.players[self.players.index(player) + 1:] + self.players[:self.players.index(player)]:
-            try:
-                if (not player.folded):
-                    return player
-            except AttributeError:
-                if (not player.outOfGame):
-                    return player
+    def getNextPlayerInPhase(self, player):
+
+        simpleNextPlayer = None
+        players = self.getActivePlayers()
+
+        if players.index(player) < len(players) - 1:
+            simpleNextPlayer = players[players.index(player) + 1]
+
+        if self.phase == "betting":
+            nextPlayer = None
+            if not self.settings["PokerStyleBetting"]:
+                betAmount = [i.getBet() for i in self.players]
+                betAmount.append(0)
+                betAmount = max(betAmount)
+                for i in players:
+                    iBet = i.bet if i.bet != None else -1
+                    if iBet < betAmount:
+                        nextPlayer = i
+                        break
+            elif self.settings["PokerStyleBetting"]:
+                if simpleNextPlayer == None:
+                    simpleNextPlayer = players[0]
+                if simpleNextPlayer.getBet() < self.getGreatestBet() or simpleNextPlayer.bet == None:
+                    nextPlayer = simpleNextPlayer
+
+            return nextPlayer
+        else:
+            return simpleNextPlayer
+        
+    @abstractmethod
+    def getNextPhase(self):
+        """
+        This method should return the next phase of the game based on the current state.
+
+        Returns:
+            str: The next phase of the game.
+        """
+        pass
 
     def getPlayerDex(self, username:str=None, id:int=None):
         for i in range(len(self.players)):
@@ -314,6 +354,34 @@ class Game:
                 originalValues[key] = value
         return originalValues
     
+    def quitPlayer(self, player: Player): # this works for traditional and corellian, overidden in kessel
+        nextPlayer = self.getNextPlayerInPhase(player)
+
+        self.hand_pot += player.getBet()
+
+        self.players.remove(player)
+        players = self.getActivePlayers()
+
+        if self.getVariant() == "traditional" or self.getVariant() == "corellian_spike":
+            if len(players) == 1:
+                winningPlayer = players[0]
+                winningPlayer.credits += self.hand_pot + (winningPlayer.bet if winningPlayer.bet != None else 0)
+                self.hand_pot = 0
+                winningPlayer.bet = None
+
+            if nextPlayer == None:
+                # add all bets to hand pot
+                for p in players:
+                    self.hand_pot += p.getBet()
+                    p.bet = None
+
+        # Update game object before db update
+        if nextPlayer == None or (players.index(nextPlayer) == 0 and self.phase != "betting"):
+            self.phase = self.getNextPhase()
+        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
+        self.p_act = player.username + " quit the game"
+        self.completed = len(players) <= 1
+    
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override
     @abstractmethod
@@ -324,15 +392,11 @@ class Game:
 def getDictsForDB(cursor: sqlite3.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
-    print("Columns: ", columns)
 
     returnList = []
     for row in rows:
         rowDict = {}
-        print("Row: ", row)
-        print("enum: ", enumerate(row))
         for i, col in enumerate(columns):
-            print(f"i: {i}, col: {col}")
             rowDict[col[0]] = row[i]
         returnList.append(rowDict)
     

@@ -213,7 +213,7 @@
                 </div>
             {/if}
         {/if}
-    {:else if $game["player_turn"] === $user_id && $game["completed"] && ($currentMove === $movesDone - 1)}
+    {:else if $game["player_turn"] === $user_id && $game["completed"] && ($currentMove === $movesDone - 1) && $game["players"].length > 1}
         <div id="betDiv" class="backBlue brightBlue">
             <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
         </div>

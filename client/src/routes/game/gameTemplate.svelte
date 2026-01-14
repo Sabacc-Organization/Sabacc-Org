@@ -143,11 +143,13 @@
         <GamePlayback />
     {/if}
 
-    <div style="text-align: center; margin: 10px;">
-        <button on:click={quitGame} class="btn btn-danger" style="background-color: red; color: white; padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">
-            Quit Game
-        </button>
-    </div>
+    {#if $game_variant === 'traditional' || $game_variant === 'corellian_spike'}
+        <div style="text-align: center; margin: 10px;">
+            <button on:click={quitGame} class="btn btn-danger" style="background-color: red; color: white; padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">
+                Quit Game
+            </button>
+        </div>
+    {/if}
 
     <br>
 

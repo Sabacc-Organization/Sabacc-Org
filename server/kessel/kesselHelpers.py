@@ -539,7 +539,7 @@ class KesselGame(Game):
         self.cycle_count = 0
 
     def getVariant(self):
-        return "kessel"
+        return Game_Variant.KESSEL
 
     def unRolledImposters(self):
         nextPlayer = 0
@@ -745,52 +745,12 @@ class KesselGame(Game):
         elif self.phase == "shift":
             return "card"
 
-    def quitPlayer(self, player: Player):
-        nextPlayer = self.getNextPlayerInPhase(player)
-
-        self.players.remove(player)
-        players = self.getActivePlayers()
-
-        if len(players) == 1:
-            winningPlayer = players[0]
-            winningPlayer.credits += self.hand_pot + (winningPlayer.bet if winningPlayer.bet != None else 0)
-            self.hand_pot = 0
-            winningPlayer.bet = None
-
-        if nextPlayer == None:
-            # add all bets to hand pot
-            for p in players:
-                self.hand_pot += p.getBet()
-                p.bet = None
-
-        # Update game object before db update
-        self.phase = 'betting' if nextPlayer != None else 'card'
-        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
-        self.p_act = player.username + " quit the game"
-        self.completed = len(players) <= 1
-
     def action(self, params: dict, db):
         originalSelf = copy.deepcopy(self)
 
         player: KesselPlayer = self.getPlayer(username=params["username"])
 
-        if params["action"] == "quit":
-
-            self.quitPlayer(player)
-
-            dbList = [
-                self.playersToDb(),
-                self.hand_pot,
-                self.phase,
-                self.player_turn,
-                self.p_act,
-                self.completed,
-                self.id
-            ]
-            db.execute("UPDATE kessel_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
-
-
-        elif (params["action"] == "shiftTokenSelect") and (self.player_turn == player.id) and (self.phase == "shiftTokenSelect") and (self.completed == False):
+        if (params["action"] == "shiftTokenSelect") and (self.player_turn == player.id) and (self.phase == "shiftTokenSelect") and (self.completed == False):
             if len(player.shiftTokens) >= 3:
                 return "too many shift tokens"
 

@@ -307,12 +307,17 @@ class TraditionalGame(Game):
         self.shuffleDeck()
         self.dealHands()
 
+        self.phase = "betting"
+        self.cycle_count = 0
+        self.p_act = ""
+        self.completed = False
+
     def dealHands(self):
         for player in self.players:
             player.hand.cards = [self.drawFromDeck(),self.drawFromDeck()]
 
     def getVariant(self):
-        return "traditional"
+        return Game_Variant.TRADITIONAL
 
     def toDb(self, includeId=False):
         dbGame = [self.id, self.playersToDb(), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
@@ -451,73 +456,15 @@ class TraditionalGame(Game):
                 if player.calcHandVal() == bestHand:
                     winningPlayers.append(player)
         return winningPlayers, bestHand, bombedOutPlayers
-
-    def betPhaseAction(self, params:dict, player, db):
-        players = self.getActivePlayers()
-
-        if params['action'] == "fold":
-            if self.settings["PokerStyleBetting"]:
-                self.hand_pot += player.getBet()
-            player.fold(self.settings["PokerStyleBetting"])
-
-        elif params["action"] == "check":
-            if player.getBet() != self.getGreatestBet():
-                return
-            player.makeBet(0, False)
-
-        elif params["action"] == "bet":
-            if player.getBet() != self.getGreatestBet() or player.bet != None or players.index(player) != 0:
-                return
-            player.makeBet(params["amount"], True)
-
-        elif params["action"] == 'call':
-            player.makeBet(self.getGreatestBet(), True)
-            player.lastAction = 'calls'
-
-        elif params["action"] == 'raise':
-            player.makeBet(params["amount"], True)
-            player.lastAction = f'raises to {params["amount"]}'
-
-        nextPlayer = self.getNextPlayerInPhase(player)
-
-        if params["action"] == "quit":
-            self.hand_pot += player.getBet()
-            player.lastAction = "quit the game"
-            self.players.remove(player)
-            if nextPlayer != None:
-                if nextPlayer.getBet() == self.getGreatestBet():
-                    nextPlayer = None
-
-        players = self.getActivePlayers()
-
-        if len(players) == 1:
-            winningPlayer = players[0]
-            winningPlayer.credits += self.hand_pot + winningPlayer.bet
-            self.hand_pot = 0
-            winningPlayer.bet = None
-
-        if nextPlayer == None:
-            # add all bets to hand pot
-            for p in players:
-                self.hand_pot += p.getBet()
-                p.bet = None
-
-        # Update game object before db update
-        self.phase = 'betting' if nextPlayer != None else 'card'
-        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
-        self.p_act = player.username + " " + player.lastAction
-        self.completed = len(players) <= 1
-
-        dbList = [
-            self.playersToDb(),
-            self.hand_pot,
-            self.phase,
-            self.player_turn,
-            self.p_act,
-            self.completed,
-            self.id
-        ]
-        db.execute("UPDATE traditional_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+    
+    def getNextPhase(self):
+        if self.phase == "betting":
+            return "card"
+        elif self.phase == "card":
+            return "shift"
+        elif self.phase == "shift":
+            return "betting"
+        # this shouldn't be used when the phase is alderaan
 
     def cardPhaseAction(self, params:dict, player, db):
 
@@ -603,7 +550,6 @@ class TraditionalGame(Game):
                     winStr = "Everyone bombs out and loses!"
             else:
                 self.phase = "shift"
-                self.cycle_count += 1
 
         # Update game object before db update
         self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
@@ -637,7 +583,10 @@ class TraditionalGame(Game):
         originalSelf = copy.deepcopy(self)
         player = self.getPlayer(username=params["username"])
 
-        if params['action'] == "protect":
+        if params["action"] == "quit" and self.completed: # it is necessary for this conditional to be the first one
+            self.quitFromCompletedGame(player, db)
+
+        elif params['action'] == "protect":
             card = TraditionalCard.fromDict(params["protect"])
             response = player.hand.protect(card)
             if isinstance(response, str):
@@ -653,46 +602,17 @@ class TraditionalGame(Game):
             ]
             db.execute("UPDATE traditional_games SET players = ?, p_act = ? WHERE game_id = ?", dbList)
 
-        if self.phase == "betting" and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id and self.completed == False) or params['action'] == "quit"):
+        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
             self.betPhaseAction(params, player, db)
 
-        elif self.phase in ["card", "alderaan"] and ((params["action"] in ["draw", "trade", "stand", "alderaan"] and self.player_turn == player.id and self.completed == False) or params["action"] == "quit"):
+        elif (self.phase in ["card", "alderaan"] and self.completed == False) and ((params["action"] in ["draw", "trade", "stand", "alderaan"] and self.player_turn == player.id) or params["action"] == "quit"):
             self.cardPhaseAction(params, player, db)
 
-        elif params["action"] == "shift" and self.phase == "shift" and self.player_turn == player.id and self.completed == False:
-            self._shift = self.rollShift()
+        elif (self.phase == "shift" and self.completed == False) and ((params["action"] == "shift" and self.player_turn == player.id) or params["action"] == "quit"):
+            self.shiftPhaseAction(params, player, db)
 
-            if self._shift:
-                self.shift()
-
-            # Set the Shift message
-            shiftStr = "Sabacc shift!" if self._shift else "No shift!"
-
-            # Update game object before db update
-            self.phase = "betting"
-            self.player_turn = self.getActivePlayers()[0].id
-            self.p_act = shiftStr
-
-            dbList = [
-                self.phase,
-                self.deck.toDb(),
-                self.playersToDb(),
-                self.player_turn,
-                self._shift,
-                self.p_act,
-                self.id
-            ]
-
-            db.execute("UPDATE traditional_games SET phase = ?, deck = ?, players = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = ?", dbList)
-
-        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
+        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed and len(self.players) > 1:
             self.nextRound()
-
-            # Update game object before db update
-            self.phase = "betting"
-            self.cycle_count = 0
-            self.p_act = ""
-            self.completed = False
 
             dbList = [
                 self.playersToDb(),
@@ -708,35 +628,6 @@ class TraditionalGame(Game):
             ]
 
             db.execute("UPDATE traditional_games SET players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, deck = ?, player_turn = ?, cycle_count = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
-
-        elif params["action"] == "quit": # this could only be that they quit during the shift phase (or during a NULL phase)
-            nextPlayer = self.getNextPlayerInPhase(player)
-
-            self.hand_pot += player.getBet()
-            player.lastAction = "quit the game"
-            self.players.remove(player)
-            players = self.getActivePlayers()
-
-            if len(players) == 1:
-                winningPlayer = players[0]
-                winningPlayer.credits += self.hand_pot
-                self.hand_pot = 0
-
-            # Update game object before db update
-            self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
-            self.p_act = player.username + " " + "quit the game"
-            self.completed = len(players) <= 1
-
-            dbList = [
-                self.playersToDb(),
-                self.hand_pot,
-                self.phase,
-                self.player_turn,
-                self.p_act,
-                self.completed,
-                self.id
-            ]
-            db.execute("UPDATE traditional_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         if self == originalSelf:
             return "invalid user input"

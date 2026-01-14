@@ -59,7 +59,7 @@
 
     $: {
         let players = $game["players"];
-        if ($game["player_turn"] === $user_id && $game["phase"] === "betting") {
+        if ($game["player_turn"] === $user_id && $game["phase"] === "betting" && $game["completed"] == 0) {
             $potsActive = true;
 
             $raiseAmount = 0;
@@ -97,7 +97,11 @@
     }
 
     $: {
-        if ($game["player_turn"] === $user_id) {
+        if ($game["player_turn"] === $user_id && $game["completed"] == 0) {
+            if ($game["phase"] === "shiftTokenSelect") {
+                $cardBool = false;
+                $alderaanActive = false;
+            }
 
             if ($game["phase"] === "card") {
                 $cardBool = true;
@@ -118,7 +122,7 @@
 
     // Shift Phase
     $: {
-        if ($game["phase"] === "shift" && $user_id === $game["player_turn"] && ($currentMove === $movesDone - 1 || $movesDone === 0)) {
+        if ($game["completed"] == 0 && $game["phase"] === "shift" && $user_id === $game["player_turn"] && ($currentMove === $movesDone - 1 || $movesDone === 0)) {
             $shiftActive = true;
         }
         else {

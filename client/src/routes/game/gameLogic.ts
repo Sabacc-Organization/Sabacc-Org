@@ -437,17 +437,22 @@ export function playback(index: number) {
 }
 
 export function quitGame() {
+    const variant = get(game_variant);
+    if (variant !== 'traditional' && variant !== 'corellian_spike') {
+        return;
+    }
+
     if (confirm("Are you sure you want to quit the game?")) {
         let clientInfo = {
             "username": get(username),
             "password": get(password),
             "game_id": get(game_id),
-            "game_variant": get(game_variant),
+            "game_variant": variant,
             "action": "quit"
         }
 
         get(socket)!.emit('gameAction', clientInfo);
-        
+
         // Redirect to home page after quitting
         window.location.href = '/';
     }

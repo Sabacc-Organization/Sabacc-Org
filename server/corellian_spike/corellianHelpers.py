@@ -237,19 +237,16 @@ class CorellianSpikeGame(Game):
         # create player list
         players = []
         for i in range(len(playerIds)):
-            players.append(CorellianSpikePlayer(playerIds[i], username=playerUsernames[i], credits=settings["StartingCredits"] - settings["HandPotAnte"] - settings["SabaccPotAnte"]))
+            players.append(CorellianSpikePlayer(playerIds[i], username=playerUsernames[i], credits=settings["StartingCredits"]))
 
         # create deck, discard pile, and pots
         deck = CorellianSpikeDeck()
         discardPile = [deck.draw()]
-        handPot = settings["HandPotAnte"] * len(players)
-        sabaccPot = settings["SabaccPotAnte"] * len(players)
 
         # create Game object
-        game = CorellianSpikeGame(players=players, deck=deck, discardPile=discardPile, player_turn=players[0].id, hand_pot=handPot, sabacc_pot=sabaccPot, settings=settings)
+        game = CorellianSpikeGame(players=players, deck=deck, discardPile=discardPile, player_turn=players[0].id, settings=settings)
 
-        # deal cards to each player
-        game.dealHands()
+        game.nextRound(rotateDealer=False)
 
         # the 1st player is the 1st dealer
 
@@ -267,38 +264,6 @@ class CorellianSpikeGame(Game):
 
         # return Game object
         return game
-
-    # set up for next round
-    def nextRound(self):
-        # rotate dealer (1st in list is always dealer) - move 1st player to end
-        self.players.append(self.players.pop(0))
-
-        for player in self.players:
-            player.credits -= self.settings["HandPotAnte"] + self.settings["SabaccPotAnte"] # Make users pay antes
-            player.bet = None # reset bets
-            player.folded = False # reset folded
-            player.lastAction = '' # reset last action
-
-        # Antes (Pots)
-        self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
-        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
-
-        # construct deck and discard pile
-        self.deck = CorellianSpikeDeck()
-        self.discardPile = [self.deck.draw()]
-
-        # deal hands
-        self.dealHands()
-
-        self.player_turn = self.players[0].id
-        self.phase = "card"
-        self.cycle_count = 0
-        self.p_act = ""
-        self.completed = False
-
-    def dealHands(self):
-        for player in self.players:
-            player.hand.cards = self.deck.draw(2).copy()
 
     def determineWinner(self) -> str:
         if self.settings["HandRanking"] == "Wayne":
@@ -441,8 +406,8 @@ class CorellianSpikeGame(Game):
 
     # reshuffle the discard pile to form a new deck
     def _reshuffle(self):
-        self.deck.cards = self.discardPile + self.deck.cards # keep remaining cards on top (end)
-        self.discardPile = []
+        self.deck.cards = self.discardPile[:len(self.discardPile) - 1] + self.deck.cards # keep remaining cards on top (end)
+        self.discardPile = [self.discardPile[len(self.discardPile) - 1]]
         self.deck.shuffle()
 
     # draw a number of cards from the deck (reshuffling if necessary)
@@ -456,7 +421,10 @@ class CorellianSpikeGame(Game):
         if len(self.discardPile) == 0:
             print(f"ERROR: trying to draw from empty discard pile")
         else:
-            return self.discardPile.pop() # since new cards are added to the end, the last card is the top one
+            card = self.discardPile.pop()
+            if len(self.discardPile) == 0:
+                self.discardPile.append(self.safeDrawFromDeck())
+            return card # since new cards are added to the end, the last card is the top one
 
     # add discarded card(s) to discard pile
     def _discard(self, cards):
@@ -494,8 +462,6 @@ class CorellianSpikeGame(Game):
         self.hand_pot += self.settings["DiscardDrawCost"]
         player.lastAction = "buys from discard"
         card = self._playerDrawDiscard(player)
-        if len(self.discardPile) == 0:
-            self.discardPile.append(self.deck.draw())
         return card
 
     # player discards a card, then draws one
@@ -639,18 +605,9 @@ class CorellianSpikeGame(Game):
                 nextPlayerIndex = 0
                 self.phase = "betting"
 
-                if self.cycle_count == 0 and self.settings["PokerStyleBetting"]:
-                    # Blinds
-                    activePlayers = self.getActivePlayers()
-
-                    smallBlind = activePlayers[1 % len(activePlayers)]
-                    smallBlind.bet = self.settings["SmallBlind"]
-                    smallBlind.credits -= self.settings["SmallBlind"]
-
-                    bigBlind = activePlayers[2 % len(activePlayers)]
-                    bigBlind.bet = self.settings["BigBlind"]
-                    bigBlind.credits -= self.settings["BigBlind"]
-                    nextPlayerIndex = 2 % len(activePlayers)
+                if self.cycle_count == 0:
+                    self.startFirstBettingPhase()
+                    nextPlayerIndex = self.getActivePlayers().index(self.getPlayer(id=self.player_turn))
 
             # Update game object before db update
             self.player_turn = self.getActivePlayers()[nextPlayerIndex].id

@@ -242,79 +242,19 @@ class TraditionalGame(Game):
         # create player list
         players = []
         for id in playerIds:
-            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=settings["StartingCredits"] - settings["HandPotAnte"] - settings["SabaccPotAnte"]))
+            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=settings["StartingCredits"]))
 
         # construct deck
         deck = TraditionalDeck()
 
-        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=settings["HandPotAnte"]*len(players), sabacc_pot=settings["SabaccPotAnte"]*len(players))
+        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, settings=settings)
 
-        # Blinds
-        if settings["PokerStyleBetting"]:
-            activePlayers = game.getActivePlayers()
-
-            smallBlind = activePlayers[1 % len(activePlayers)]
-            smallBlind.bet = settings["SmallBlind"]
-            smallBlind.credits -= settings["SmallBlind"]
-
-            bigBlind = activePlayers[2 % len(activePlayers)]
-            bigBlind.bet = settings["BigBlind"]
-            bigBlind.credits -= settings["BigBlind"]
-            game.player_turn = bigBlind.id
-
-        # Deal
-        game.shuffleDeck()
-        game.dealHands()
+        game.nextRound(rotateDealer=False)
 
         if db:
-            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, json.dumps(settings)])
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, game.settingsToDb()])
 
         return game
-    
-    # sets up for next round
-    def nextRound(self):
-        # rotate dealer (1st in list is always dealer) - move 1st player to end
-        self.players.append(self.players.pop(0))
-
-        for player in self.players:
-            player.credits -= (self.settings["HandPotAnte"] + self.settings["SabaccPotAnte"]) # Make users pay Sabacc and Hand pot Antes
-            player.bet = None # reset bets
-            player.folded = False # reset folded
-            player.lastAction = '' # reset last action
-
-        # Antes (Pots)
-        self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
-        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
-
-        # Player turn (not PokerStyleBetting)
-        self.player_turn = self.players[0].id
-
-        # Blinds
-        if self.settings["PokerStyleBetting"]:
-            activePlayers = self.getActivePlayers()
-
-            smallBlind = activePlayers[1 % len(activePlayers)]
-            smallBlind.bet = self.settings["SmallBlind"]
-            smallBlind.credits -= self.settings["SmallBlind"]
-
-            bigBlind = activePlayers[2 % len(activePlayers)]
-            bigBlind.bet = self.settings["BigBlind"]
-            bigBlind.credits -= self.settings["BigBlind"]
-            self.player_turn = bigBlind.id
-
-        # construct deck and deal hands
-        self.deck = TraditionalDeck()
-        self.shuffleDeck()
-        self.dealHands()
-
-        self.phase = "betting"
-        self.cycle_count = 0
-        self.p_act = ""
-        self.completed = False
-
-    def dealHands(self):
-        for player in self.players:
-            player.hand.cards = [self.drawFromDeck(),self.drawFromDeck()]
 
     def getVariant(self):
         return Game_Variant.TRADITIONAL
@@ -357,17 +297,16 @@ class TraditionalGame(Game):
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
-
-    def drawFromDeck(self):
-        # if deck is empty, reshuffle
-        if len(self.deck.cards) == 0:
-            # exclude cards in (active) players' hands
-            cardsToExclude = []
-            for player in self.getActivePlayers():
-                cardsToExclude.extend(player.hand.cards)
-            self.deck = TraditionalDeck(cardsToExclude=cardsToExclude)
-            self.deck.shuffle()
-        return self.deck.draw()
+            
+    def _reshuffle(self):
+        # exclude cards in (active) players' hands
+        cardsToExclude = []
+        for player in self.getActivePlayers():
+            cardsToExclude.extend(player.hand.cards)
+        self.deck = TraditionalDeck()
+        for card in cardsToExclude:
+            self.deck.cards.remove(card)
+        self.deck.shuffle()
 
     # replace every unprotected card in every player's hand
     def shift(self):

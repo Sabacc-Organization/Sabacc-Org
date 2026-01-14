@@ -257,6 +257,62 @@ class Game:
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
     
+    # sets up for next round
+    def nextRound(self, rotateDealer=True):
+        if rotateDealer:
+            # rotate dealer (1st in list is always dealer) - move 1st player to end
+            self.players.append(self.players.pop(0))
+
+        for player in self.players:
+            player.credits -= (self.settings["HandPotAnte"] + self.settings["SabaccPotAnte"]) # Make users pay Sabacc and Hand pot Antes
+            player.bet = None # reset bets
+            player.folded = False # reset folded
+            player.lastAction = '' # reset last action
+
+        # Variant specific stuff
+        if self.getVariant() == Game_Variant.TRADITIONAL:
+            self.startFirstBettingPhase()
+            self.deck = TraditionalDeck()
+            self.phase = "betting"
+        elif self.getVariant() == Game_Variant.CORELLIAN_SPIKE:
+            self.deck = CorellianSpikeDeck()
+            self.discardPile = [self.drawFromDeck()]
+            self.phase = "card"
+            self.player_turn = self.players[0].id
+
+        self.shuffleDeck()
+        self.dealHands()
+
+        self.cycle_count = 0
+        self.p_act = ""
+        self.completed = False
+
+    def dealHands(self):
+        for player in self.players:
+            player.hand.cards = [self.drawFromDeck(), self.drawFromDeck()]
+
+    def startFirstBettingPhase(self): # blinds and antes
+        # Antes (Pots)
+        self.hand_pot = self.settings["HandPotAnte"] * len(self.getActivePlayers())
+        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.getActivePlayers())
+
+        # Player turn (not PokerStyleBetting)
+        self.player_turn = self.players[0].id
+
+        # Blinds
+        if self.settings["PokerStyleBetting"]:
+            activePlayers = self.getActivePlayers()
+
+            smallBlind = activePlayers[1 % len(activePlayers)]
+            smallBlind.bet = self.settings["SmallBlind"]
+            smallBlind.credits -= self.settings["SmallBlind"]
+
+            bigBlind = activePlayers[2 % len(activePlayers)]
+            bigBlind.bet = self.settings["BigBlind"]
+            bigBlind.credits -= self.settings["BigBlind"]
+
+            self.player_turn = activePlayers[3 % len(activePlayers)].id
+    
     def getGameData(self):
 
         gameDict = self.toDict()
@@ -269,6 +325,16 @@ class Game:
     # shuffle deck
     def shuffleDeck(self):
         self.deck.shuffle()
+
+    def drawFromDeck(self):
+        # if deck is empty, reshuffle
+        if len(self.deck.cards) == 0:
+            self._reshuffle()
+        return self.deck.draw()
+    
+    @abstractmethod
+    def _reshuffle(self):
+        pass
 
     # roll shift
     def rollShift(self):
@@ -507,6 +573,11 @@ class Game:
     @abstractmethod
     def action(self, action, actionParams):
         pass
+
+""" These must be imported after all the parent classes are defined """
+from traditional.traditionalHelpers import *
+from corellian_spike.corellianHelpers import *
+from kessel.kesselHelpers import *
 
 # For getting a list of dictionaries for rows in a database.
 def getDictsForDB(cursor: sqlite3.Cursor):

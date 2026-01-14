@@ -1200,7 +1200,9 @@ def getGameClientInfo(clientInfo):
     user_id = -1
     if clientInfo["username"] != "":
         db.execute("SELECT id FROM users WHERE username = ?", [clientInfo["username"]])
-        user_id = getDictsForDB(db)[0]["id"]
+        result = getDictsForDB(db)
+        if result:
+            user_id = result[0]["id"]
 
     game_id = clientInfo['game_id']
     game_variant = clientInfo['game_variant']

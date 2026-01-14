@@ -252,12 +252,16 @@ class Game:
         gameDict.pop('deck')
         users = [i.username for i in self.getActivePlayers()]
 
+        if player is None:
+            return {"message": "Spectating", "gata": gameDict, "users": users, "user_id": -1, "username": ""}
+
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
     
     def getGameData(self):
 
         gameDict = self.toDict()
-        gameDict.pop('deck')
+        if self.getVariant() != Game_Variant.KESSEL:
+            gameDict.pop('deck')
         users = [i.username for i in self.getActivePlayers()]
 
         return {"message": "Good luck!", "gata": gameDict, "users": users}

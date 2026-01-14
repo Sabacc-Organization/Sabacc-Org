@@ -290,6 +290,12 @@ class CorellianSpikeGame(Game):
         # deal hands
         self.dealHands()
 
+        self.player_turn = self.players[0].id
+        self.phase = "card"
+        self.cycle_count = 0
+        self.p_act = ""
+        self.completed = False
+
     def dealHands(self):
         for player in self.players:
             player.hand.cards = self.deck.draw(2).copy()
@@ -397,6 +403,9 @@ class CorellianSpikeGame(Game):
             return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
 
         return
+    
+    def getVariant(self):
+        return Game_Variant.CORELLIAN_SPIKE
 
     def discardPileToDb(self):
         return json.dumps(self.discardPileToDict())
@@ -556,6 +565,14 @@ class CorellianSpikeGame(Game):
             created_at=dict['created_at'],
             move_history=dict['move_history']
         )
+    
+    def getNextPhase(self):
+        if self.phase == "card":
+            return "betting"
+        elif self.phase == "betting":
+            return "shift"
+        elif self.phase == "shift":
+            return "card"
 
     # overrides parent method
     def action(self, params:dict, db):
@@ -563,9 +580,19 @@ class CorellianSpikeGame(Game):
 
         player = self.getPlayer(username=params["username"])
 
-        if (params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard", "alderaan"]) and (self.phase in ["card", "alderaan"]) and (self.player_turn == player.id) and (self.completed == False):
+        if params["action"] == "quit" and self.completed: # it is necessary for this conditional to be the first one
+            self.quitFromCompletedGame(player, db)
 
-            if params["action"] == "deckDraw":
+        elif (self.phase == "card" and self.completed == False) and ((params["action"] in ["deckDraw", "discardDraw", "deckTrade", "discardTrade", "stand", "discard"] and self.player_turn == player.id) or params['action'] == "quit"):
+
+            uDex = self.getActivePlayers().index(player)
+            nextPlayerIndex = uDex + 1
+            
+            if params["action"] == "quit":
+                player.lastAction = "quit the game"
+                self.players.remove(player)
+                nextPlayerIndex = uDex
+            elif params["action"] == "deckDraw":
                 self.buyFromDeck(player)
 
             elif params["action"] == "discardDraw":
@@ -597,11 +624,19 @@ class CorellianSpikeGame(Game):
 
                 self.playerDiscardAction(player, tradeDex)
 
-            uDex = self.getActivePlayers().index(player)
-            nextPlayer = uDex + 1
 
-            if nextPlayer >= len(self.getActivePlayers()):
-                nextPlayer = 0
+            # If someone quit and < 2 players left
+            players = self.getActivePlayers()
+            winStr = None
+            if len(players) == 1:
+                winningPlayer = players[0]
+                winningPlayer.credits += self.hand_pot
+                self.hand_pot = 0
+                winStr = f"{winningPlayer.username} wins!"
+                self.completed = True
+                nextPlayerIndex = 0
+            elif nextPlayerIndex >= len(self.getActivePlayers()): # if the game is to carry on and the phase is over, move to betting
+                nextPlayerIndex = 0
                 self.phase = "betting"
 
                 if self.cycle_count == 0 and self.settings["PokerStyleBetting"]:
@@ -615,11 +650,13 @@ class CorellianSpikeGame(Game):
                     bigBlind = activePlayers[2 % len(activePlayers)]
                     bigBlind.bet = self.settings["BigBlind"]
                     bigBlind.credits -= self.settings["BigBlind"]
-                    nextPlayer = 2 % len(activePlayers)
+                    nextPlayerIndex = 2 % len(activePlayers)
 
             # Update game object before db update
-            self.player_turn = self.getActivePlayers()[nextPlayer].id
+            self.player_turn = self.getActivePlayers()[nextPlayerIndex].id
             self.p_act = player.username + " " + player.lastAction
+            if winStr:
+                self.p_act += "; " + winStr
 
             dbList = [
                 self.deckToDb(),
@@ -629,94 +666,18 @@ class CorellianSpikeGame(Game):
                 self.phase,
                 self.player_turn,
                 self.p_act,
-                self.id
-            ]
-            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ? WHERE game_id = ?", dbList)
-
-        elif (params['action'] in ["fold", "check", "bet", "call", "raise"]) and (self.phase == "betting") and (self.player_turn == player.id) and (self.completed == False):
-            players = self.getActivePlayers()
-
-            if params['action'] == "fold":
-                if self.settings["PokerStyleBetting"]:
-                    self.hand_pot += player.getBet()
-                player.fold(self.settings["PokerStyleBetting"])
-                players = self.getActivePlayers()
-
-            elif params['action'] == "check":
-                if player.getBet() != self.getGreatestBet():
-                    return
-                player.makeBet(0, False)
-
-            elif params["action"] == "bet":
-                if player.getBet() != self.getGreatestBet() or player.bet != None or players.index(player) != 0:
-                    return
-                player.makeBet(params["amount"])
-
-            elif params["action"] == 'call':
-                player.makeBet(self.getGreatestBet(), True)
-                player.lastAction = 'calls'
-
-            elif params["action"] == 'raise':
-                player.makeBet(params["amount"], True)
-                player.lastAction = f'raises to {params["amount"]}'
-
-            players = self.getActivePlayers()
-
-            nextPlayer = None
-
-            if not self.settings["PokerStyleBetting"]:
-                betAmount = [i.getBet() for i in self.players]
-                betAmount.append(0)
-                betAmount = max(betAmount)
-                for i in players:
-                    iBet = i.bet if i.bet != None else -1
-                    if iBet < betAmount:
-                        nextPlayer = i.id
-                        break
-            elif self.settings["PokerStyleBetting"]:
-                if self.getNextPlayer(player).getBet() < self.getGreatestBet() or self.getNextPlayer(player).bet == None:
-                    nextPlayer = self.getNextPlayer(player).id
-
-            if len(players) <= 1:
-                winningPlayer = players[0]
-                winningPlayer.credits += self.hand_pot + winningPlayer.bet
-                self.hand_pot = 0
-                winningPlayer.bet = None
-
-            if nextPlayer == None:
-                # add all bets to hand pot
-                for p in players:
-                    self.hand_pot += p.getBet()
-                    p.bet = None
-
-            p_act = player.username + " " + player.lastAction
-
-            # Update game object before db update
-            self.phase = 'betting' if nextPlayer != None else 'shift'
-            self.player_turn = nextPlayer if nextPlayer != None else players[0].id
-            self.p_act = p_act if len(players) > 1 else p_act + "; " + players[0].username + " wins!"
-            self.completed = len(players) <= 1
-
-            dbList = [
-                self.playersToDb(),
-                self.hand_pot,
-                self.phase,
-                self.player_turn,
-                self.p_act,
                 self.completed,
                 self.id
             ]
-            db.execute("UPDATE corellian_spike_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
-        elif (params["action"] == "shift") and (self.player_turn == player.id) and (self.completed == False):
-            self._shift = self.rollShift()
+        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
+            self.betPhaseAction(params, player, db)
 
-            if self._shift:
-                self.shiftcards()
+        elif (self.phase == "shift" and self.completed == False) and ((params["action"] == "shift" and self.player_turn == player.id) or params["action"] == "quit"):
+            self.shiftPhaseAction(params, player, db)
 
-            # Set the Shift message
-            shiftStr = "Sabacc shift!" if self._shift else "No shift!"
-
+            # Corellian special condition ending (normal for corellian)
             if self.cycle_count >= 2:
                 self.completed = True
                 winData = self.determineWinner()
@@ -728,42 +689,22 @@ class CorellianSpikeGame(Game):
                     winningPlayer.credits += self.sabacc_pot
                     self.sabacc_pot = 0
 
-                shiftStr = f"{winData['winStr']}"
-
-            else:
-                self.cycle_count += 1
-
-            # Update game object before db update
-            self.phase = "card"
-            self.player_turn = self.getActivePlayers()[0].id
-            self.p_act = shiftStr
+                self.p_act += "; " + f"{winData['winStr']}"
 
             dbList = [
                 self.phase, 
-                self.deckToDb(),
-                self.discardPileToDb(),
                 self.playersToDb(),
                 self.hand_pot,
                 self.sabacc_pot,
-                self.player_turn,
-                self._shift,
                 self.p_act,
-                self.cycle_count,
                 self.completed,
                 self.id
             ]
 
-            db.execute("UPDATE corellian_spike_games SET phase = ?, deck = ?, discard_pile = ?, players = ?, hand_pot = ?, sabacc_pot = ?, player_turn = ?, shift = ?, p_act = ?, cycle_count = ?, completed = ? WHERE game_id = ?", dbList)
+            db.execute("UPDATE corellian_spike_games SET phase = ?, players = ?, hand_pot = ?, sabacc_pot = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
-        elif (params["action"] == "playAgain") and (self.player_turn == player.id) and (self.completed):
+        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed and len(self.players) > 1:
             self.nextRound()
-
-            # Update game object before db update
-            self.phase = "card"
-            self.player_turn = self.players[0].id
-            self.cycle_count = 0
-            self.p_act = ""
-            self.completed = False
 
             dbList = [
                 self.playersToDb(), 

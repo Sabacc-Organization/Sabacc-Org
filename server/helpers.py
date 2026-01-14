@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod # allows abstract classes/methods
 import copy
 import json
 from typing import Union
+from enum import Enum
 
 # Get config.yml data
 config = {}
@@ -20,6 +21,12 @@ with open("config.yml", "r") as f:
 # Connect to database
 # conn = sqlite3.connect(config['DATABASE'])
 # db = conn.cursor()
+
+"""Do not change these from the names they have in the db tables. . . Would have disastrous consequences!"""
+class Game_Variant(Enum):
+    TRADITIONAL = "traditional"
+    CORELLIAN_SPIKE = "corellian_spike"
+    KESSEL = "kessel"
 
 class Suit:
     DEFAULT = "NONE"
@@ -153,6 +160,10 @@ class Player:
         self.hand = copy.deepcopy(hand)
         self.folded = folded
         self.lastAction = lastAction
+
+    @abstractmethod
+    def getVariant(self) -> Game_Variant:
+        pass
         
     def addToHand(self, cards):
         if not isinstance(cards, list):
@@ -240,10 +251,16 @@ class Game:
         gameDict = self.toDict()
         gameDict.pop('deck')
         users = [i.username for i in self.getActivePlayers()]
-        # print(gameDict)
-        # print(f'\n\n{self.player_turn}\n\n')
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
+    
+    def getGameData(self):
+
+        gameDict = self.toDict()
+        gameDict.pop('deck')
+        users = [i.username for i in self.getActivePlayers()]
+
+        return {"message": "Good luck!", "gata": gameDict, "users": users}
 
     # shuffle deck
     def shuffleDeck(self):
@@ -268,14 +285,44 @@ class Game:
             if not player.folded:
                 return player
     
-    def getNextPlayer(self, player):
-        for player in self.players[self.players.index(player) + 1:] + self.players[:self.players.index(player)]:
-            try:
-                if (not player.folded):
-                    return player
-            except AttributeError:
-                if (not player.outOfGame):
-                    return player
+    def getNextPlayerInPhase(self, player):
+
+        simpleNextPlayer = None
+        players = self.getActivePlayers()
+
+        if players.index(player) < len(players) - 1:
+            simpleNextPlayer = players[players.index(player) + 1]
+
+        if self.phase == "betting":
+            nextPlayer = None
+            if not self.settings["PokerStyleBetting"]:
+                betAmount = [i.getBet() for i in self.players]
+                betAmount.append(0)
+                betAmount = max(betAmount)
+                for i in players:
+                    iBet = i.bet if i.bet != None else -1
+                    if iBet < betAmount:
+                        nextPlayer = i
+                        break
+            elif self.settings["PokerStyleBetting"]:
+                if simpleNextPlayer == None:
+                    simpleNextPlayer = players[0]
+                if simpleNextPlayer.getBet() < self.getGreatestBet() or simpleNextPlayer.bet == None:
+                    nextPlayer = simpleNextPlayer
+
+            return nextPlayer
+        else:
+            return simpleNextPlayer
+        
+    @abstractmethod
+    def getNextPhase(self):
+        """
+        This method should return the next phase of the game based on the current state.
+
+        Returns:
+            str: The next phase of the game.
+        """
+        pass
 
     def getPlayerDex(self, username:str=None, id:int=None):
         for i in range(len(self.players)):
@@ -314,6 +361,143 @@ class Game:
                 originalValues[key] = value
         return originalValues
     
+    def quitFromCompletedGame(self, player, db, modifyDb=True):
+        if self.completed == False:
+            return
+        
+        player.lastAction = "quit the game"
+        self.players.remove(player)
+        if self.player_turn == player.id:
+            if len(self.getActivePlayers()) > 0:
+                self.player_turn = self.getActivePlayers()[0].id
+            else:
+                self.player_turn = None
+        self.p_act = player.username + " quit the game"
+
+        if modifyDb:
+            dbList = [
+                self.playersToDb(),
+                self.player_turn,
+                self.p_act,
+                self.id
+            ]
+
+            db.execute(f"UPDATE {self.getVariant().value}_games SET players = ?, player_turn = ?, p_act = ? WHERE game_id = ?", dbList)
+
+    def betPhaseAction(self, params:dict, player, db, modifyDb=True):
+        players = self.getActivePlayers()
+
+        if params["action"] == "check":
+            if player.getBet() != self.getGreatestBet():
+                return
+            player.makeBet(0, False)
+
+        elif params["action"] == "bet":
+            if player.getBet() != self.getGreatestBet() or player.bet != None or players.index(player) != 0:
+                return
+            player.makeBet(params["amount"], True)
+
+        elif params["action"] == 'call':
+            player.makeBet(self.getGreatestBet(), True)
+            player.lastAction = 'calls'
+
+        elif params["action"] == 'raise':
+            player.makeBet(params["amount"], True)
+            player.lastAction = f'raises to {params["amount"]}'
+
+        nextPlayer = self.getNextPlayerInPhase(player)
+
+        if params['action'] == "fold":
+            if self.settings["PokerStyleBetting"]:
+                self.hand_pot += player.getBet()
+            player.fold(self.settings["PokerStyleBetting"])
+
+        elif params["action"] == "quit":
+            self.hand_pot += player.getBet()
+            player.lastAction = "quit the game"
+            self.players.remove(player)
+            if nextPlayer != None:
+                if nextPlayer.getBet() == self.getGreatestBet():
+                    nextPlayer = None
+
+        players = self.getActivePlayers()
+
+        if len(players) == 1:
+            winningPlayer = players[0]
+            winningPlayer.credits += self.hand_pot + winningPlayer.getBet()
+            self.hand_pot = 0
+            winningPlayer.bet = None
+
+        if nextPlayer == None:
+            # add all bets to hand pot
+            for p in players:
+                self.hand_pot += p.getBet()
+                p.bet = None
+
+        # Update game object before db update
+        self.phase = 'betting' if nextPlayer != None else self.getNextPhase()
+        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
+        self.p_act = player.username + " " + player.lastAction
+        self.completed = len(players) <= 1
+
+        if modifyDb:
+            dbList = [
+                self.playersToDb(),
+                self.hand_pot,
+                self.phase,
+                self.player_turn,
+                self.p_act,
+                self.completed,
+                self.id
+            ]
+        
+            db.execute(f"UPDATE {self.getVariant().value}_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+    
+    def shiftPhaseAction(self, params:dict, player, db, modifyDb=True):
+        if params["action"] == "shift":
+            self._shift = self.rollShift()
+
+            if self._shift:
+                self.shift()
+
+            # Set the Shift message
+            shiftStr = "Sabacc shift!" if self._shift else "No shift!"
+
+            # Update game object before db update
+
+            self.phase = self.getNextPhase()
+            self.p_act = shiftStr
+            self.cycle_count += 1
+        elif params["action"] == "quit":
+            self.players.remove(player)
+            self.p_act = player.username + " quit the game"
+            if len(self.getActivePlayers()) == 1:
+                winningPlayer = self.getActivePlayers()[0]
+                winningPlayer.credits += self.hand_pot + winningPlayer.getBet()
+                self.hand_pot = 0
+                winningPlayer.bet = None
+                self.p_act += "; " + winningPlayer.username + " wins!"
+                self.completed = True
+
+        self.player_turn = self.getActivePlayers()[0].id
+
+        if modifyDb:
+            dbList = [
+                self.phase,
+                self.hand_pot,
+                self.deck.toDb(),
+                self.playersToDb(),
+                self.cycle_count,
+                self.player_turn,
+                self._shift,
+                self.p_act,
+                self.completed,
+                self.id
+            ]
+
+            db.execute(f"UPDATE {self.getVariant().value}_games SET phase = ?, hand_pot = ?, deck = ?, players = ?, cycle_count = ?, player_turn = ?, shift = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+
+
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override
     @abstractmethod
@@ -324,15 +508,11 @@ class Game:
 def getDictsForDB(cursor: sqlite3.Cursor):
     rows = cursor.fetchall()
     columns = cursor.description
-    print("Columns: ", columns)
 
     returnList = []
     for row in rows:
         rowDict = {}
-        print("Row: ", row)
-        print("enum: ", enumerate(row))
         for i, col in enumerate(columns):
-            print(f"i: {i}, col: {col}")
             rowDict[col[0]] = row[i]
         returnList.append(rowDict)
     

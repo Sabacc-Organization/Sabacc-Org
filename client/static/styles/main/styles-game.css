@@ -1,42 +1,38 @@
-/* Base button styling */
 .playback-button {
     width: 60px;
     height: 60px;
-    background-color: #007bff; /* Button background color */
+    background-color: #007bff;
     border: none;
     cursor: pointer;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 10px; /* Rounded corners */
+    border-radius: 10px;
     transition: background-color 0.3s ease;
 }
 
-/* Change button color on hover */
 .playback-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+    background-color: #0056b3;
 }
 
-/* Left arrow styling */
 .back-playback-arrow::before {
     content: "";
     width: 0;
     height: 0;
     border-top: 12px solid transparent;
     border-bottom: 12px solid transparent;
-    border-right: 18px solid white; /* Triangle color */
+    border-right: 18px solid white;
     position: absolute;
 }
 
-/* Right arrow styling */
 .forward-playback-arrow::before {
     content: "";
     width: 0;
     height: 0;
     border-top: 12px solid transparent;
     border-bottom: 12px solid transparent;
-    border-left: 18px solid white; /* Triangle color */
+    border-left: 18px solid white;
     position: absolute;
 }
 
@@ -113,7 +109,7 @@
     background-image: url("/images/alderaanExplode.webp");
 }
 
-/* styles will ignore cardContainer unless they choose to usi */
+/* styles will ignore cardContainer unless they choose to use it */
 .cardsContainer{
     display: contents;
 }
@@ -124,7 +120,6 @@
     text-shadow: 1px 1px 0px #FFF,  -1px 1px 0px #FFF,  1px -1px 0px #FFF,  -1px -1px 0px #FFF;
 }
 
-/* Credits stuff */
 .backBlue{
     background-color: rgb(14, 91, 121);
 }

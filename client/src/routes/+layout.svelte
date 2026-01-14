@@ -5,7 +5,6 @@
 
     import { page } from '$app/stores'
     import { afterUpdate, onMount } from 'svelte';
-    // import { browser } from '$app/environment';
 
     /** @type {import('./$types').PageData} */
 	export let data;
@@ -104,7 +103,6 @@
 
         {#if loggedIn === true}
             {#if dark === true}
-                <!-- Light/Dark mode -->
                 <link href="/styles/main/dark.css" rel="stylesheet">
             {/if}
         {/if}

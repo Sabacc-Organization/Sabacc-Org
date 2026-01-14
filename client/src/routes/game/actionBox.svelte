@@ -39,8 +39,6 @@
 
     export let renderCard
 
-    // actBox reacitivity
-
     // Betting Phase
 
     $: {

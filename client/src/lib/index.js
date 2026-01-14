@@ -16,11 +16,11 @@ export async function checkLogin(username, password, BACKEND_URL) {
         }
 
         const response = await fetch(BACKEND_URL + "/login", {
-            method: 'POST', // Set the method to POST
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData) // Convert your data to JSON
+            body: JSON.stringify(requestData)
         });
 
         let res = await response.json();
@@ -51,15 +51,13 @@ export async function getPreferences(username, password, BACKEND_URL) {
         };
 
         const response = await fetch(BACKEND_URL + "/preferences", {
-            method: 'POST', // Set the method to POST
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData) // Convert your data to JSON
+            body: JSON.stringify(requestData)
         });
-        // console.log("awer", await response.text());
         let res = await response.json();
-        // console.log("awer2", await res);
         return await res;
     } catch (e) {
         console.log(e);
@@ -82,11 +80,11 @@ export async function backendPostRequest(username, password, BACKEND_URL) {
         }
 
         const response = await fetch(BACKEND_URL, {
-            method: 'POST', // Set the method to POST
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData) // Convert your data to JSON
+            body: JSON.stringify(requestData)
         });
 
        return response.json();

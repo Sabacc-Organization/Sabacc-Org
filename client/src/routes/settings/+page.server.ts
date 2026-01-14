@@ -62,11 +62,11 @@ export const actions = {
         }
 
         fetch(BACKEND_URL + "/preferences", {
-            method: 'POST', // Set the method to POST
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData) // Convert your data to JSON
+            body: JSON.stringify(requestData)
         });
 
         throw redirect(303, "/");

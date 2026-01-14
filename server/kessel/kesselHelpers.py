@@ -156,7 +156,19 @@ class KesselGame(Game):
         created_at = None,
         move_history = None):
 
-        super().__init__(players, id, player_turn, p_act, None, phase, cycle_count, completed, settings = settings, created_at = created_at, move_history = move_history)
+        super().__init__(
+            players,
+            id,
+            player_turn,
+            p_act,
+            None,
+            phase,
+            cycle_count,
+            completed,
+            settings = settings,
+            created_at = created_at,
+            move_history = move_history
+        )
         del self.shift
         del self.deck
 

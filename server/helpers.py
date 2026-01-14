@@ -213,7 +213,7 @@ class Game:
             "SmallBlind": 1,
             "BigBlind": 2
         }, created_at = None,
-        move_history = []):
+        move_history = None):
 
 
         self.players = players
@@ -227,7 +227,7 @@ class Game:
         self.shift = shift
         self.settings = settings
         self.created_at = created_at
-        self.move_history = move_history
+        self.move_history = [] if move_history is None else move_history
 
     @staticmethod
     @abstractmethod
@@ -406,22 +406,19 @@ def checkLogin(conn: sqlite3.Connection, username, password):
     # If password is none
     if not password:
         return {"message": "Must provide password", "status": 401}
-    
+
     # Attempt to find the password hash of this user
     orHash = None
     try:
-        # print("username", username, "type", type(username))
         db.execute("SELECT * FROM users WHERE username = ?", [username])
         orHash = getDictsForDB(db)[0]["hash"]
     except IndexError:
         # If user does not exist
         return {"message": f"User {username} does not exist", "status": 401}
 
-    # Check if password is correct using password hashes
-    # print("hwere2342", orHash, password)
     if check_password_hash(orHash, password) == False:
         return {"message": f"Incorrect password", "status": 401}
-    
+
     # User authenticated!
     return {"message": "Logged in!", "status": 200}
 

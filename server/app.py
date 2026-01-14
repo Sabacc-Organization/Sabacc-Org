@@ -63,9 +63,21 @@ Session(app)
 # CORS (Cross Origin Resource Sharing) - Getting requests from backend and frontend alike
 link = config["DOMAIN"]
 linkTwo = config["CROSS_ORIGIN"]
-allowedCORS = [link, f"{link}/chat", f"{link}/game", f"{link}/bet", f"{link}/card", f"{link}/shift", f"{link}/protect", f"{link}/cont", linkTwo, f"{linkTwo}/chat", f"{linkTwo}/game", f"{linkTwo}/bet", f"{linkTwo}/card", f"{linkTwo}/shift", f"{linkTwo}/protect", f"{linkTwo}/cont"]
-socketio = SocketIO(app, cors_allowed_origins=allowedCORS)
-CORS(app, origins=allowedCORS)
+allowedCORS = []
+for co in link, linkTwo:
+    for rl in [
+        "",
+        "/chat",
+        "/game",
+        "/bet",
+        "/card",
+        "/shift",
+        "/protect",
+        "/cont"
+    ]:
+        allowedCORS.append(co+rl)
+socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app, origins="*")
 
 # links the socketio session to a users username and id
 clientUserMap = {}

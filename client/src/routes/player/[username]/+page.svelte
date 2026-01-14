@@ -69,7 +69,6 @@
         const currentData = playerData.gameHistory[selectedTimeRange];
         console.log('Creating chart with data for', selectedTimeRange, ':', currentData);
         
-        // Destroy existing chart if it exists
         if (chart) {
             chart.destroy();
         }

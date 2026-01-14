@@ -81,7 +81,7 @@ class CorellianSpikeHand(Hand):
         if handRanking == "Wayne":
             # get the values of the cards and take the absolute value (negatives don't matter here)
             vals = [abs(val) for val in self.getListOfVals()]
-            vals.sort() # sort ascending
+            vals.sort()
 
             if self.getTotal() == 0: # hands 1-17 total 0
                 if 0 in vals: # hands 1-7 have a sylop
@@ -140,7 +140,7 @@ class CorellianSpikeHand(Hand):
                 return "error: hand total was 0 but hand did't match any known hand"
             else:
                 return 18 # Nulrhek- Hand closest to zero
-            
+
         return
 
     def lowestPosValue(self):
@@ -153,7 +153,7 @@ class CorellianSpikeHand(Hand):
 class CorellianSpikePlayer(Player):
     def __init__(self, id:int, username:str, credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction=''):
         super().__init__(id, username, credits, bet, hand, folded, lastAction)
-    
+
     def __str__(self) -> str:
         return str(self.id)
     def toString(self, handRanking) -> str:
@@ -180,7 +180,7 @@ class CorellianSpikePlayer(Player):
             return CorellianSpikePlayer.fromDict(json.loads(player))
         if isinstance(player, dict):
             return CorellianSpikePlayer.fromDict(player)
-        
+
     @staticmethod
     def fromDict(dict: dict):
         return CorellianSpikePlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=CorellianSpikeHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])
@@ -213,15 +213,14 @@ class CorellianSpikeGame(Game):
         self.settings = settings
         self.created_at = created_at
         self.move_history = move_history
-    # for testing purposes
+
     def __str__(self) -> str:
         ret = f'\ndeck ({len(self.deck.cards)}): {self.deck}\ndiscard pile ({len(self.discardPile)}): [{listToStr(self.discardPile)}]\nhand pot: {self.handPot}\tsabacc pot: {self.sabaccPot}\n\n'
         for player in self.players:
             ret += player.toString(self.settings["HandRanking"])
-        #ret += '\n' + self.determineWinner()
         return ret
 
-    # create a new game
+
     @staticmethod
     def newGame(playerIds:list, playerUsernames:list, db, settings=defaultSettings):
 
@@ -234,21 +233,17 @@ class CorellianSpikeGame(Game):
         if len(playerIds) <= 1:
             "You cannot play by yourself"
 
-        # create player list
         players = []
         for i in range(len(playerIds)):
             players.append(CorellianSpikePlayer(playerIds[i], username=playerUsernames[i], credits=settings["StartingCredits"] - settings["HandPotAnte"] - settings["SabaccPotAnte"]))
 
-        # create deck, discard pile, and pots
         deck = CorellianSpikeDeck()
         discardPile = [deck.draw()]
         handPot = settings["HandPotAnte"] * len(players)
         sabaccPot = settings["SabaccPotAnte"] * len(players)
 
-        # create Game object
         game = CorellianSpikeGame(players=players, deck=deck, discardPile=discardPile, player_turn=players[0].id, hand_pot=handPot, sabacc_pot=sabaccPot, settings=settings)
 
-        # deal cards to each player
         game.dealHands()
 
         # the 1st player is the 1st dealer
@@ -265,7 +260,6 @@ class CorellianSpikeGame(Game):
                 game.settingsToDb()
             ])
 
-        # return Game object
         return game
 
     # set up for next round
@@ -275,19 +269,17 @@ class CorellianSpikeGame(Game):
 
         for player in self.players:
             player.credits -= self.settings["HandPotAnte"] + self.settings["SabaccPotAnte"] # Make users pay antes
-            player.bet = None # reset bets
-            player.folded = False # reset folded
-            player.lastAction = '' # reset last action
+            player.bet = None
+            player.folded = False
+            player.lastAction = ''
 
         # Antes (Pots)
         self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
         self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
 
-        # construct deck and discard pile
         self.deck = CorellianSpikeDeck()
         self.discardPile = [self.deck.draw()]
 
-        # deal hands
         self.dealHands()
 
     def dealHands(self):

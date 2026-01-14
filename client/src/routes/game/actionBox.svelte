@@ -208,8 +208,8 @@
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div on:click={() => shiftTokenSelect(shiftToken)}
-                            on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken];
-                            console.log($tooltip)}} on:mouseleave={() => {$tooltip = ""}}
+                            on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken];}}
+                            on:mouseleave={() => {$tooltip = ""}}
                             class="card child shiftToken own active"
                             style="{renderCard(shiftToken)}"></div>
                         </div>

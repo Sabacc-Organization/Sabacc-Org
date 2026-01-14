@@ -231,6 +231,9 @@ class KesselGame(Game):
         gameDict.pop("positiveDeck")
         gameDict.pop("negativeDeck")
 
+        if player is None:
+            return {"message": "Spectating", "gata": gameDict, "users": users, "user_id": -1, "username": ""}
+
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
     
     def positiveDeckToDb(self):
@@ -966,9 +969,9 @@ class KesselGame(Game):
             self.diceToDb(),
             self.positiveDeckToDb(),
             self.negativeDeckToDb(),
-            self.discardPileToDict(self.positiveDiscard),
-            self.discardPileToDict(self.negativeDiscard),
-            self.activeShiftTokens,
+            self.positiveDiscardToDb(),
+            self.negativeDiscardToDb(),
+            self.activeShiftTokensToDb(),
             self.player_turn,
             self.p_act,
             self.cycle_count,

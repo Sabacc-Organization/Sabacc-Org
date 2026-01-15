@@ -198,13 +198,22 @@ class:playing={p['username'] === $username}>
                 <div class="parent">
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div class="ownChip child chip bigChip" on:click={() => handleChipPress(10)}></div>
+                    <div class="ownChip child chip bigChip"
+                    on:click={() => handleChipPress(10)}
+                    on:mouseenter={() => {$tooltip = "Add 10 credits to bet."}}
+                    on:mouseleave={() => {$tooltip = ""}}></div>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div class="ownChip child chip midChip" on:click={() => handleChipPress(5)}></div>
+                    <div class="ownChip child chip midChip"
+                    on:click={() => handleChipPress(5)}
+                    on:mouseenter={() => {$tooltip = "Add 5 credits to bet."}}
+                    on:mouseleave={() => {$tooltip = ""}}></div>
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div class="ownChip child chip lowChip" on:click={() => handleChipPress(1)}></div>
+                    <div class="ownChip child chip lowChip"
+                    on:click={() => handleChipPress(1)}
+                    on:mouseenter={() => {$tooltip = "Add 1 credit to bet."}}
+                    on:mouseleave={() => {$tooltip = ""}}></div>
                 </div>
             {:else}
                 <div class="cardsContainer">
@@ -214,7 +223,7 @@ class:playing={p['username'] === $username}>
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div
                             on:click={() => shiftTokenUse(shiftToken)}
-                            on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken]; console.log($tooltip)}} on:mouseleave={() => {$tooltip = ""}}
+                            on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken];}} on:mouseleave={() => {$tooltip = ""}}
                             class="card own child shiftToken {(["draw", "discard"].includes($game["phase"]) && $game["player_turn"] === $user_id)? "active":""}"
                             style="{renderCard(shiftToken)}">
                             </div>
@@ -252,7 +261,9 @@ class:playing={p['username'] === $username}>
             {:else}
                 <div class="cardsContainer">
                     {#each p["shiftTokens"] as shiftToken}
-                        <div class="cardContainer" on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken]; console.log($tooltip)}} on:mouseleave={() => {$tooltip = ""}}>
+                        <div class="cardContainer"
+                        on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken]}}
+                        on:mouseleave={() => {$tooltip = ""}}>
                             <div class="card child shiftToken" style="{renderCard(shiftToken)}"></div>
                         </div>
                     {/each}

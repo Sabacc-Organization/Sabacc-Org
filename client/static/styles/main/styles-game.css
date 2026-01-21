@@ -121,6 +121,7 @@
 .cardContainer{
     display: grid;
     grid-auto-flow: row;
+    color: black;
     text-shadow: 1px 1px 0px #FFF,  -1px 1px 0px #FFF,  1px -1px 0px #FFF,  -1px -1px 0px #FFF;
 }
 

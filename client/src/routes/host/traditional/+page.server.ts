@@ -15,7 +15,7 @@ export const actions = {
         const player6 = formData.get('player6')?.toString();
         const player7 = formData.get('player7')?.toString();
         const player8 = formData.get('player8')?.toString();
-        let pokerStyleBetting: string | boolean | undefined = formData.get('pokerStyleBetting')?.toString();
+        let pokerStyleBetting: boolean = true;
         let startingCredits: string | number | undefined = formData.get('startingCredits')?.toString();
         let handPotAnte: string | number | undefined = formData.get('handPotAnte')?.toString();
         let sabaccPotAnte: string | number | undefined = formData.get('sabaccPotAnte')?.toString();
@@ -56,12 +56,6 @@ export const actions = {
 
 
 
-        if (pokerStyleBetting === "on") {
-            pokerStyleBetting = true;
-        }
-        else {
-            pokerStyleBetting = false;
-        }
 
         if (startingCredits) {
             startingCredits = parseInt(startingCredits);

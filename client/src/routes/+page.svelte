@@ -92,7 +92,7 @@
 
     function canShowGame(game: {[id: string]: any}, showOnlyActive: boolean, canShowCompleted: boolean, showOnlyMyTurn: boolean, searchValue: string){
         let answer = true;
-        if (!canShowCompleted && game["completed"] === true){
+        if (!canShowCompleted && game["completed"]){
             answer = false;
         }
 

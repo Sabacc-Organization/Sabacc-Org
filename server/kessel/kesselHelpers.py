@@ -1,7 +1,7 @@
 from helpers import *
 import json
 from datetime import datetime, timezone
-from typing import Union
+from typing import Union, Literal
 
 shiftTokenTypes = [
     "freeDraw",
@@ -157,7 +157,7 @@ class KesselGame(Game):
         completed=False,
         settings = defaultSettings,
         created_at = None,
-        move_history = None):
+        move_history = None) -> None:
 
         super().__init__(players, id, player_turn, p_act, None, phase, cycle_count, completed, settings = settings, created_at = created_at, move_history = move_history)
         del self.shift
@@ -168,6 +168,18 @@ class KesselGame(Game):
         self.negativeDeck: KesselDeck = negativeDeck
         self.positiveDiscard: KesselDeck = positiveDiscard
         self.negativeDiscard: KesselDeck = negativeDiscard
+        self.phase: Literal[
+            "draw",
+            "discard",
+            "shiftTokenSelect",
+            "shiftTokenPlayer",
+            "shiftTokenRoll",
+            "shiftTokenDieChoice",
+            "imposterRoll",
+            "imposterChoice",
+            "reveal",
+        ]
+        self.activeShiftTokens = activeShiftTokens
         """
         A list of shift tokens currently active (taking effect) in the game, along with a string which stores any additional data about each active shift token
         possible values:
@@ -182,7 +194,6 @@ class KesselGame(Game):
         - ["exhaustion", "<phase to return to after action>"]
         - ["directTransaction, "<phase to return to after action>"]
         """
-        self.activeShiftTokens = activeShiftTokens
 
     @staticmethod
     def newGame(playerIds: list, playerUsernames: list, settings=defaultSettings, db=None):
@@ -436,7 +447,7 @@ class KesselGame(Game):
         self.rollDice()
         self.completed = False
 
-    def handOver(self):
+    def handOver(self): # call as soon as all imposters are rolled
         self.player_turn = self.getActivePlayers()[0].id
         # determine winners of the hand
         handWinners = []
@@ -543,7 +554,7 @@ class KesselGame(Game):
     def getVariant(self):
         return Game_Variant.KESSEL
 
-    def unRolledImposters(self):
+    def rollNextImposter(self):
         nextPlayer = 0
         otherImposter = False
         while nextPlayer < len(self.getActivePlayers()):
@@ -554,30 +565,51 @@ class KesselGame(Game):
                 break
             nextPlayer += 1
 
-        return nextPlayer if otherImposter else None
-
-    def playerTurnOver(self, player):
-        uDex = self.getActivePlayers().index(player)
-        nextPlayer = uDex + 1
-        if nextPlayer >= len(self.getActivePlayers()):
-            nextPlayer = 0
-            if self.cycle_count >= 2:
-                otherImposter = self.unRolledImposters()
-                if otherImposter is None:
-                    self.handOver()
-                else:
-                    nextPlayer = otherImposter
-                    self.phase = "imposterRoll"
-            else:
-                self.phase = "draw"
-            self.cycle_count += 1
+        if otherImposter:
+            self.player_turn = self.getActivePlayers()[nextPlayer].id
+            self.phase = "imposterRoll"
         else:
-            self.phase = "draw"
-        self.player_turn = self.getActivePlayers()[nextPlayer].id
+            self.handOver()
 
-        if ["embargo", self.getActivePlayers()[nextPlayer].id] in self.activeShiftTokens:
-            self.activeShiftTokens.remove(["embargo", self.getActivePlayers()[nextPlayer].id])
-            self.playerTurnOver()
+    def playerTurnOver(self, player, quitting: bool, everyoneStands: bool = False):
+        """
+        Call this function after a player discards,
+        or whenever the player whose turn it is quits in the middle of a round
+        """
+        def embargoNextPlayer(playerIndex):
+            if ["embargo", str(self.getActivePlayers()[playerIndex].id)] in self.activeShiftTokens:
+                self.activeShiftTokens.remove(["embargo", str(self.getActivePlayers()[playerIndex].id)])
+                self.playerTurnOver()
+
+        currentPlayerIndex = self.getActivePlayers().index(player)
+        if quitting:
+            self.players.remove(player)
+            nextPlayerIndex = currentPlayerIndex
+        else:
+            nextPlayerIndex = currentPlayerIndex + 1
+
+        if len(self.getActivePlayers() == 1):
+            self.rollNextImposter()
+            return
+
+        if everyoneStands:
+            self.rollNextImposter()
+            return
+
+        if nextPlayerIndex < len(self.getActivePlayers()):
+            self.player_turn = self.getActivePlayers()[nextPlayerIndex].id
+            self.phase = "draw"
+            embargoNextPlayer(nextPlayerIndex)
+            return
+
+        if self.cycle_count < 2:
+            self.player_turn = self.getActivePlayers()[0].id
+            self.phase = "draw"
+            embargoNextPlayer(nextPlayerIndex)
+            self.cycle_count += 1
+            return
+
+        self.rollNextImposter()
 
     def getLastDrawActions(self):
         playerLastActions = {i.id: "none" for i in self.players}
@@ -756,6 +788,48 @@ class KesselGame(Game):
         if self.completed is True and params["action"] == "quit":
             self.quitFromCompletedGame(player, db)
 
+        elif params["action"] == "quit":
+            shiftTokenInd = 0
+            while shiftTokenInd < len(self.activeShiftTokens):
+                cond1 = self.activeShiftTokens[shiftTokenInd][0] in ("embargo", "freeDraw", "immunity")
+                cond2 = self.activeShiftTokens[shiftTokenInd][1] == str(player.id)
+                if cond1 and cond2:
+                    self.activeShiftTokens.pop(shiftTokenInd)
+                else:
+                    shiftTokenInd += 1
+
+            if player.id == self.player_turn:
+                if self.phase in ("draw", "shiftTokenPlayer", "shiftTokenDieChoice", "shiftTokenRoll"):
+                    self.playerTurnOver(player, True, False)
+                elif self.phase == "discard":
+                    if player.extraCardIsNegative:
+                        self.negativeDiscard.discard(player.extraCard)
+                        player.extraCard = None
+                    else:
+                        self.positiveDiscard.discard(player.extraCard)
+                        player.extraCard = None
+                    self.playerTurnOver(player, True, False)
+                elif self.phase in ("imposterRoll", "imposterChoice"):
+                    self.players.remove(player)
+                    self.rollNextImposter()
+                elif self.phase == "shiftTokenSelect":
+                    uDex = self.getActivePlayers().index(player)
+                    self.players.remove(player)
+                    if uDex >= len(self.getActivePlayers()):
+                        uDex = 0
+                        self.phase = "draw"
+                    self.player_turn = self.getActivePlayers()[uDex].id
+                elif self.phase == "reveal":
+                    self.players.remove(player)
+                    self.player_turn = self.getActivePlayers()[0].id
+                if len(self.getActivePlayers()) == 1:
+                    self.rollNextImposter()
+
+            else:
+                self.players.remove(player)
+                if len(self.getActivePlayers()) == 1:
+                    self.rollNextImposter()
+
         elif (params["action"] == "shiftTokenSelect") and (self.player_turn == player.id) and (self.phase == "shiftTokenSelect") and (self.completed == False):
             if len(player.shiftTokens) >= 3:
                 return "too many shift tokens"
@@ -862,22 +936,16 @@ class KesselGame(Game):
             if params["action"] == "stand":
                 self.p_act = f'{player.username} stands'
                 player.lastAction = "stands"
-
                 everyoneStands = True
                 lastDrawActions = self.getLastDrawActions()
-                print(lastDrawActions)
                 for i in lastDrawActions:
-                    print(i)
                     if self.getPlayer(None, i).outOfGame:
                         continue
                     if lastDrawActions[i] != "stands":
                         everyoneStands = False
                         break
 
-                if everyoneStands:
-                    self.handOver()
-                else:
-                    self.playerTurnOver(player)
+                self.playerTurnOver(player, False, everyoneStands)
 
             else:
                 if not (["freeDraw", str(player.id)] in self.activeShiftTokens):
@@ -935,8 +1003,8 @@ class KesselGame(Game):
             discardCardString = 'their original card' if params["keep"] else 'their new card'
             self.p_act = f'{player.username} discards {discardCardString}'
             player.lastAction = f'discards {discardCardString}'
-            
-            self.playerTurnOver(player)
+
+            self.playerTurnOver(player, False, False)
 
         elif (params["action"] == "imposterRoll") and (self.player_turn == player.id) and (self.phase == "imposterRoll") and (self.completed == False):
             self.rollDice()
@@ -948,17 +1016,10 @@ class KesselGame(Game):
             elif player.positiveCard.suit == "imposter" and player.positiveCard.val == 0:
                 player.positiveCard.val = self.dice[params["die"]]
 
-            otherImposter = self.unRolledImposters()
-
             self.p_act = f'{player.username} rolls for imposter and gets a {self.dice[params["die"]]}'
             player.lastAction = f'rolls {self.dice[params["die"]]} for imposter'
 
-            if otherImposter is None:
-                self.handOver()
-            else:
-                self.phase = "imposterRoll"
-                nextPlayer = otherImposter
-                self.player_turn = self.getActivePlayers()[nextPlayer].id
+            self.rollNextImposter()
 
         elif (params["action"] == "nextHand") and (self.player_turn == player.id) and (self.phase == "reveal") and (self.completed == False):
             self.nextHand()

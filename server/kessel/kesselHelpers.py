@@ -269,7 +269,7 @@ class KesselGame(Game):
             player_turn = game[9],
             p_act = game[10],
             cycle_count = game[11],
-            completed = game[12],
+            completed = bool(game[12]),
             settings = json.loads(game[13]),
             created_at = game[14],
             move_history = None if not game[15] else json.loads(game[15])

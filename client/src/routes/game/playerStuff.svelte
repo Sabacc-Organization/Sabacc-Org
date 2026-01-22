@@ -94,6 +94,8 @@ class:playing={p['username'] === $username}>
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div
                             on:click={() => clickOrDblclick(() => trade(c), () => onDoubleClickCard(c))}
+                            on:mouseenter={() => {$tooltip = ($game_variant === "traditional")? "Double click to protect card." : $tooltip}}
+                            on:mouseleave={() => {$tooltip = ""}}
                             id="card{ci.toString()}"
                             class="card child own"
                             style="{renderCard(c)}">

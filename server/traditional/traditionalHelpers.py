@@ -288,10 +288,23 @@ class TraditionalGame(Game):
         }
 
     @staticmethod
-    def fromDb(game: list, preSettings=False):
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
-        if preSettings == False:
-            gameObj.settings = json.loads(game[11])
+    def fromDb(game: list):
+        gameObj = TraditionalGame(
+            id=game[0],
+            players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])],
+            hand_pot=game[2],
+            sabacc_pot=game[3],
+            phase=game[4],
+            deck=TraditionalDeck.fromDb(game[5]),
+            player_turn=game[6],
+            p_act=game[7],
+            cycle_count=game[8],
+            shift=bool(game[9]),
+            completed=bool(game[10]),
+            settings=json.loads(game[11]),
+            created_at=game[12],
+            move_history=None if not game[13] else json.loads(game[13])
+        )
         return gameObj
     
     @staticmethod

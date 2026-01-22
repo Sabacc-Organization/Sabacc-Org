@@ -73,13 +73,13 @@
         // code to catch errors
         $socket.io.on('error', (err: any) => {console.log(err)});
 
-        // when there is a connection established with the server, it will explicitely ask the server for a game update. 
+        // when there is a connection established with the server, it will explicitly ask the server for a game update. 
         // this is the only time it will explicitly ask for a game update.
         $socket.on('connect', () => {
             requestGameUpdate();
         });
 
-        // when the server responds to a game update request or recieves new information, it will pass that info on to updateClientGame as serverInfo
+        // when the server responds to a game update request or receives new information, it will pass that info on to updateClientGame as serverInfo
         $socket.on('gameUpdate', (serverInfo: any) => {
             updateClientGame(serverInfo);
         });
@@ -91,7 +91,7 @@
             updateClientInfo(serverInfo);
         });
 
-        // defining the Audio to be play apon your turn (it wouldnt work if i put it outside of onMount)
+        // defining the Audio to be play upon your turn (it wouldnt work if i put it outside of onMount)
         $turnSound = new Audio("/move-sound.mp3");
     });
 

@@ -133,8 +133,10 @@
 
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span on:click={$game_variant !== "kessel"? shift : diceRoll}
+    <span on:click={() => {$game_variant !== "kessel"? shift : diceRoll; $tooltip = ""}}
     class:shiftActive={$shiftActive || (["imposterRoll", "shiftTokenRoll"].includes($game["phase"]) && $game["player_turn"] === $user_id)}
+    on:mouseenter={() => {$tooltip = $shiftActive || (["imposterRoll", "shiftTokenRoll"].includes($game["phase"]) && $game["player_turn"] === $user_id)? "Click to roll the dice." : $tooltip}}
+    on:mouseleave={() => {$tooltip = ""}}
     class="dieContainer">
         {#if $game_variant !== "kessel"}
             <div id="dieOne" class="child die"></div>

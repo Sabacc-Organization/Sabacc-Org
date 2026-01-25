@@ -54,8 +54,8 @@ class Card:
             return Card.fromDict(card)
 
 class Deck:
-    def __init__(self, cards:list=[]):
-        self.cards = cards.copy()
+    def __init__(self, cards:list=None):
+        self.cards = cards.copy() if cards is not None else []
     def __str__(self) -> str:
         return f'[{listToStr(self.cards)}]'
     
@@ -93,8 +93,8 @@ class Deck:
             return drawnCards
 
 class Hand:
-    def __init__(self, cards=[]):
-        self.cards: list = cards.copy()
+    def __init__(self, cards=None):
+        self.cards: list = cards.copy() if cards is not None else []
         self.sort()
 
     def __eq__(self, other:object) -> bool:
@@ -132,7 +132,7 @@ class Hand:
     def getTotal(self) -> int:
         return sum(self.getListOfVals())
     
-    # sort hand by value (selection sort)
+    # sort hand by value
     def sort(self):
         if self.cards == []:
             return
@@ -227,7 +227,7 @@ class Game:
         self.shift = shift
         self.settings = settings
         self.created_at = created_at
-        self.move_history = [] if move_history is None else move_history
+        self.move_history = move_history
 
     @staticmethod
     @abstractmethod
@@ -237,7 +237,7 @@ class Game:
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
 
-        gameDict = self.toDict()
+        gameDict = self.toDict(noMutableReferences=True)
         gameDict.pop('deck')
         if self.completed is False:
             for p in range(len(gameDict['players'])):
@@ -250,25 +250,26 @@ class Game:
 
             followGameDict = self.toDict()
 
-            for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
-                for key, value in gameDict["move_history"][i].items():
-                    followGameDict[key] = value
-                if followGameDict["completed"] is True:
-                    gameDict["move_history"][i]["players"] = followGameDict["players"]
-                    gameDict["move_history"][i]["deck"] = followGameDict["deck"]
-                    break
+            if gameDict["move_history"] is not None:
+                for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                    for key, value in gameDict["move_history"][i].items():
+                        followGameDict[key] = value
+                    if followGameDict["completed"] is True:
+                        gameDict["move_history"][i]["players"] = followGameDict["players"]
+                        gameDict["move_history"][i]["deck"] = followGameDict["deck"]
+                        break
 
-                if "players" in gameDict["move_history"][i]:
-                    for p in range(len(gameDict["move_history"][i]['players'])):
-                        if gameDict["move_history"][i]["players"][p]['id'] == player.id:
-                            continue
+                    if "players" in gameDict["move_history"][i]:
+                        for p in range(len(gameDict["move_history"][i]['players'])):
+                            if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                                continue
 
-                        for card in gameDict["move_history"][i]["players"][p]['hand']:
-                            card['suit'] = 'hidden'
-                            card['val'] = 0
+                            for card in gameDict["move_history"][i]["players"][p]['hand']:
+                                card['suit'] = 'hidden'
+                                card['val'] = 0
 
-                if "deck" in gameDict["move_history"][i]:
-                    gameDict["move_history"][i].pop("deck")
+                    if "deck" in gameDict["move_history"][i]:
+                        gameDict["move_history"][i].pop("deck")
 
         users = [i.username for i in self.getActivePlayers()]
 
@@ -343,6 +344,10 @@ class Game:
                 originalValues[key] = value
         return originalValues
     
+    @abstractmethod
+    def toDict(self, noMutableReferences: bool = False):
+        pass
+
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override
     @abstractmethod

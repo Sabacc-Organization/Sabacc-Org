@@ -26,6 +26,7 @@ from atexit import register as registerExit
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
+import logging
 
 # Get config.yml data
 # users can have a config.local.yml or local.config.yml that isn't tracked by git so they dont accidentally commit personal information
@@ -79,6 +80,9 @@ for co in link, linkTwo:
 socketio = SocketIO(app, cors_allowed_origins="*")
 CORS(app, origins="*")
 
+if config["VERBOSE_LOGGING"] is False:
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+
 # links the socketio session to a users username and id
 clientUserMap = {}
 
@@ -94,8 +98,9 @@ def getConn():
     return conn
 
 def closeConn():
-    conn = getattr(threadLocal, "conn", None)
+    conn: sqlite3.Connection = getattr(threadLocal, "conn", None)
     if conn is not None:
+        conn.rollback()
         conn.close()
 
 registerExit(closeConn)
@@ -1423,11 +1428,11 @@ def gameAction(clientInfo):
         return jsonify({"message": "You are not in this game"}), 401
 
     response = game.action(clientInfo, db)
+    getConn().commit()
 
     if isinstance(response, str):
         return jsonify({"message": response}), 401
 
-    getConn().commit()
 
     game = getGameFromDb(game_variant, game_id)
     clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')

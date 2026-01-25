@@ -396,7 +396,10 @@ class CorellianSpikeGame(Game):
     def discardPileToDict(self):
         return [card.toDict() for card in self.discardPile]
 
-    def toDict(self):
+    def toDict(self, noMutableReferences: bool = False):
+        """
+        :param noMutableReferences: set to true to deepcopy all mutable data, so you can safely mutate the resulting dictionary
+        """
         return {
             'id': self.id,
             'players': [player.toDict() for player in self.players],
@@ -410,9 +413,9 @@ class CorellianSpikeGame(Game):
             'cycle_count': self.cycle_count,
             'shift': self._shift,
             'completed': self.completed,
-            'settings': self.settings,
+            'settings': copy.deepcopy(self.settings) if noMutableReferences else self.settings,
             'created_at': self.created_at,
-            'move_history': self.move_history
+            'move_history': copy.deepcopy(self.move_history) if noMutableReferences else self.move_history
         }
 
     def toDb(self, includeId=False):
@@ -507,7 +510,7 @@ class CorellianSpikeGame(Game):
         self._playerDiscard(player, discardCardIndex)
 
     # replace every card in every player's hand
-    def shiftcards(self):
+    def doShift(self):
         # loop thru players
         for player in self.players:
             hand = player.hand.cards
@@ -704,7 +707,7 @@ class CorellianSpikeGame(Game):
             self._shift = self.rollShift()
 
             if self._shift:
-                self.shiftcards()
+                self.doShift()
 
             # Set the Shift message
             shiftStr = "Sabacc shift!" if self._shift else "No shift!"

@@ -101,7 +101,7 @@ class KesselPlayer(Player):
             'extraCardIsNegative': self.extraCardIsNegative,
             'chips': self.chips,
             'usedChips': self.usedChips,
-            'shiftTokens': self.shiftTokens,
+            'shiftTokens': self.shiftTokens.copy(),
             'outOfGame': self.outOfGame
         }
 
@@ -237,7 +237,7 @@ class KesselGame(Game):
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
 
-        gameDict = self.toDict()
+        gameDict = self.toDict(noMutableReferences=True)
         users = [i.username for i in self.getActivePlayers()]
 
         if (self.completed is False) and (not self.phase in ('reveal', 'imposterRoll', 'imposterChoice')):
@@ -256,32 +256,33 @@ class KesselGame(Game):
 
             followGameDict = self.toDict()
 
-            for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
-                for key, value in gameDict["move_history"][i].items():
-                    followGameDict[key] = value
-                if followGameDict["completed"] is True or followGameDict["phase"] in ('reveal', 'imposterRoll', 'imposterChoice'):
-                    gameDict["move_history"][i]["players"] = followGameDict["players"]
-                    gameDict["move_history"][i]["positiveDeck"] = followGameDict["positiveDeck"]
-                    gameDict["move_history"][i]["negativeDeck"] = followGameDict["negativeDeck"]
-                    break
-                
-                if "players" in gameDict["move_history"][i]:
-                    for p in range(len(gameDict["move_history"][i]['players'])):
-                        if gameDict["move_history"][i]["players"][p]['id'] == player.id:
-                            continue
+            if gameDict["move_history"] is not None:
+                for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                    for key, value in gameDict["move_history"][i].items():
+                        followGameDict[key] = value
+                    if followGameDict["completed"] is True or followGameDict["phase"] in ('reveal', 'imposterRoll', 'imposterChoice'):
+                        gameDict["move_history"][i]["players"] = followGameDict["players"]
+                        gameDict["move_history"][i]["positiveDeck"] = followGameDict["positiveDeck"]
+                        gameDict["move_history"][i]["negativeDeck"] = followGameDict["negativeDeck"]
+                        break
+                    
+                    if "players" in gameDict["move_history"][i]:
+                        for p in range(len(gameDict["move_history"][i]['players'])):
+                            if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                                continue
 
-                        gameDict["move_history"][i]["players"][p]['positiveCard']['suit'] = 'hidden'
-                        gameDict["move_history"][i]["players"][p]['positiveCard']['val'] = 0
-                        gameDict["move_history"][i]["players"][p]['negativeCard']['suit'] = 'hidden'
-                        gameDict["move_history"][i]["players"][p]['negativeCard']['val'] = 0
+                            gameDict["move_history"][i]["players"][p]['positiveCard']['suit'] = 'hidden'
+                            gameDict["move_history"][i]["players"][p]['positiveCard']['val'] = 0
+                            gameDict["move_history"][i]["players"][p]['negativeCard']['suit'] = 'hidden'
+                            gameDict["move_history"][i]["players"][p]['negativeCard']['val'] = 0
 
-                        if gameDict["move_history"][i]["players"][p]['extraCard'] is not None:
-                            gameDict["move_history"][i]["players"][p]['extraCard']['suit'] = 'hidden'
-                            gameDict["move_history"][i]["players"][p]['extraCard']['val'] = 0
-                if "positiveDeck" in gameDict["move_history"][i]:
-                    gameDict["move_history"][i].pop("positiveDeck")
-                if "negativeDeck" in gameDict["move_history"][i]:
-                    gameDict["move_history"][i].pop("negativeDeck")
+                            if gameDict["move_history"][i]["players"][p]['extraCard'] is not None:
+                                gameDict["move_history"][i]["players"][p]['extraCard']['suit'] = 'hidden'
+                                gameDict["move_history"][i]["players"][p]['extraCard']['val'] = 0
+                    if "positiveDeck" in gameDict["move_history"][i]:
+                        gameDict["move_history"][i].pop("positiveDeck")
+                    if "negativeDeck" in gameDict["move_history"][i]:
+                        gameDict["move_history"][i].pop("negativeDeck")
 
         gameDict.pop("positiveDeck")
         gameDict.pop("negativeDeck")
@@ -373,7 +374,10 @@ class KesselGame(Game):
 
         return dbGame
 
-    def toDict(self):
+    def toDict(self, noMutableReferences: bool = False):
+        """
+        :param noMutableReferences: set to true to deepcopy all mutable data, so you can safely mutate the resulting dictionary
+        """
         return {
             "id": self.id,
             "players": [i.toDict() for i in self.players],
@@ -383,14 +387,14 @@ class KesselGame(Game):
             "negativeDeck": self.negativeDeck.toDict(),
             "positiveDiscard": self.discardPileToDict(self.positiveDiscard),
             "negativeDiscard": self.discardPileToDict(self.negativeDiscard),
-            "activeShiftTokens": self.activeShiftTokens,
+            "activeShiftTokens": copy.deepcopy(self.activeShiftTokens) if noMutableReferences else self.activeShiftTokens,
             "player_turn": self.player_turn,
             "p_act": self.p_act,
             "cycle_count": self.cycle_count,
             "completed": self.completed,
-            "settings": self.settings,
+            "settings": copy.deepcopy(self.settings) if noMutableReferences else self.settings,
             "created_at": self.created_at,
-            "move_history": self.move_history
+            "move_history": copy.deepcopy(self.move_history) if noMutableReferences else self.move_history
         }
 
     def playersToDb(self):
@@ -1010,9 +1014,9 @@ class KesselGame(Game):
             self.diceToDb(),
             self.positiveDeckToDb(),
             self.negativeDeckToDb(),
-            self.discardPileToDict(self.positiveDiscard),
-            self.discardPileToDict(self.negativeDiscard),
-            self.activeShiftTokens,
+            json.dumps(self.discardPileToDict(self.positiveDiscard)),
+            json.dumps(self.discardPileToDict(self.negativeDiscard)),
+            json.dumps(self.activeShiftTokens),
             self.player_turn,
             self.p_act,
             self.cycle_count,

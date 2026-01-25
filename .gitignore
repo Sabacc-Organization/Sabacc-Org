@@ -1,6 +1,7 @@
 server/sabacc.db
 server/config.local.yml
 server/local.config.yml
+client/.env.local
 client/.DS_Store
 client/node_modules
 client/build

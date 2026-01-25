@@ -1,5 +1,6 @@
 # APP
 DEBUG: False
+VERBOSE_LOGGING: True
 IP: 127.0.0.1
 DOMAIN: "http://127.0.0.1:5000"
 CROSS_ORIGIN: "http://localhost:5173"

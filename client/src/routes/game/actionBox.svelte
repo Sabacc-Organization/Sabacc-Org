@@ -21,7 +21,9 @@
         followAmount,
         raiseAmount,
         tradeCard,
-        SHIFT_TOKENS
+        SHIFT_TOKENS,
+        SHIFT_TOKEN_DESCRIPTIONS,
+        tooltip
     } from "./sharedValues";
 
     import {
@@ -57,7 +59,7 @@
 
     $: {
         let players = $game["players"];
-        if ($game["player_turn"] === $user_id && $game["phase"] === "betting") {
+        if ($game["player_turn"] === $user_id && $game["phase"] === "betting" && $game["completed"] == 0) {
             $potsActive = true;
 
             $raiseAmount = 0;
@@ -95,7 +97,11 @@
     }
 
     $: {
-        if ($game["player_turn"] === $user_id) {
+        if ($game["player_turn"] === $user_id && $game["completed"] == 0) {
+            if ($game["phase"] === "shiftTokenSelect") {
+                $cardBool = false;
+                $alderaanActive = false;
+            }
 
             if ($game["phase"] === "card") {
                 $cardBool = true;
@@ -200,6 +206,8 @@
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-static-element-interactions -->
                             <div on:click={() => shiftTokenSelect(shiftToken)}
+                            on:mouseenter={() => {$tooltip = SHIFT_TOKEN_DESCRIPTIONS[shiftToken];}}
+                            on:mouseleave={() => {$tooltip = ""}}
                             class="card child shiftToken own active"
                             style="{renderCard(shiftToken)}"></div>
                         </div>
@@ -211,7 +219,7 @@
                 </div>
             {/if}
         {/if}
-    {:else if $game["player_turn"] === $user_id && $game["completed"] && ($currentMove === $movesDone - 1)}
+    {:else if $game["player_turn"] === $user_id && $game["completed"] && ($currentMove === $movesDone - 1) && $game["players"].length > 1}
         <div id="betDiv" class="backBlue brightBlue">
             <button on:click={playAgain} type="button" id="pAgainBtn" class="btn btn-primary">Play Again</button>
         </div>

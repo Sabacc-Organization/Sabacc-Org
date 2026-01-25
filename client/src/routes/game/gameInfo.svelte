@@ -9,7 +9,8 @@
         alderaanActive,
         cardDesign,
         shiftActive,
-        game_variant
+        game_variant,
+        tooltip
     } from "./sharedValues";
 
     import { 
@@ -63,14 +64,24 @@
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('deckDraw')} class:active={$cardBool} id="deck" class="card child" style="{renderBack($cardDesign)}"></div>
+                <div on:click={() => draw('deckDraw')}
+                class:active={$cardBool} id="deck"
+                class="card child"
+                style="{renderBack($cardDesign)}"
+                on:mouseenter={() => {$tooltip = "Deck draw."}}
+                on:mouseleave={() => {$tooltip = ""}}></div>
             </div>
 
             {#if $game_variant === "corellian_spike"}
                 <div class="cardContainer">
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div on:click={() => draw('discardDraw')} class:active={$cardBool} id="discard" class="card child" style={renderCard($game['discard_pile'][$game['discard_pile'].length - 1])}></div>
+                    <div on:click={() => draw('discardDraw')}
+                    class:active={$cardBool} id="discard"
+                    class="card child"
+                    style={renderCard($game['discard_pile'][$game['discard_pile'].length - 1])}
+                    on:mouseenter={() => {$tooltip = "Discard draw."}}
+                    on:mouseleave={() => {$tooltip = ""}}></div>
                     <h5>{$cardDesign === "pescado"? "":$game['discard_pile'][$game['discard_pile'].length - 1]['val']}</h5>
                 </div>
             {/if}
@@ -80,29 +91,51 @@
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('negativeDiscardDraw')} id="negativeDiscard" class="card child {$cardBool? "active":""}" style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"></div>
+                <div on:click={() => draw('negativeDiscardDraw')}
+                id="negativeDiscard"
+                class="card child {$cardBool? "active":""}"
+                style="{renderCard($game["negativeDiscard"].slice(-1)[0], true)}"
+                on:mouseenter={() => {$tooltip = "Negative discard draw."}}
+                on:mouseleave={() => {$tooltip = ""}}></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('negativeDeckDraw')} id="negativeDeck" class="card child {$cardBool? "active":""}" style="{renderBack(true)}"></div>
+                <div on:click={() => draw('negativeDeckDraw')}
+                id="negativeDeck"
+                class="card child {$cardBool? "active":""}"
+                style="{renderBack(true)}"
+                on:mouseenter={() => {$tooltip = "Negative deck draw."}}
+                on:mouseleave={() => {$tooltip = ""}}></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('positiveDeckDraw')} id="positiveDeck" class="card child {$cardBool? "active":""}" style="{renderBack(false)}"></div>
+                <div on:click={() => draw('positiveDeckDraw')}
+                id="positiveDeck"
+                class="card child {$cardBool? "active":""}"
+                style="{renderBack(false)}"
+                on:mouseenter={() => {$tooltip = "Positive deck draw."}}
+                on:mouseleave={() => {$tooltip = ""}}></div>
             </div>
             <div class="cardContainer">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div on:click={() => draw('positiveDiscardDraw')} id="positiveDiscard" class="card child {$cardBool? "active":""}" style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"></div>
+                <div on:click={() => draw('positiveDiscardDraw')}
+                id="positiveDiscard"
+                class="card child {$cardBool? "active":""}"
+                style="{renderCard($game["positiveDiscard"].slice(-1)[0], false)}"
+                on:mouseenter={() => {$tooltip = "Positive discard draw."}}
+                on:mouseleave={() => {$tooltip = ""}}></div>
             </div>
         </div>
     {/if}
 
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <span on:click={$game_variant !== "kessel"? shift : diceRoll} class:shiftActive={$shiftActive || (["imposterRoll", "shiftTokenRoll"].includes($game["phase"]) && $game["player_turn"] === $user_id)} class="dieContainer">
+    <span on:click={$game_variant !== "kessel"? shift : diceRoll}
+    class:shiftActive={$shiftActive || (["imposterRoll", "shiftTokenRoll"].includes($game["phase"]) && $game["player_turn"] === $user_id)}
+    class="dieContainer">
         {#if $game_variant !== "kessel"}
             <div id="dieOne" class="child die"></div>
             <div id="dieTwo" class="child die shift{$game["shift"]}"></div>
@@ -119,6 +152,12 @@
     {#if $game_variant === 'traditional'}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div on:click={alderaan} class:active={$alderaanActive} id="alderaan" class="child alderaan {$game["phase"]}Blown"></div>
+        <div on:click={alderaan}
+        class:active={$alderaanActive}
+        id="alderaan"
+        class="child alderaan {$game["phase"]}Blown"
+        on:mouseenter={() => {$tooltip = "Call Alderaan."}}
+        on:mouseleave={() => {$tooltip = ""}}
+        ></div>
     {/if}
 </div>

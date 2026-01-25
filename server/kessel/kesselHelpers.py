@@ -2,6 +2,7 @@ from helpers import *
 import json
 from datetime import datetime, timezone
 from typing import Union
+import random
 
 shiftTokenTypes = [
     "freeDraw",
@@ -286,6 +287,9 @@ class KesselGame(Game):
 
         gameDict.pop("positiveDeck")
         gameDict.pop("negativeDeck")
+
+        if player is None:
+            return {"message": "Spectating", "gata": gameDict, "users": users, "user_id": -1, "username": ""}
 
         return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
     
@@ -597,6 +601,9 @@ class KesselGame(Game):
         self.player_turn = self.getActivePlayers()[0].id
         self.cycle_count = 0
 
+    def getVariant(self):
+        return Game_Variant.KESSEL
+
     def unRolledImposters(self):
         nextPlayer = 0
         otherImposter = False
@@ -768,7 +775,7 @@ class KesselGame(Game):
             self.phase = "shiftTokenPlayer"
 
         elif shiftToken == "embargo":
-            targetPlayer = self.getNextPlayer(player)
+            targetPlayer = self.getNextPlayerInPhase(player)
             if not (["immunity", str(targetPlayer.id)] in self.activeShiftTokens):
                 self.activeShiftTokens.append(["embargo", str(targetPlayer.id)])
 
@@ -792,6 +799,14 @@ class KesselGame(Game):
             self.phase = "shiftTokenRoll"
 
         player.shiftTokens.remove(shiftToken)
+
+    def getNextPhase(self):
+        if self.phase == "card":
+            return "betting"
+        elif self.phase == "betting":
+            return "shift"
+        elif self.phase == "shift":
+            return "card"
 
     def action(self, params: dict, db):
         originalSelf = copy.deepcopy(self)
@@ -1014,9 +1029,9 @@ class KesselGame(Game):
             self.diceToDb(),
             self.positiveDeckToDb(),
             self.negativeDeckToDb(),
-            json.dumps(self.discardPileToDict(self.positiveDiscard)),
-            json.dumps(self.discardPileToDict(self.negativeDiscard)),
-            json.dumps(self.activeShiftTokens),
+            self.positiveDiscardToDb(),
+            self.negativeDiscardToDb(),
+            self.activeShiftTokensToDb(),
             self.player_turn,
             self.p_act,
             self.cycle_count,

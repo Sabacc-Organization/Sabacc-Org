@@ -242,119 +242,22 @@ class TraditionalGame(Game):
         # create player list
         players = []
         for id in playerIds:
-            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=settings["StartingCredits"] - settings["HandPotAnte"] - settings["SabaccPotAnte"]))
+            players.append(TraditionalPlayer(id, username=playerUsernames[playerIds.index(id)], credits=settings["StartingCredits"]))
 
         # construct deck
         deck = TraditionalDeck()
 
-        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, hand_pot=settings["HandPotAnte"]*len(players), sabacc_pot=settings["SabaccPotAnte"]*len(players))
+        game = TraditionalGame(players=players, deck=deck, player_turn=players[0].id, settings=settings)
 
-        # Blinds
-        if settings["PokerStyleBetting"]:
-            activePlayers = game.getActivePlayers()
-
-            smallBlind = activePlayers[1 % len(activePlayers)]
-            smallBlind.bet = settings["SmallBlind"]
-            smallBlind.credits -= settings["SmallBlind"]
-
-            bigBlind = activePlayers[2 % len(activePlayers)]
-            bigBlind.bet = settings["BigBlind"]
-            bigBlind.credits -= settings["BigBlind"]
-            game.player_turn = bigBlind.id
-
-        # Deal
-        game.shuffleDeck()
-        game.dealHands()
+        game.nextRound(rotateDealer=False)
 
         if db:
-            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, json.dumps(settings)])
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, game.settingsToDb()])
 
         return game
 
-    def getClientData(self, user_id = None, username = None):
-        player: Player = self.getPlayer(username, user_id)
-
-        gameDict = self.toDict(noMutableReferences=True)
-        gameDict.pop('deck')
-        if self.completed is False:
-            for p in range(len(gameDict['players'])):
-                if gameDict["players"][p]['id'] == player.id:
-                    continue
-
-                for card in range(len(gameDict["players"][p]['hand'])):
-                    if gameDict["players"][p]["hand"][card]['prot'] is True:
-                        continue
-                    gameDict["players"][p]["hand"][card]['suit'] = 'hidden'
-                    gameDict["players"][p]["hand"][card]['val'] = 0
-
-            followGameDict = self.toDict()
-
-            if gameDict["move_history"] is not None:
-                for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
-                    for key, value in gameDict["move_history"][i].items():
-                        followGameDict[key] = value
-                    if followGameDict["completed"] is True:
-                        gameDict["move_history"][i]["players"] = followGameDict["players"]
-                        gameDict["move_history"][i]["deck"] = followGameDict["deck"]
-                        break
-
-                    if "players" in gameDict["move_history"][i]:
-                        for p in range(len(gameDict["move_history"][i]['players'])):
-                            if gameDict["move_history"][i]["players"][p]['id'] == player.id:
-                                continue
-
-                            for card in range(len(gameDict["move_history"][i]["players"][p]['hand'])):
-                                if gameDict["move_history"][i]["players"][p]["hand"][card]['prot'] is True:
-                                    continue
-                                gameDict["move_history"][i]["players"][p]["hand"][card]['suit'] = 'hidden'
-                                gameDict["move_history"][i]["players"][p]["hand"][card]['val'] = 0
-
-                    if "deck" in gameDict["move_history"][i]:
-                        gameDict["move_history"][i].pop("deck")
-                
-        users = [i.username for i in self.getActivePlayers()]
-
-        return {"message": "Good luck!", "gata": gameDict, "users": users, "user_id": int(player.id), "username": player.username}
-
-    # sets up for next round
-    def nextRound(self):
-        # rotate dealer (1st in list is always dealer) - move 1st player to end
-        self.players.append(self.players.pop(0))
-
-        for player in self.players:
-            player.credits -= (self.settings["HandPotAnte"] + self.settings["SabaccPotAnte"]) # Make users pay Sabacc and Hand pot Antes
-            player.bet = None # reset bets
-            player.folded = False # reset folded
-            player.lastAction = '' # reset last action
-
-        # Antes (Pots)
-        self.hand_pot = self.settings["HandPotAnte"] * len(self.players)
-        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.players)
-
-        # Player turn (not PokerStyleBetting)
-        self.player_turn = self.players[0].id
-
-        # Blinds
-        if self.settings["PokerStyleBetting"]:
-            activePlayers = self.getActivePlayers()
-
-            smallBlind = activePlayers[1 % len(activePlayers)]
-            smallBlind.bet = self.settings["SmallBlind"]
-            smallBlind.credits -= self.settings["SmallBlind"]
-
-            bigBlind = activePlayers[2 % len(activePlayers)]
-            bigBlind.bet = self.settings["BigBlind"]
-            bigBlind.credits -= self.settings["BigBlind"]
-            self.player_turn = bigBlind.id
-
-        # construct deck and deal hands
-        self.deck = TraditionalDeck()
-        self.shuffleDeck()
-        self.dealHands()
-
-    def dealHands(self):
-        for player in self.players:
-            player.hand.cards = [self.drawFromDeck(),self.drawFromDeck()]
+    def getVariant(self):
+        return Game_Variant.TRADITIONAL
 
     def toDb(self, includeId=False):
         dbGame = [self.id, self.playersToDb(), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
@@ -389,8 +292,7 @@ class TraditionalGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        # print("game: ", game[0])
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=bool(game[9]),completed=bool(game[10]),settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
+        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
         if preSettings == False:
             gameObj.settings = json.loads(game[11])
         return gameObj
@@ -398,17 +300,16 @@ class TraditionalGame(Game):
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
-
-    def drawFromDeck(self):
-        # if deck is empty, reshuffle
-        if len(self.deck.cards) == 0:
-            # exclude cards in (active) players' hands
-            cardsToExclude = []
-            for player in self.getActivePlayers():
-                cardsToExclude.extend(player.hand.cards)
-            self.deck = TraditionalDeck(cardsToExclude=cardsToExclude)
-            self.deck.shuffle()
-        return self.deck.draw()
+            
+    def _reshuffle(self):
+        # exclude cards in (active) players' hands
+        cardsToExclude = []
+        for player in self.getActivePlayers():
+            cardsToExclude.extend(player.hand.cards)
+        self.deck = TraditionalDeck()
+        for card in cardsToExclude:
+            self.deck.cards.remove(card)
+        self.deck.shuffle()
 
     # replace every unprotected card in every player's hand
     def doShift(self):
@@ -497,85 +398,25 @@ class TraditionalGame(Game):
                 if player.calcHandVal() == bestHand:
                     winningPlayers.append(player)
         return winningPlayers, bestHand, bombedOutPlayers
-
-    def betPhaseAction(self, params:dict, player, db):
-        players = self.getActivePlayers()
-        if params['action'] == "fold":
-            if self.settings["PokerStyleBetting"]:
-                self.hand_pot += player.getBet()
-            player.fold(self.settings["PokerStyleBetting"])
-
-            players = self.getActivePlayers()
-
-        if params["action"] == "check":
-            if player.getBet() != self.getGreatestBet():
-                return
-            player.makeBet(0, False)
-
-        elif params["action"] == "bet":
-            if player.getBet() != self.getGreatestBet() or player.bet != None or players.index(player) != 0:
-                return
-            player.makeBet(params["amount"], True)
-
-        elif params["action"] == 'call':
-            player.makeBet(self.getGreatestBet(), True)
-            player.lastAction = 'calls'
-
-        elif params["action"] == 'raise':
-            player.makeBet(params["amount"], True)
-            player.lastAction = f'raises to {params["amount"]}'
-
-
-        players = self.getActivePlayers()
-
-        nextPlayer = None
-
-        if not self.settings["PokerStyleBetting"]:
-            betAmount = [i.getBet() for i in self.players]
-            betAmount.append(0)
-            betAmount = max(betAmount)
-            for i in players:
-                iBet = i.bet if i.bet != None else -1
-                if iBet < betAmount:
-                    nextPlayer = i.id
-                    break
-        elif self.settings["PokerStyleBetting"]:
-            if self.getNextPlayer(player).getBet() < self.getGreatestBet() or self.getNextPlayer(player).bet == None:
-                nextPlayer = self.getNextPlayer(player).id
-
-        if len(players) <= 1:
-            winningPlayer = players[0]
-            winningPlayer.credits += self.hand_pot + winningPlayer.bet
-            self.hand_pot = 0
-            winningPlayer.bet = None
-
-        if nextPlayer == None:
-            # add all bets to hand pot
-            for p in players:
-                self.hand_pot += p.getBet()
-                p.bet = None
-
-        # Update game object before db update
-        self.phase = 'betting' if nextPlayer != None else 'card'
-        self.player_turn = nextPlayer if nextPlayer != None else players[0].id
-        self.p_act = player.username + " " + player.lastAction
-        self.completed = len(players) <= 1
-
-        dbList = [
-            self.playersToDb(),
-            self.hand_pot,
-            self.phase,
-            self.player_turn,
-            self.p_act,
-            self.completed,
-            self.id
-        ]
-        db.execute("UPDATE traditional_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+    
+    def getNextPhase(self):
+        if self.phase == "betting":
+            return "card"
+        elif self.phase == "card":
+            return "shift"
+        elif self.phase == "shift":
+            return "betting"
+        # this shouldn't be used when the phase is alderaan
 
     def cardPhaseAction(self, params:dict, player, db):
-        players = self.getActivePlayers()
 
-        if params["action"] == "draw":
+        nextPlayer = self.getNextPlayerInPhase(player)
+
+        if params["action"] == "quit":
+            player.lastAction = "quit the game"
+            self.players.remove(player)
+
+        elif params["action"] == "draw":
             player.hand.cards.append(self.drawFromDeck())
             player.lastAction = "draws"
 
@@ -598,17 +439,23 @@ class TraditionalGame(Game):
             player.lastAction = "calls Alderaan"
 
 
-
-        # Pass turn to next player
-        uDex = players.index(player)
-        nextPlayer = uDex + 1
+        players = self.getActivePlayers()
 
         # String that shows the winner
         winStr = None
 
+
         # If this action was from the last player
-        if nextPlayer == len(players):
-            nextPlayer = 0
+        if len(players) == 1:
+            winningPlayer = players[0]
+            winningPlayer.credits += self.hand_pot
+            self.hand_pot = 0
+            winStr = f"{winningPlayer.username} wins!"
+            self.completed = True
+        elif len(players) == 0:
+            self.completed = True
+        elif not nextPlayer:
+            nextPlayer = players[0]
             if self.phase == "alderaan":
                 # Get end of game data
                 winner, bestHand, bombedOutPlayers = self.alderaan()
@@ -643,13 +490,11 @@ class TraditionalGame(Game):
 
                     # Update winStr
                     winStr = "Everyone bombs out and loses!"
-
             else:
                 self.phase = "shift"
-                self.cycle_count += 1
 
         # Update game object before db update
-        self.player_turn = self.getActivePlayers()[nextPlayer].id
+        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
         self.p_act = player.username + " " + player.lastAction
         if winStr:
             self.p_act += "; " + winStr
@@ -679,7 +524,11 @@ class TraditionalGame(Game):
 
         originalSelf = copy.deepcopy(self)
         player = self.getPlayer(username=params["username"])
-        if params['action'] == "protect":
+
+        if params["action"] == "quit" and self.completed: # it is necessary for this conditional to be the first one
+            self.quitFromCompletedGame(player, db)
+
+        elif params['action'] == "protect":
             card = TraditionalCard.fromDict(params["protect"])
             response = player.hand.protect(card)
             if isinstance(response, str):
@@ -695,46 +544,17 @@ class TraditionalGame(Game):
             ]
             db.execute("UPDATE traditional_games SET players = ?, p_act = ? WHERE game_id = ?", dbList)
 
-        elif params['action'] in ["fold", "check", "bet", "call", "raise"] and self.phase == "betting" and self.player_turn == player.id and self.completed == False:
+        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
             self.betPhaseAction(params, player, db)
 
-        elif params["action"] in ["draw", "trade", "stand", "alderaan"] and self.phase in ["card", "alderaan"] and self.player_turn == player.id and self.completed == False:
+        elif (self.phase in ["card", "alderaan"] and self.completed == False) and ((params["action"] in ["draw", "trade", "stand", "alderaan"] and self.player_turn == player.id) or params["action"] == "quit"):
             self.cardPhaseAction(params, player, db)
 
-        elif params["action"] == "shift" and self.player_turn == player.id and self.completed == False:
-            self._shift = self.rollShift()
+        elif (self.phase == "shift" and self.completed == False) and ((params["action"] == "shift" and self.player_turn == player.id) or params["action"] == "quit"):
+            self.shiftPhaseAction(params, player, db)
 
-            if self._shift:
-                self.doShift()
-
-            # Set the Shift message
-            shiftStr = "Sabacc shift!" if self._shift else "No shift!"
-
-            # Update game object before db update
-            self.phase = "betting"
-            self.player_turn = self.getActivePlayers()[0].id
-            self.p_act = shiftStr
-
-            dbList = [
-                self.phase,
-                self.deck.toDb(),
-                self.playersToDb(),
-                self.player_turn,
-                self._shift,
-                self.p_act,
-                self.id
-            ]
-
-            db.execute("UPDATE traditional_games SET phase = ?, deck = ?, players = ?, player_turn = ?, shift = ?, p_act = ? WHERE game_id = ?", dbList)
-
-        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed:
+        elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed and len(self.players) > 1:
             self.nextRound()
-
-            # Update game object before db update
-            self.phase = "betting"
-            self.cycle_count = 0
-            self.p_act = ""
-            self.completed = False
 
             dbList = [
                 self.playersToDb(),

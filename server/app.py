@@ -33,7 +33,7 @@ import logging
 configPath = "config.yml"
 for potentialPath in ["config.local.yml", "local.config.yml", "config.yml"]:
     if Path(potentialPath).exists():
-        configPath = configPath
+        configPath = potentialPath
         break
 config = {}
 with open(configPath, "r") as f:
@@ -1411,7 +1411,7 @@ def gameAction(clientInfo):
     game = getGameFromDb(game_variant, game_id)
     clients = socketio.server.manager.get_participants("/", f'gameRoom:{game_variant}/{game_id}')
     for i in clients:
-        emit('gameUpdate', game.getGameData(), to=i[0])
+        emit('gameUpdate', game.getClientData(clientUserMap[i[0]][0]), to=i[0])
 
 """ Old Socket Stuff - May be brought back in the future"""
 

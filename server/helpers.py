@@ -245,17 +245,28 @@ class Game:
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
     
+    @abstractmethod
+    def getVariant() -> Game_Variant:
+        pass
+
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
+        pid = 0
+        if player is None:
+            pid = -1
+        else:
+            pid = player.id
 
         gameDict = self.toDict(noMutableReferences=True)
         gameDict.pop('deck')
         if self.completed is False:
             for p in range(len(gameDict['players'])):
-                if gameDict["players"][p]['id'] == player.id:
+                if gameDict["players"][p]['id'] == pid:
                     continue
 
                 for card in gameDict["players"][p]['hand']:
+                    if (self.getVariant() == Game_Variant.TRADITIONAL and card["prot"] is True):
+                        continue
                     card['suit'] = 'hidden'
                     card['val'] = 0
 
@@ -272,10 +283,12 @@ class Game:
 
                     if "players" in gameDict["move_history"][i]:
                         for p in range(len(gameDict["move_history"][i]['players'])):
-                            if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                            if gameDict["move_history"][i]["players"][p]['id'] == pid:
                                 continue
 
                             for card in gameDict["move_history"][i]["players"][p]['hand']:
+                                if (self.getVariant() == Game_Variant.TRADITIONAL and card["prot"] is True):
+                                    continue
                                 card['suit'] = 'hidden'
                                 card['val'] = 0
 
@@ -563,7 +576,7 @@ class Game:
             self._shift = self.rollShift()
 
             if self._shift:
-                self.shift()
+                self.doShift()
 
             # Set the Shift message
             shiftStr = "Sabacc shift!" if self._shift else "No shift!"
@@ -682,10 +695,3 @@ def checkLogin(conn: sqlite3.Connection, username, password):
 
     # User authenticated!
     return {"message": "Logged in!", "status": 200}
-
-# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
-def addPlusBeforeNumber(n:int) -> str:
-    return ('+' if n > 0 else '') + str(n)
-
-def bothOrAll(num:int):
-    return 'both' if num == 2 else 'all'

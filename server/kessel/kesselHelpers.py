@@ -237,13 +237,18 @@ class KesselGame(Game):
 
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
+        pid = 0
+        if player is None:
+            pid = -1
+        else:
+            pid = player.id
 
         gameDict = self.toDict(noMutableReferences=True)
         users = [i.username for i in self.getActivePlayers()]
 
         if (self.completed is False) and (not self.phase in ('reveal', 'imposterRoll', 'imposterChoice')):
             for p in range(len(gameDict['players'])):
-                if gameDict["players"][p]['id'] == player.id:
+                if gameDict["players"][p]['id'] == pid:
                     continue
 
                 gameDict["players"][p]['positiveCard']['suit'] = 'hidden'
@@ -266,10 +271,10 @@ class KesselGame(Game):
                         gameDict["move_history"][i]["positiveDeck"] = followGameDict["positiveDeck"]
                         gameDict["move_history"][i]["negativeDeck"] = followGameDict["negativeDeck"]
                         break
-                    
+
                     if "players" in gameDict["move_history"][i]:
                         for p in range(len(gameDict["move_history"][i]['players'])):
-                            if gameDict["move_history"][i]["players"][p]['id'] == player.id:
+                            if gameDict["move_history"][i]["players"][p]['id'] == pid:
                                 continue
 
                             gameDict["move_history"][i]["players"][p]['positiveCard']['suit'] = 'hidden'
@@ -280,6 +285,7 @@ class KesselGame(Game):
                             if gameDict["move_history"][i]["players"][p]['extraCard'] is not None:
                                 gameDict["move_history"][i]["players"][p]['extraCard']['suit'] = 'hidden'
                                 gameDict["move_history"][i]["players"][p]['extraCard']['val'] = 0
+
                     if "positiveDeck" in gameDict["move_history"][i]:
                         gameDict["move_history"][i].pop("positiveDeck")
                     if "negativeDeck" in gameDict["move_history"][i]:

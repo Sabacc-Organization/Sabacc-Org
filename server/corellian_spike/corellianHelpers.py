@@ -2,12 +2,7 @@
 
 import json
 import random
-import sys
-import os
 from typing import Optional, List
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
 from dataHelpers import *
 from helpers import *
 from datetime import datetime, timezone
@@ -619,13 +614,14 @@ class CorellianSpikeGame(Game):
                 self.discardPileToDb(),
                 self.playersToDb(),
                 self.hand_pot,
+                self.sabacc_pot,
                 self.phase,
                 self.player_turn,
                 self.p_act,
                 self.completed,
                 self.id
             ]
-            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
             self.betPhaseAction(params, player, db)
@@ -634,7 +630,8 @@ class CorellianSpikeGame(Game):
             self.shiftPhaseAction(params, player, db)
 
             # Corellian special condition ending (normal for corellian)
-            if self.cycle_count >= 2:
+            if self.cycle_count > 2:
+                self.cycle_count -= 1 # we love coding
                 self.completed = True
                 winData = self.determineWinner()
 
@@ -648,7 +645,8 @@ class CorellianSpikeGame(Game):
                 self.p_act += "; " + f"{winData['winStr']}"
 
             dbList = [
-                self.phase, 
+                self.phase,
+                self.cycle_count,
                 self.playersToDb(),
                 self.hand_pot,
                 self.sabacc_pot,
@@ -657,7 +655,7 @@ class CorellianSpikeGame(Game):
                 self.id
             ]
 
-            db.execute("UPDATE corellian_spike_games SET phase = ?, players = ?, hand_pot = ?, sabacc_pot = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+            db.execute("UPDATE corellian_spike_games SET phase = ?, cycle_count = ?, players = ?, hand_pot = ?, sabacc_pot = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed and len(self.players) > 1:
             self.nextRound()
@@ -693,3 +691,11 @@ class CorellianSpikeGame(Game):
         db.execute("UPDATE corellian_spike_games SET move_history = ? WHERE game_id = ?", [self.moveHistoryToDb(), self.id])
 
         return self
+
+
+# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
+def addPlusBeforeNumber(n:int) -> str:
+    return ('+' if n > 0 else '') + str(n)
+
+def bothOrAll(num:int):
+    return 'both' if num == 2 else 'all'

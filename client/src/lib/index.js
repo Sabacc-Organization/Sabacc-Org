@@ -16,11 +16,11 @@ export async function checkLogin(username, password, BACKEND_URL) {
         }
 
         const response = await fetch(BACKEND_URL + "/login", {
-            method: 'POST', // Set the method to POST
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData) // Convert your data to JSON
+            body: JSON.stringify(requestData)
         });
 
         let res = await response.json();
@@ -36,6 +36,34 @@ export async function checkLogin(username, password, BACKEND_URL) {
     }
 }
 
+/**
+ * @param {string} username
+ * @param {string} password
+ * @param {string} BACKEND_URL
+ */
+export async function getPreferences(username, password, BACKEND_URL) {
+
+    try {
+
+        let requestData = {
+            "username": username,
+            "password": password
+        };
+
+        const response = await fetch(BACKEND_URL + "/preferences", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        let res = await response.json();
+        return await res;
+    } catch (e) {
+        console.log(e);
+        return {"dark": true, "theme": "modern", "cardDesign": "pescado"};
+    }
+}
 
 /**
  * @param {string} username
@@ -52,11 +80,11 @@ export async function backendPostRequest(username, password, BACKEND_URL) {
         }
 
         const response = await fetch(BACKEND_URL, {
-            method: 'POST', // Set the method to POST
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json' // Set the headers appropriately
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData) // Convert your data to JSON
+            body: JSON.stringify(requestData)
         });
 
        return response.json();

@@ -10,11 +10,16 @@ export async function load({ cookies, platform }) {
     const username = cookies.get("username");
     const password = cookies.get("password");
     if (!username || !password) {
-        return {loggedIn: false};
+        return {
+            loggedIn: false,
+            dark: false,
+            theme: "modern",
+            cardDesign: "pescado"
+        };
     }
     
 	loggedIn = await checkLogin(username, password, BACKEND_URL);
-    const preferences: {"dark": boolean, "theme": string, "cardDesign": string} = await getPreferences(username, password, BACKEND_URL);
+    let preferences: {"dark": boolean, "theme": string, "cardDesign": string} = await getPreferences(username, password, BACKEND_URL);
 
     return {
         loggedIn: loggedIn,

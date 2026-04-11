@@ -145,6 +145,175 @@ class Hand:
             return
         self.cards.sort(key=(lambda x: x.val))
 
+class HandPot:
+    """
+    Represents hand pot(s) as a list of dicts for side pot support.
+    Each dict: {"credits": int, "eligiblePlayers": list[int]}
+    Main pot is always at the end of the list.
+    Side pots are evaluated from end to start.
+    """
+
+    def __init__(self, pots: list = None):
+        if pots is None:
+            self.pots = [{"credits": 0, "eligiblePlayers": []}]
+        else:
+            self.pots = copy.deepcopy(pots)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, HandPot):
+            return False
+        return self.pots == other.pots
+
+    def __str__(self) -> str:
+        return f'HandPot({self.pots})'
+
+    # --- Accessors ---
+
+    def getTotal(self) -> int:
+        """Get total credits across all pots"""
+        return sum(pot["credits"] for pot in self.pots)
+
+    def getMainPot(self) -> dict:
+        """Get the main pot (last in list)"""
+        return self.pots[-1]
+
+    def getEligiblePlayerIds(self) -> list:
+        """Get eligible player IDs from the main pot"""
+        return self.getMainPot()["eligiblePlayers"].copy()
+
+    def getNumPots(self) -> int:
+        """Get number of pots (including side pots)"""
+        return len(self.pots)
+
+    # --- Mutators ---
+
+    def addToMainPot(self, amount: int):
+        """Add credits to the main pot"""
+        self.pots[-1]["credits"] += amount
+
+    def setEligiblePlayers(self, playerIds: list):
+        """Set eligible players for the main pot"""
+        self.pots[-1]["eligiblePlayers"] = playerIds.copy()
+
+    def removePlayerFromAll(self, playerId: int):
+        """Remove a player from eligibility in all pots (when they fold/quit)"""
+        for pot in self.pots:
+            if playerId in pot["eligiblePlayers"]:
+                pot["eligiblePlayers"].remove(playerId)
+
+    def reset(self, eligiblePlayerIds: list = None):
+        """Reset to a single empty main pot"""
+        self.pots = [{"credits": 0, "eligiblePlayers": eligiblePlayerIds.copy() if eligiblePlayerIds else []}]
+
+    # --- Side Pot Formation ---
+
+    def formSidePots(self, players: list):
+        """
+        Called at end of betting phase. Forms side pots if bets are unequal.
+        If all bets are equal, simply adds bets to the existing main pot.
+        Resets all player.bet to None when done.
+
+        players: list[Player] - players who made bets this round
+        """
+        # Filter to players with bets (bet is not None and > 0)
+        bettingPlayers = [p for p in players if p.bet is not None and p.bet > 0]
+
+        if len(bettingPlayers) == 0:
+            # No bets to process, just reset bets to None
+            for p in players:
+                p.bet = None
+            return
+
+        # Get existing main pot credits to preserve
+        existingCredits = self.getMainPot()["credits"]
+
+        # Check if all bets are equal
+        betAmounts = [p.bet for p in bettingPlayers]
+        allEqual = len(set(betAmounts)) == 1
+
+        if allEqual:
+            # All bets equal - add total to main pot
+            totalBets = sum(betAmounts)
+            self.addToMainPot(totalBets)
+            # Set eligible players to those who bet
+            self.setEligiblePlayers([p.id for p in bettingPlayers])
+            # Reset all bets to None
+            for p in players:
+                p.bet = None
+            return
+
+        # Bets are unequal - form side pots
+        newPots = []
+
+        # Process pots by repeatedly taking the minimum bet
+        while True:
+            # Get players who still have bet remaining
+            remainingPlayers = [p for p in bettingPlayers if p.bet is not None and p.bet > 0]
+
+            if len(remainingPlayers) == 0:
+                break
+
+            # Find minimum bet among remaining players
+            minBet = min(p.bet for p in remainingPlayers)
+
+            # All remaining players are eligible for this pot
+            eligibleIds = [p.id for p in remainingPlayers]
+
+            # Calculate pot credits: minBet from each eligible player
+            potCredits = minBet * len(remainingPlayers)
+
+            # Subtract minBet from each player's bet
+            for p in remainingPlayers:
+                p.bet -= minBet
+
+            # Create the pot
+            newPots.append({
+                "credits": potCredits,
+                "eligiblePlayers": eligibleIds
+            })
+
+        # Add existing main pot credits to the first (smallest) side pot
+        if len(newPots) > 0 and existingCredits > 0:
+            newPots[0]["credits"] += existingCredits
+
+        # Replace pots
+        if len(newPots) > 0:
+            self.pots = newPots
+
+        # Reset all bets to None
+        for p in players:
+            p.bet = None
+
+
+    # --- Serialization ---
+
+    def toDict(self) -> list:
+        """Convert to list of dicts for JSON serialization"""
+        return copy.deepcopy(self.pots)
+
+    def toDb(self) -> str:
+        """Convert to JSON string for database storage"""
+        return json.dumps(self.pots)
+
+    @staticmethod
+    def fromDict(data: list) -> 'HandPot':
+        """Create HandPot from list of dicts"""
+        return HandPot(data)
+
+    @staticmethod
+    def fromDb(data: Union[str, list]) -> 'HandPot':
+        """Create HandPot from database value (JSON string or list)"""
+        if isinstance(data, str):
+            return HandPot.fromDict(json.loads(data))
+        if isinstance(data, list):
+            return HandPot.fromDict(data)
+        # Handle legacy integer format
+        if isinstance(data, int):
+            pot = HandPot()
+            pot.pots[0]["credits"] = data
+            return pot
+        return HandPot()
+
 class Player:
     def __init__(self, id:int, username:str, credits:int, bet:int, hand:object, folded:bool, lastAction:str):
         self.id = id
@@ -338,16 +507,17 @@ class Game:
 
     def startFirstBettingPhase(self): # blinds and antes
         # Antes (Pots)
-        self.hand_pot = self.settings["HandPotAnte"] * len(self.getActivePlayers())
-        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(self.getActivePlayers())
+        activePlayers = self.getActivePlayers()
+        anteAmount = self.settings["HandPotAnte"] * len(activePlayers)
+        self.hand_pot.reset([p.id for p in activePlayers])
+        self.hand_pot.addToMainPot(anteAmount)
+        self.sabacc_pot += self.settings["SabaccPotAnte"] * len(activePlayers)
 
         # Player turn (not PokerStyleBetting)
         self.player_turn = self.players[0].id
 
         # Blinds
         if self.settings["PokerStyleBetting"]:
-            activePlayers = self.getActivePlayers()
-
             smallBlind = activePlayers[1 % len(activePlayers)]
             smallBlind.bet = self.settings["SmallBlind"]
             smallBlind.credits -= self.settings["SmallBlind"]
@@ -527,14 +697,16 @@ class Game:
 
         if params['action'] == "fold":
             if self.settings["PokerStyleBetting"]:
-                self.hand_pot += player.getBet()
+                self.hand_pot.addToMainPot(player.getBet())
             player.fold(self.settings["PokerStyleBetting"])
+            self.hand_pot.removePlayerFromAll(player.id)
 
         elif params["action"] == "quit":
-            self.hand_pot += player.getBet()
+            self.hand_pot.addToMainPot(player.getBet())
+            self.hand_pot.removePlayerFromAll(player.id)
             player.lastAction = "quit the game"
             self.players.remove(player)
-            if nextPlayer != None:
+            if nextPlayer is not None:
                 if nextPlayer.getBet() == self.getGreatestBet():
                     nextPlayer = None
 
@@ -542,33 +714,31 @@ class Game:
 
         if len(players) == 1:
             winningPlayer = players[0]
-            winningPlayer.credits += self.hand_pot + winningPlayer.getBet()
-            self.hand_pot = 0
+            winningPlayer.credits += self.hand_pot.getTotal() + winningPlayer.getBet()
+            self.hand_pot.reset()
             winningPlayer.bet = None
 
-        if nextPlayer == None:
-            # add all bets to hand pot
-            for p in players:
-                self.hand_pot += p.getBet()
-                p.bet = None
+        if nextPlayer is None:
+            # End of betting phase - form side pots if bets are unequal
+            self.hand_pot.formSidePots(players)
 
         # Update game object before db update
-        self.phase = 'betting' if nextPlayer != None else self.getNextPhase()
-        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
+        self.phase = 'betting' if nextPlayer is not None else self.getNextPhase()
+        self.player_turn = nextPlayer.id if nextPlayer is not None else (players[0].id if len(players) > 0 else None)
         self.p_act = player.username + " " + player.lastAction
         self.completed = len(players) <= 1
 
         if modifyDb:
             dbList = [
                 self.playersToDb(),
-                self.hand_pot,
+                self.hand_pot.toDb(),
                 self.phase,
                 self.player_turn,
                 self.p_act,
                 self.completed,
                 self.id
             ]
-        
+
             db.execute(f"UPDATE {self.getVariant().value}_games SET players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
     
     def shiftPhaseAction(self, params:dict, player, db, modifyDb=True):
@@ -587,12 +757,13 @@ class Game:
             self.p_act = shiftStr
             self.cycle_count += 1
         elif params["action"] == "quit":
+            self.hand_pot.removePlayerFromAll(player.id)
             self.players.remove(player)
             self.p_act = player.username + " quit the game"
             if len(self.getActivePlayers()) == 1:
                 winningPlayer = self.getActivePlayers()[0]
-                winningPlayer.credits += self.hand_pot + winningPlayer.getBet()
-                self.hand_pot = 0
+                winningPlayer.credits += self.hand_pot.getTotal() + winningPlayer.getBet()
+                self.hand_pot.reset()
                 winningPlayer.bet = None
                 self.p_act += "; " + winningPlayer.username + " wins!"
                 self.completed = True
@@ -602,7 +773,7 @@ class Game:
         if modifyDb:
             dbList = [
                 self.phase,
-                self.hand_pot,
+                self.hand_pot.toDb(),
                 self.deck.toDb(),
                 self.playersToDb(),
                 self.cycle_count,
@@ -615,6 +786,136 @@ class Game:
 
             db.execute(f"UPDATE {self.getVariant().value}_games SET phase = ?, hand_pot = ?, deck = ?, players = ?, cycle_count = ?, player_turn = ?, shift = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
+
+    # --- Pot Evaluation ---
+
+    @abstractmethod
+    def evaluatePotWinner(self, eligiblePlayers: list, potCredits: int):
+        """
+        Determine the winner of a single pot from eligible players.
+        Each variant implements this differently (e.g., Traditional uses alderaan logic).
+
+        Args:
+            eligiblePlayers: list[Player] - players eligible for this pot
+            potCredits: int - credits in this pot (for handling unclaimed pots)
+
+        Returns:
+            (winner: Player or None, bestHand: any, actionStr: str)
+            - winner: the winning player, or None if everyone bombed out
+            - bestHand: the winning hand value (for sabacc pot eligibility check)
+            - actionStr: additional action info (e.g., bomb outs) for p_act
+
+        Side effects (variant-specific):
+            - May modify player hands (e.g., sudden demise in Traditional)
+            - May handle bomb outs (deduct from player credits, add to sabacc_pot)
+            - May transfer unclaimed pot to sabacc_pot if no winner
+        """
+        pass
+
+    @abstractmethod
+    def isSabaccHand(self, bestHand) -> bool:
+        """
+        Check if a hand qualifies for the sabacc pot.
+        Each variant has different criteria.
+
+        Args:
+            bestHand: the hand value returned by evaluatePotWinner
+
+        Returns:
+            bool: True if this hand wins the sabacc pot
+        """
+        pass
+
+    def evaluatePots(self) -> dict:
+        """
+        Evaluate all hand pots from end to start (main pot first).
+        Awards credits to winners and handles sabacc pot.
+
+        Returns:
+            dict with keys:
+                - "mainWinner": Player or None
+                - "mainBestHand": the winning hand of main pot
+                - "results": list of {"credits": int, "winner": Player}
+
+        Side effects:
+            - Awards credits to pot winners
+            - Awards sabacc pot if main winner has sabacc hand
+            - Sets self.p_act with comprehensive summary
+            - Resets hand pot to empty
+        """
+        results = []
+        mainWinner = None
+        mainBestHand = None
+        pActParts = []
+        numPots = len(self.hand_pot.pots)
+
+        # Work from end to start (main pot first) without popping
+        # This allows evaluatePotWinner to access hand_pot.getTotal() for bomb out calculation
+        for i in range(len(self.hand_pot.pots) - 1, -1, -1):
+            pot = self.hand_pot.pots[i]
+            isMainPot = (i == len(self.hand_pot.pots) - 1)
+            potLabel = "main pot" if isMainPot else f"side pot {numPots - 1 - i}"
+
+            # Get eligible players as Player objects
+            eligiblePlayers = [p for p in self.players if p.id in pot["eligiblePlayers"] and not p.folded]
+
+            if len(eligiblePlayers) == 0:
+                # No eligible players, pot goes unclaimed
+                results.append({"credits": pot["credits"], "winner": None})
+                pActParts.append(f"{pot['credits']} credits from {potLabel} unclaimed")
+                continue
+
+            if len(eligiblePlayers) == 1:
+                # Only one eligible player, they win by default
+                winner = eligiblePlayers[0]
+                bestHand = None
+                actionStr = ""
+            else:
+                # Use variant-specific winner determination
+                winner, bestHand, actionStr = self.evaluatePotWinner(eligiblePlayers, pot["credits"])
+
+            # Add action string (e.g., bomb outs) to p_act
+            if actionStr:
+                pActParts.append(actionStr)
+
+            # Track main pot winner (first pot evaluated)
+            if mainWinner is None and winner is not None:
+                mainWinner = winner
+                mainBestHand = bestHand
+
+            if winner is not None:
+                winner.credits += pot["credits"]
+                results.append({"credits": pot["credits"], "winner": winner})
+                pActParts.append(f"{winner.username} wins {pot['credits']} credits from {potLabel}")
+
+                # Remove all losers from eligibility in remaining pots
+                winnerId = winner.id
+                for j in range(i - 1, -1, -1):
+                    self.hand_pot.pots[j]["eligiblePlayers"] = [
+                        pid for pid in self.hand_pot.pots[j]["eligiblePlayers"]
+                        if pid == winnerId
+                    ]
+            else:
+                # No winner - variant's evaluatePotWinner handles what to do with credits
+                results.append({"credits": pot["credits"], "winner": None})
+
+        # Reset hand pot
+        self.hand_pot.reset()
+
+        # Award sabacc pot if main winner has a sabacc hand
+        if mainWinner is not None and mainBestHand is not None and self.isSabaccHand(mainBestHand):
+            mainWinner.credits += self.sabacc_pot
+            pActParts.append(f"{mainWinner.username} wins {self.sabacc_pot} credits from sabacc pot")
+            self.sabacc_pot = 0
+
+        # Set p_act directly on game object
+        self.p_act = "; ".join(pActParts) if pActParts else "No winners"
+
+        return {
+            "mainWinner": mainWinner,
+            "mainBestHand": mainBestHand,
+            "results": results
+        }
 
     # abstract method for card actions (draw, trade, etc.)
     # each sub game class must override

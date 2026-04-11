@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS traditional_games (
     game_id INTEGER PRIMARY KEY AUTOINCREMENT,
     players TEXT, -- TraditionalPlayer[]
-    hand_pot INTEGER NOT NULL DEFAULT 0,
+    hand_pot TEXT NOT NULL DEFAULT '[{"credits": 0, "eligiblePlayers": []}]',
     sabacc_pot INTEGER NOT NULL DEFAULT 0,
     phase TEXT NOT NULL DEFAULT 'betting',
     deck TEXT, -- TraditionalCard[]
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS traditional_games (
 CREATE TABLE IF NOT EXISTS corellian_spike_games (
     game_id INTEGER PRIMARY KEY AUTOINCREMENT,
     players TEXT, -- CorellianSpikePlayer[]
-    hand_pot INTEGER NOT NULL DEFAULT 0,
+    hand_pot TEXT NOT NULL DEFAULT '[{"credits": 0, "eligiblePlayers": []}]',
     sabacc_pot INTEGER NOT NULL DEFAULT 0,
     phase TEXT NOT NULL DEFAULT 'card',
     deck TEXT, -- CorellianSpikeCard[]

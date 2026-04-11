@@ -198,7 +198,7 @@ class TraditionalGame(Game):
         deck = TraditionalDeck(),
         player_turn: int = None,
         p_act = '',
-        hand_pot = 0,
+        hand_pot = None,
         sabacc_pot = 0,
         phase = 'betting',
         cycle_count = 0,
@@ -221,7 +221,7 @@ class TraditionalGame(Game):
             created_at = created_at,
             move_history = move_history
         )
-        self.hand_pot = hand_pot
+        self.hand_pot = hand_pot if hand_pot is not None else HandPot()
         self.sabacc_pot = sabacc_pot
         self._shift = shift
 
@@ -252,7 +252,7 @@ class TraditionalGame(Game):
         game.nextRound(rotateDealer=False)
 
         if db:
-            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot, game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, game.settingsToDb()])
+            db.execute("INSERT INTO traditional_games (players, hand_pot, sabacc_pot, deck, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?)", [game.playersToDb(), game.hand_pot.toDb(), game.sabacc_pot, game.deckToDb(), game.player_turn, game.p_act, game.settingsToDb()])
 
         return game
 
@@ -260,7 +260,7 @@ class TraditionalGame(Game):
         return Game_Variant.TRADITIONAL
 
     def toDb(self, includeId=False):
-        dbGame = [self.id, self.playersToDb(), self.hand_pot, self.sabacc_pot, self.phase, self.deck.toDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
+        dbGame = [self.id, self.playersToDb(), self.hand_pot.toDb(), self.sabacc_pot, self.phase, self.deck.toDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
         if includeId == False:
             dbGame.pop(0)
 
@@ -276,7 +276,7 @@ class TraditionalGame(Game):
         return {
             'id': self.id,
             'players': [player.toDict() for player in self.players],
-            'hand_pot': self.hand_pot,
+            'hand_pot': self.hand_pot.toDict(),
             'sabacc_pot': self.sabacc_pot,
             'phase': self.phase,
             'deck': self.deck.toDict(),
@@ -292,14 +292,14 @@ class TraditionalGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=bool(game[9]),completed=bool(game[10]),settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
+        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=HandPot.fromDb(game[2]), sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=bool(game[9]),completed=bool(game[10]),settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
         if preSettings == False:
             gameObj.settings = json.loads(game[11])
         return gameObj
 
     @staticmethod
     def fromDict(dict:dict):
-        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
+        return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=HandPot.fromDict(dict['hand_pot']),sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
 
     def _reshuffle(self):
         # exclude cards in (active) players' hands
@@ -321,31 +321,84 @@ class TraditionalGame(Game):
                 if not hand[i].protected: # if card is not protected
                     hand[i] = self.drawFromDeck()
 
-    def alderaan(self, suddenDemise=False, sdPlayers:list=[]):
-        # If recursion has been activated due to a tie, and there is sudden demise
-        if suddenDemise == True:
-            # Give each participant in the sudden demise a card
-            for player in sdPlayers:
+    def isSabaccHand(self, bestHand) -> bool:
+        """
+        Check if a hand qualifies for the sabacc pot in Traditional Sabacc.
+        Sabacc hands are: Idiot's Array or a hand totaling exactly 23 or -23.
+        """
+        if bestHand is None:
+            return False
+        if bestHand == SpecialHands.IDIOTS_ARRAY:
+            return True
+        if bestHand == SpecialHands.FAIRY_EMPRESS:
+            return False
+        return abs(bestHand) == 23
+
+    def evaluatePotWinner(self, eligiblePlayers: list, potCredits: int, suddenDemise=False):
+        """
+        Implementation of abstract method from Game.
+        Uses Traditional Sabacc rules with sudden demise for ties.
+        Handles bomb outs by penalizing players.
+
+        Args:
+            eligiblePlayers: list[Player] - players eligible for this pot
+            potCredits: int - credits in this pot (for handling unclaimed pots)
+            suddenDemise: bool - True if this is a recursive call for tie-breaking
+
+        Returns: (winner, bestHand, actionStr)
+        """
+        # If recursion has been activated due to a tie, give each player a card
+        if suddenDemise:
+            for player in eligiblePlayers:
                 player.hand.cards.append(self.drawFromDeck())
 
-        # calculate winners and losers
-        winningPlayers, bestHand, bombedOutPlayers = TraditionalGame.calcWinners(sdPlayers) if suddenDemise else TraditionalGame.calcWinners(self.players)
+        # Calculate winners and losers
+        winningPlayers, bestHand, bombedOutPlayers = TraditionalGame.calcWinners(eligiblePlayers)
 
-        winner = None
+        # Handle bomb outs (only on first call, not during sudden demise recursion)
+        actionParts = []
+        if not suddenDemise and len(bombedOutPlayers) > 0:
+            bombOutPrice = int(round(self.hand_pot.getTotal() * 0.1))
+            bombedNames = []
+            for p in bombedOutPlayers:
+                p.credits -= bombOutPrice
+                self.sabacc_pot += bombOutPrice
+                bombedNames.append(p.username)
+            actionParts.append(f"{', '.join(bombedNames)} bombed out")
 
-        # everyone bombed out
-        if winningPlayers == None:
-            bestHand = None
+        # Everyone bombed out - transfer pot credits to sabacc pot
+        if winningPlayers is None or len(winningPlayers) == 0:
+            if potCredits > 0:
+                self.sabacc_pot += potCredits
+                actionParts.append(f"{potCredits} credits transferred to sabacc pot")
+            return None, None, "; ".join(actionParts)
 
-        # if there's a tie, initiate sudden demise through recursion
+        # If there's a tie, initiate sudden demise through recursion
         if len(winningPlayers) > 1:
-            return self.alderaan(suddenDemise=True, sdPlayers=winningPlayers)
+            tiedNames = ", ".join([p.username for p in winningPlayers])
+            handStr = self._formatHandValue(bestHand)
+            actionParts.append(f"{tiedNames} tied with {handStr}; sudden demise")
+            sdWinner, sdBestHand, sdActionStr = self.evaluatePotWinner(winningPlayers, potCredits, suddenDemise=True)
+            if sdActionStr:
+                actionParts.append(sdActionStr)
+            return sdWinner, sdBestHand, "; ".join(actionParts)
 
-        # only 1 winner
-        if len(winningPlayers) == 1:
-            winner = winningPlayers[0]
+        # Only 1 winner - include hand info
+        winner = winningPlayers[0]
+        handStr = self._formatHandValue(bestHand)
+        actionParts.append(f"{winner.username} won with {handStr}")
+        return winner, bestHand, "; ".join(actionParts)
 
-        return winner, bestHand, bombedOutPlayers
+    def _formatHandValue(self, handValue):
+        """Format a hand value for display in action strings."""
+        if handValue == SpecialHands.IDIOTS_ARRAY:
+            return "Idiot's Array"
+        elif handValue == SpecialHands.FAIRY_EMPRESS:
+            return "Fairy Empress (-22)"
+        elif handValue is None:
+            return "no valid hand"
+        else:
+            return str(handValue)
 
     def whoCalledAlderaan(self):
         for player in self.getActivePlayers():
@@ -414,6 +467,7 @@ class TraditionalGame(Game):
 
         if params["action"] == "quit":
             player.lastAction = "quit the game"
+            self.hand_pot.removePlayerFromAll(player.id)
             self.players.remove(player)
 
         elif params["action"] == "draw":
@@ -445,11 +499,11 @@ class TraditionalGame(Game):
         winStr = None
 
 
-        # If this action was from the last player
+        # If only one player remains, they win everything
         if len(players) == 1:
             winningPlayer = players[0]
-            winningPlayer.credits += self.hand_pot
-            self.hand_pot = 0
+            winningPlayer.credits += self.hand_pot.getTotal()
+            self.hand_pot.reset()
             winStr = f"{winningPlayer.username} wins!"
             self.completed = True
         elif len(players) == 0:
@@ -457,44 +511,15 @@ class TraditionalGame(Game):
         elif not nextPlayer:
             nextPlayer = players[0]
             if self.phase == "alderaan":
-                # Get end of game data
-                winner, bestHand, bombedOutPlayers = self.alderaan()
-
-                # Enact the bomb out transactions for all players that bombed out
-                bombOutPrice = int(round(self.hand_pot * .1))
-                for p in bombedOutPlayers:
-                    p.credits -= bombOutPrice
-                    self.sabacc_pot += bombOutPrice
-
-
-                # If someone won (i.e. not everyone bombed out)
-                if winner != None:
-                    # Give winner Hand Pot
-                    winner.credits += self.hand_pot
-                    self.hand_pot = 0
-
-                    # Give winner Sabacc Pot it they had a Sabacc
-                    if bestHand == SpecialHands.IDIOTS_ARRAY or (bestHand != SpecialHands.FAIRY_EMPRESS and abs(bestHand) == 23):
-                        winner.credits += self.sabacc_pot
-                        self.sabacc_pot = 0
-
-                    # Update game and winner string
-                    winStr = f"{winner.username} wins!"
-
-                    self.completed = True
-
-                # If no one won (i.e. everyone bombed out)
-                else:
-                    # Hand pot gets added to Sabacc Pot
-                    self.sabacc_pot += self.hand_pot
-
-                    # Update winStr
-                    winStr = "Everyone bombs out and loses!"
+                # Evaluate all pots (handles bomb outs, awards credits, sabacc pot, sets self.p_act)
+                self.evaluatePots()
+                winStr = self.p_act  # evaluatePots() set this
+                self.completed = True
             else:
                 self.phase = "shift"
 
         # Update game object before db update
-        self.player_turn = nextPlayer.id if nextPlayer != None else (players[0].id if len(players) > 0 else None)
+        self.player_turn = nextPlayer.id if nextPlayer is not None else (players[0].id if len(players) > 0 else None)
         self.p_act = player.username + " " + player.lastAction
         if winStr:
             self.p_act += "; " + winStr
@@ -508,7 +533,7 @@ class TraditionalGame(Game):
         dbList = [
             self.deck.toDb(),
             self.playersToDb(),
-            self.hand_pot,
+            self.hand_pot.toDb(),
             self.sabacc_pot,
             self.phase,
             self.player_turn,

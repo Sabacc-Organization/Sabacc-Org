@@ -198,9 +198,9 @@ defaultSettings = {
 
 class CorellianSpikeGame(Game):
 
-    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=0, sabacc_pot=0, sabacc_pot_ante=10, phase='card', round=1, shift=False, completed=False, settings=defaultSettings, created_at=None, move_history=None):
+    def __init__(self, players:list, id:int=None, deck:object=None, discardPile:list=None, player_turn:int=None, p_act='', hand_pot=None, sabacc_pot=0, sabacc_pot_ante=10, phase='card', round=1, shift=False, completed=False, settings=defaultSettings, created_at=None, move_history=None):
         super().__init__(players=players, id=id, player_turn=player_turn, p_act=p_act, deck=deck, phase=phase, cycle_count=round, completed=completed, settings=settings, created_at=created_at, move_history=move_history)
-        self.hand_pot = hand_pot
+        self.hand_pot = hand_pot if hand_pot is not None else HandPot()
         self.sabacc_pot = sabacc_pot
         self.sabaccPotAnte = sabacc_pot_ante
         self._shift = shift
@@ -245,7 +245,7 @@ class CorellianSpikeGame(Game):
         if db:
             db.execute("INSERT INTO corellian_spike_games (players, hand_pot, sabacc_pot, deck, discard_pile, player_turn, p_act, settings) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", [
                 game.playersToDb(),
-                game.hand_pot,
+                game.hand_pot.toDb(),
                 game.sabacc_pot,
                 game.deckToDb(),
                 game.discardPileToDb(),
@@ -359,7 +359,116 @@ class CorellianSpikeGame(Game):
             return {"winStr": ret, "winner": winningPlayers[0], "0": closestTo0 == 0}
 
         return
-    
+
+    def isSabaccHand(self, bestHand) -> bool:
+        """
+        Check if a hand qualifies for the sabacc pot in Corellian Spike.
+        A sabacc hand is any hand that totals 0 (ranking 1-17 in Wayne's system).
+        """
+        if bestHand is None:
+            return False
+        # In Wayne's ranking, hands 1-17 total 0 (sabacc hands), 18 is nulrhek (non-zero)
+        return bestHand < 18
+
+    def evaluatePotWinner(self, eligiblePlayers: list, potCredits: int):
+        """
+        Implementation of abstract method from Game.
+        Uses Corellian Spike rules with Wayne's hand ranking system.
+
+        Args:
+            eligiblePlayers: list[Player] - players eligible for this pot
+            potCredits: int - credits in this pot (unused in Corellian Spike, no bomb outs)
+
+        Returns: (winner, bestHand, actionStr)
+        """
+        if len(eligiblePlayers) == 0:
+            return None, None, ""
+
+        handRanking = self.settings["HandRanking"]
+
+        if len(eligiblePlayers) == 1:
+            player = eligiblePlayers[0]
+            rank = player.hand.getRanking(handRanking)
+            actionStr = f"{player.username} won with {CorellianSpikeHand.WAYNE_HANDS[rank]} (#{rank})"
+            return player, rank, actionStr
+
+        # Use existing determineWinner logic but adapted for eligible players
+        handRankings = [player.hand.getRanking(handRanking) for player in eligiblePlayers]
+        winningRank = min(handRankings)
+        winningPlayers = [p for p in eligiblePlayers if p.hand.getRanking(handRanking) == winningRank]
+        actionParts = []
+
+        if len(winningPlayers) == 1:
+            actionStr = f"{winningPlayers[0].username} won with {CorellianSpikeHand.WAYNE_HANDS[winningRank]} (#{winningRank})"
+            return winningPlayers[0], winningRank, actionStr
+
+        # Tie - start building action string
+        tiedNames = ", ".join([p.username for p in winningPlayers])
+        actionParts.append(f"{tiedNames} tied with {CorellianSpikeHand.WAYNE_HANDS[winningRank]} (#{winningRank})")
+
+        if winningRank == 18:  # nulrhek
+            # Closest to 0
+            handTotals = [abs(p.hand.getTotal()) for p in winningPlayers]
+            closestTo0 = min(handTotals)
+            winningPlayers = [p for i, p in enumerate(winningPlayers) if handTotals[i] == closestTo0]
+
+            if len(winningPlayers) == 1:
+                actionParts.append(f"{winningPlayers[0].username} won with total closest to 0")
+                return winningPlayers[0], winningRank, "; ".join(actionParts)
+
+            # Positive score wins
+            handTotals = [p.hand.getTotal() for p in winningPlayers]
+            if max(handTotals) > 0:
+                winningPlayers = [p for i, p in enumerate(winningPlayers) if handTotals[i] > 0]
+
+            if len(winningPlayers) == 1:
+                actionParts.append(f"{winningPlayers[0].username} won with positive score")
+                return winningPlayers[0], winningRank, "; ".join(actionParts)
+
+            # Most cards
+            numCards = [len(p.hand.cards) for p in winningPlayers]
+            mostCards = max(numCards)
+            winningPlayers = [p for i, p in enumerate(winningPlayers) if numCards[i] == mostCards]
+
+            if len(winningPlayers) == 1:
+                actionParts.append(f"{winningPlayers[0].username} won with most cards ({mostCards})")
+                return winningPlayers[0], winningRank, "; ".join(actionParts)
+
+            # Lowest sum of positive cards
+            posTotals = []
+            for p in winningPlayers:
+                total = sum(c.val for c in p.hand.cards if c.val > 0)
+                posTotals.append(total)
+            minPosTotal = min(posTotals)
+            winningPlayers = [p for i, p in enumerate(winningPlayers) if posTotals[i] == minPosTotal]
+
+            if len(winningPlayers) == 1:
+                actionParts.append(f"{winningPlayers[0].username} won with lowest positive card total ({minPosTotal})")
+                return winningPlayers[0], winningRank, "; ".join(actionParts)
+
+        # Lowest positive card tiebreaker
+        lowestPosValues = [p.hand.lowestPosValue() for p in winningPlayers]
+        lowest = min((v for v in lowestPosValues if v is not None), default=None)
+        if lowest is not None:
+            winningPlayers = [p for i, p in enumerate(winningPlayers) if lowestPosValues[i] == lowest]
+
+        if len(winningPlayers) == 1:
+            actionParts.append(f"{winningPlayers[0].username} won with lowest positive card (+{lowest})")
+            return winningPlayers[0], winningRank, "; ".join(actionParts)
+
+        # Blind draw tiebreaker
+        actionParts.append("blind draw")
+        while len(winningPlayers) > 1:
+            blindDraws = []
+            for p in winningPlayers:
+                drawnCard = self.deck.draw()
+                blindDraws.append(abs(drawnCard.val))
+            closestTo0 = min(blindDraws)
+            winningPlayers = [p for i, p in enumerate(winningPlayers) if blindDraws[i] == closestTo0]
+
+        actionParts.append(f"{winningPlayers[0].username} won blind draw")
+        return winningPlayers[0], winningRank, "; ".join(actionParts)
+
     def getVariant(self):
         return Game_Variant.CORELLIAN_SPIKE
 
@@ -376,7 +485,7 @@ class CorellianSpikeGame(Game):
         return {
             'id': self.id,
             'players': [player.toDict() for player in self.players],
-            'hand_pot': self.hand_pot,
+            'hand_pot': self.hand_pot.toDict(),
             'sabacc_pot': self.sabacc_pot,
             'phase': self.phase,
             'deck': self.deck.toDict(),
@@ -392,7 +501,7 @@ class CorellianSpikeGame(Game):
         }
 
     def toDb(self, includeId=False):
-        dbGame = [self.id, self.playersToDb(), self.hand_pot, self.sabacc_pot, self.phase, self.deckToDb(), self.discardPileToDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
+        dbGame = [self.id, self.playersToDb(), self.hand_pot.toDb(), self.sabacc_pot, self.phase, self.deckToDb(), self.discardPileToDb(), self.player_turn, self.p_act, self.cycle_count, self._shift, self.completed, self.settingsToDb(), self.created_at, self.moveHistoryToDb()]
         if includeId == False:
             dbGame.pop(0)
 
@@ -446,14 +555,14 @@ class CorellianSpikeGame(Game):
     # player buys from the deck for 5 credits
     def buyFromDeck(self, player:CorellianSpikePlayer):
         player.credits -= self.settings["DeckDrawCost"]
-        self.hand_pot += self.settings["DeckDrawCost"]
+        self.hand_pot.addToMainPot(self.settings["DeckDrawCost"])
         player.lastAction = "buys from deck"
         return self._playerDrawFromDeck(player)
 
     # player buys top discard for 10 creds
     def buyFromDiscard(self, player:CorellianSpikePlayer):
         player.credits -= self.settings["DiscardDrawCost"]
-        self.hand_pot += self.settings["DiscardDrawCost"]
+        self.hand_pot.addToMainPot(self.settings["DiscardDrawCost"])
         player.lastAction = "buys from discard"
         card = self._playerDrawDiscard(player)
         return card
@@ -461,7 +570,7 @@ class CorellianSpikeGame(Game):
     # player discards a card, then draws one
     def tradeWithDeck(self, player:CorellianSpikePlayer, tradeCardIndex:int):
         player.credits -= self.settings["DeckTradeCost"]
-        self.hand_pot += self.settings["DeckTradeCost"]
+        self.hand_pot.addToMainPot(self.settings["DeckTradeCost"])
         player.lastAction = "trades with deck"
         drawnCard = self._playerDrawFromDeck(player)
         self._playerDiscard(player, tradeCardIndex)
@@ -470,7 +579,7 @@ class CorellianSpikeGame(Game):
     # player draws top discard, then discards a card
     def tradeWithDiscard(self, player:CorellianSpikePlayer, tradeCardIndex):
         player.credits -= self.settings["DiscardTradeCost"]
-        self.hand_pot += self.settings["DiscardTradeCost"]
+        self.hand_pot.addToMainPot(self.settings["DiscardTradeCost"])
         player.lastAction = "trades with discard"
         drawnCard = self._playerDrawDiscard(player)
         self._playerDiscard(player, tradeCardIndex)
@@ -479,7 +588,7 @@ class CorellianSpikeGame(Game):
     # player discards for increasing price
     def playerDiscardAction(self, player:CorellianSpikePlayer, discardCardIndex:int):
         player.credits -= self.settings["DiscardCosts"][self.cycle_count]
-        self.hand_pot += self.settings["DiscardCosts"][self.cycle_count]
+        self.hand_pot.addToMainPot(self.settings["DiscardCosts"][self.cycle_count])
         player.lastAction = "discards"
         self._playerDiscard(player, discardCardIndex)
 
@@ -499,7 +608,7 @@ class CorellianSpikeGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=bool(game[10]), completed=bool(game[11]), settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
+        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=HandPot.fromDb(game[2]), sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=bool(game[10]), completed=bool(game[11]), settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
 
         if preSettings == False:
             gameObj.settings = json.loads(game[12])
@@ -511,7 +620,7 @@ class CorellianSpikeGame(Game):
         return CorellianSpikeGame(
             id=dict['id'],
             players=[CorellianSpikePlayer.fromDict(player) for player in dict['players']],
-            hand_pot=dict['hand_pot'],
+            hand_pot=HandPot.fromDict(dict['hand_pot']),
             sabacc_pot=dict['sabacc_pot'],
             phase=dict['phase'],
             deck=CorellianSpikeDeck.fromDict(dict['deck']),
@@ -590,8 +699,8 @@ class CorellianSpikeGame(Game):
             winStr = None
             if len(players) == 1:
                 winningPlayer = players[0]
-                winningPlayer.credits += self.hand_pot
-                self.hand_pot = 0
+                winningPlayer.credits += self.hand_pot.getTotal()
+                self.hand_pot.reset()
                 winStr = f"{winningPlayer.username} wins!"
                 self.completed = True
                 nextPlayerIndex = 0
@@ -613,7 +722,7 @@ class CorellianSpikeGame(Game):
                 self.deckToDb(),
                 self.discardPileToDb(),
                 self.playersToDb(),
-                self.hand_pot,
+                self.hand_pot.toDb(),
                 self.sabacc_pot,
                 self.phase,
                 self.player_turn,
@@ -633,22 +742,14 @@ class CorellianSpikeGame(Game):
             if self.cycle_count > 2:
                 self.cycle_count -= 1 # we love coding
                 self.completed = True
-                winData = self.determineWinner()
-
-                winningPlayer = self.getPlayer(id=winData["winner"].id)
-                winningPlayer.credits += self.hand_pot
-                self.hand_pot = 0
-                if winData["0"]:
-                    winningPlayer.credits += self.sabacc_pot
-                    self.sabacc_pot = 0
-
-                self.p_act += "; " + f"{winData['winStr']}"
+                # Evaluate all pots (handles side pots, awards credits, sabacc pot, sets self.p_act)
+                self.evaluatePots()
 
             dbList = [
                 self.phase,
                 self.cycle_count,
                 self.playersToDb(),
-                self.hand_pot,
+                self.hand_pot.toDb(),
                 self.sabacc_pot,
                 self.p_act,
                 self.completed,
@@ -661,8 +762,8 @@ class CorellianSpikeGame(Game):
             self.nextRound()
 
             dbList = [
-                self.playersToDb(), 
-                self.hand_pot,
+                self.playersToDb(),
+                self.hand_pot.toDb(),
                 self.sabacc_pot,
                 self.phase,
                 self.deckToDb(),

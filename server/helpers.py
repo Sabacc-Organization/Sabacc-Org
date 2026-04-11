@@ -61,8 +61,8 @@ class Card:
             return Card.fromDict(card)
 
 class Deck:
-    def __init__(self, cards:list=[]):
-        self.cards = cards.copy()
+    def __init__(self, cards:list=None):
+        self.cards = cards.copy() if cards is not None else []
     def __str__(self) -> str:
         return f'[{listToStr(self.cards)}]'
     
@@ -100,8 +100,8 @@ class Deck:
             return drawnCards
 
 class Hand:
-    def __init__(self, cards=[]):
-        self.cards: list = cards.copy()
+    def __init__(self, cards=None):
+        self.cards: list = cards.copy() if cards is not None else []
         self.sort()
 
     def __eq__(self, other:object) -> bool:
@@ -139,7 +139,7 @@ class Hand:
     def getTotal(self) -> int:
         return sum(self.getListOfVals())
     
-    # sort hand by value (selection sort)
+    # sort hand by value
     def sort(self):
         if self.cards == []:
             return
@@ -224,7 +224,7 @@ class Game:
             "SmallBlind": 1,
             "BigBlind": 2
         }, created_at = None,
-        move_history = []):
+        move_history = None):
 
 
         self.players = players
@@ -244,12 +244,57 @@ class Game:
     @abstractmethod
     def newGame(playerIds:list, playerUsernames:list, startingCredits=1000, db=None):
         pass
+    
+    @abstractmethod
+    def getVariant() -> Game_Variant:
+        pass
 
     def getClientData(self, user_id = None, username = None):
         player: Player = self.getPlayer(username, user_id)
+        pid = 0
+        if player is None:
+            pid = -1
+        else:
+            pid = player.id
 
-        gameDict = self.toDict()
+        gameDict = self.toDict(noMutableReferences=True)
         gameDict.pop('deck')
+        if self.completed is False:
+            for p in range(len(gameDict['players'])):
+                if gameDict["players"][p]['id'] == pid:
+                    continue
+
+                for card in gameDict["players"][p]['hand']:
+                    if (self.getVariant() == Game_Variant.TRADITIONAL and card["prot"] is True):
+                        continue
+                    card['suit'] = 'hidden'
+                    card['val'] = 0
+
+            followGameDict = self.toDict()
+
+            if gameDict["move_history"] is not None:
+                for i in range(len(gameDict["move_history"]))[::-1]: # iterate backwards through history
+                    for key, value in gameDict["move_history"][i].items():
+                        followGameDict[key] = value
+                    if followGameDict["completed"] is True:
+                        gameDict["move_history"][i]["players"] = followGameDict["players"]
+                        gameDict["move_history"][i]["deck"] = followGameDict["deck"]
+                        break
+
+                    if "players" in gameDict["move_history"][i]:
+                        for p in range(len(gameDict["move_history"][i]['players'])):
+                            if gameDict["move_history"][i]["players"][p]['id'] == pid:
+                                continue
+
+                            for card in gameDict["move_history"][i]["players"][p]['hand']:
+                                if (self.getVariant() == Game_Variant.TRADITIONAL and card["prot"] is True):
+                                    continue
+                                card['suit'] = 'hidden'
+                                card['val'] = 0
+
+                    if "deck" in gameDict["move_history"][i]:
+                        gameDict["move_history"][i].pop("deck")
+
         users = [i.username for i in self.getActivePlayers()]
 
         if player is None:
@@ -431,6 +476,9 @@ class Game:
                 originalValues[key] = value
         return originalValues
     
+    @abstractmethod
+    def toDict(self, noMutableReferences: bool = False):
+        pass
     def quitFromCompletedGame(self, player, db, modifyDb=True):
         if self.completed == False:
             return
@@ -528,7 +576,7 @@ class Game:
             self._shift = self.rollShift()
 
             if self._shift:
-                self.shift()
+                self.doShift()
 
             # Set the Shift message
             shiftStr = "Sabacc shift!" if self._shift else "No shift!"
@@ -623,7 +671,8 @@ def login_required(f):
     return decorated_function
 
 # Attempt to Authenticate User
-def checkLogin(db, username, password):
+def checkLogin(conn: sqlite3.Connection, username, password):
+    db = conn.cursor()
     # If username is none
     if not username:
         return {"message": "Must provide username", "status": 401}
@@ -631,7 +680,7 @@ def checkLogin(db, username, password):
     # If password is none
     if not password:
         return {"message": "Must provide password", "status": 401}
-    
+
     # Attempt to find the password hash of this user
     orHash = None
     try:
@@ -641,16 +690,8 @@ def checkLogin(db, username, password):
         # If user does not exist
         return {"message": f"User {username} does not exist", "status": 401}
 
-    # Check if password is correct using password hashes
     if check_password_hash(orHash, password) == False:
         return {"message": f"Incorrect password", "status": 401}
-    
+
     # User authenticated!
     return {"message": "Logged in!", "status": 200}
-
-# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
-def addPlusBeforeNumber(n:int) -> str:
-    return ('+' if n > 0 else '') + str(n)
-
-def bothOrAll(num:int):
-    return 'both' if num == 2 else 'all'

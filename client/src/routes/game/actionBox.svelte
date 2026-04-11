@@ -41,8 +41,6 @@
 
     export let renderCard
 
-    // actBox reacitivity
-
     // Betting Phase
 
     $: {
@@ -124,7 +122,7 @@
 
     // Shift Phase
     $: {
-        if ($game["completed"] == 0 && $game["phase"] === "shift" && $user_id === $game["player_turn"] && ($currentMove === $movesDone - 1 || $movesDone === 0)) {
+        if ($game["phase"] === "shift" && $user_id === $game["player_turn"] && ($currentMove === $movesDone - 1 || $movesDone === 0) && !$game["completed"]) {
             $shiftActive = true;
         }
         else {

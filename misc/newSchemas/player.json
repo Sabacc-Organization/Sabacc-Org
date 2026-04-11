@@ -23,7 +23,7 @@
                     "enum": ["auto", "dark", "light", "pescado"]
                 },
                 "theme": {
-                    "enum": ["pescado"]
+                    "enum": ["modern"]
                 }
             },
             "required": [

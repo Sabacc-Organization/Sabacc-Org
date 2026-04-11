@@ -189,7 +189,7 @@ class:playing={p['username'] === $username}>
         <div id="{p['username']}Box" class="backBlue {$game["player_turn"] == p['id']? "turnGlow" : "noTurnGlow"} playerBox">
             <h5>{p['username']}
                 {#if $game_variant === "kessel"}
-                    {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
+                    {#if $game["activeShiftTokens"].map(x => x[0] + x[1]).includes("immunity" + p["id"].toString())}
                         <div class="shield-logo"></div>
                     {/if}
                 {/if}
@@ -247,7 +247,7 @@ class:playing={p['username'] === $username}>
         playerBox">
             <h5>{p['username']}
                 {#if $game_variant === "kessel"}
-                    {#if $game["activeShiftTokens"].includes(["immunity", p["id"].toString()])}
+                    {#if $game["activeShiftTokens"].map(x => x[0] + x[1]).includes("immunity" + p["id"].toString())}
                         <div class="shield-logo"></div>
                     {/if}
                 {/if}

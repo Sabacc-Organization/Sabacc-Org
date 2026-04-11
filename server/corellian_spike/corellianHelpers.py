@@ -2,12 +2,7 @@
 
 import json
 import random
-import sys
-import os
 from typing import Optional, List
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
 from dataHelpers import *
 from helpers import *
 from datetime import datetime, timezone
@@ -81,7 +76,7 @@ class CorellianSpikeHand(Hand):
         if handRanking == "Wayne":
             # get the values of the cards and take the absolute value (negatives don't matter here)
             vals = [abs(val) for val in self.getListOfVals()]
-            vals.sort() # sort ascending
+            vals.sort()
 
             if self.getTotal() == 0: # hands 1-17 total 0
                 if 0 in vals: # hands 1-7 have a sylop
@@ -140,7 +135,7 @@ class CorellianSpikeHand(Hand):
                 return "error: hand total was 0 but hand did't match any known hand"
             else:
                 return 18 # Nulrhek- Hand closest to zero
-            
+
         return
 
     def lowestPosValue(self):
@@ -153,7 +148,7 @@ class CorellianSpikeHand(Hand):
 class CorellianSpikePlayer(Player):
     def __init__(self, id:int, username:str, credits=0, bet:int=None, hand=CorellianSpikeHand(), folded=False, lastAction=''):
         super().__init__(id, username, credits, bet, hand, folded, lastAction)
-    
+
     def __str__(self) -> str:
         return str(self.id)
     def toString(self, handRanking) -> str:
@@ -180,7 +175,7 @@ class CorellianSpikePlayer(Player):
             return CorellianSpikePlayer.fromDict(json.loads(player))
         if isinstance(player, dict):
             return CorellianSpikePlayer.fromDict(player)
-        
+
     @staticmethod
     def fromDict(dict: dict):
         return CorellianSpikePlayer(id=dict['id'],username=dict['username'],credits=dict['credits'],bet=dict['bet'],hand=CorellianSpikeHand.fromDict(dict['hand']),folded=dict['folded'],lastAction=dict['lastAction'])
@@ -213,15 +208,14 @@ class CorellianSpikeGame(Game):
         self.settings = settings
         self.created_at = created_at
         self.move_history = move_history
-    # for testing purposes
+
     def __str__(self) -> str:
         ret = f'\ndeck ({len(self.deck.cards)}): {self.deck}\ndiscard pile ({len(self.discardPile)}): [{listToStr(self.discardPile)}]\nhand pot: {self.handPot}\tsabacc pot: {self.sabaccPot}\n\n'
         for player in self.players:
             ret += player.toString(self.settings["HandRanking"])
-        #ret += '\n' + self.determineWinner()
         return ret
 
-    # create a new game
+
     @staticmethod
     def newGame(playerIds:list, playerUsernames:list, db, settings=defaultSettings):
 
@@ -234,12 +228,10 @@ class CorellianSpikeGame(Game):
         if len(playerIds) <= 1:
             "You cannot play by yourself"
 
-        # create player list
         players = []
         for i in range(len(playerIds)):
             players.append(CorellianSpikePlayer(playerIds[i], username=playerUsernames[i], credits=settings["StartingCredits"]))
 
-        # create deck, discard pile, and pots
         deck = CorellianSpikeDeck()
         discardPile = [deck.draw()]
 
@@ -262,7 +254,6 @@ class CorellianSpikeGame(Game):
                 game.settingsToDb()
             ])
 
-        # return Game object
         return game
 
     def determineWinner(self) -> str:
@@ -378,7 +369,10 @@ class CorellianSpikeGame(Game):
     def discardPileToDict(self):
         return [card.toDict() for card in self.discardPile]
 
-    def toDict(self):
+    def toDict(self, noMutableReferences: bool = False):
+        """
+        :param noMutableReferences: set to true to deepcopy all mutable data, so you can safely mutate the resulting dictionary
+        """
         return {
             'id': self.id,
             'players': [player.toDict() for player in self.players],
@@ -392,9 +386,9 @@ class CorellianSpikeGame(Game):
             'cycle_count': self.cycle_count,
             'shift': self._shift,
             'completed': self.completed,
-            'settings': self.settings,
+            'settings': copy.deepcopy(self.settings) if noMutableReferences else self.settings,
             'created_at': self.created_at,
-            'move_history': self.move_history
+            'move_history': copy.deepcopy(self.move_history) if noMutableReferences else self.move_history
         }
 
     def toDb(self, includeId=False):
@@ -490,7 +484,7 @@ class CorellianSpikeGame(Game):
         self._playerDiscard(player, discardCardIndex)
 
     # replace every card in every player's hand
-    def shiftcards(self):
+    def doShift(self):
         # loop thru players
         for player in self.players:
             hand = player.hand.cards
@@ -505,7 +499,7 @@ class CorellianSpikeGame(Game):
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=game[10], completed=game[11], settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
+        gameObj = CorellianSpikeGame(id=game[0],players=[CorellianSpikePlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=CorellianSpikeDeck.fromDb(game[5]), discardPile=[Card.fromDb(card) for card in json.loads(game[6])], player_turn=game[7], p_act=game[8], round=game[9], shift=bool(game[10]), completed=bool(game[11]), settings=defaultSettings, created_at=game[13], move_history=None if not game[14] else json.loads(game[14]))
 
         if preSettings == False:
             gameObj.settings = json.loads(game[12])
@@ -620,13 +614,14 @@ class CorellianSpikeGame(Game):
                 self.discardPileToDb(),
                 self.playersToDb(),
                 self.hand_pot,
+                self.sabacc_pot,
                 self.phase,
                 self.player_turn,
                 self.p_act,
                 self.completed,
                 self.id
             ]
-            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+            db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
             self.betPhaseAction(params, player, db)
@@ -635,7 +630,8 @@ class CorellianSpikeGame(Game):
             self.shiftPhaseAction(params, player, db)
 
             # Corellian special condition ending (normal for corellian)
-            if self.cycle_count >= 2:
+            if self.cycle_count > 2:
+                self.cycle_count -= 1 # we love coding
                 self.completed = True
                 winData = self.determineWinner()
 
@@ -649,7 +645,8 @@ class CorellianSpikeGame(Game):
                 self.p_act += "; " + f"{winData['winStr']}"
 
             dbList = [
-                self.phase, 
+                self.phase,
+                self.cycle_count,
                 self.playersToDb(),
                 self.hand_pot,
                 self.sabacc_pot,
@@ -658,7 +655,7 @@ class CorellianSpikeGame(Game):
                 self.id
             ]
 
-            db.execute("UPDATE corellian_spike_games SET phase = ?, players = ?, hand_pot = ?, sabacc_pot = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
+            db.execute("UPDATE corellian_spike_games SET phase = ?, cycle_count = ?, players = ?, hand_pot = ?, sabacc_pot = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
         elif params["action"] == "playAgain" and self.player_turn == player.id and self.completed and len(self.players) > 1:
             self.nextRound()
@@ -694,3 +691,11 @@ class CorellianSpikeGame(Game):
         db.execute("UPDATE corellian_spike_games SET move_history = ? WHERE game_id = ?", [self.moveHistoryToDb(), self.id])
 
         return self
+
+
+# if the number is positive, it adds a plus in front of it (otherwise just returns the number)
+def addPlusBeforeNumber(n:int) -> str:
+    return ('+' if n > 0 else '') + str(n)
+
+def bothOrAll(num:int):
+    return 'both' if num == 2 else 'all'

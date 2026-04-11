@@ -111,8 +111,8 @@ class TraditionalDeck(Deck):
         
 
 class TraditionalHand(Hand):
-    def __init__(self, cards=[]):
-        super().__init__(cards)
+    def __init__(self, cards=None):
+        super().__init__(cards if cards is not None else [])
 
     def protect(self, card:TraditionalCard):
         try:
@@ -269,7 +269,10 @@ class TraditionalGame(Game):
     def playersToDb(self):
         return json.dumps([player.toDict() for player in self.players])
 
-    def toDict(self):
+    def toDict(self, noMutableReferences: bool = False):
+        """
+        :param noMutableReferences: set to true to deepcopy all mutable data, so you can safely mutate the resulting dictionary
+        """
         return {
             'id': self.id,
             'players': [player.toDict() for player in self.players],
@@ -282,22 +285,22 @@ class TraditionalGame(Game):
             'cycle_count': self.cycle_count,
             'shift': self._shift,
             'completed': self.completed,
-            'settings': self.settings,
+            'settings': copy.deepcopy(self.settings) if noMutableReferences else self.settings,
             'created_at': self.created_at,
-            'move_history': self.move_history
+            'move_history': copy.deepcopy(self.move_history) if noMutableReferences else self.move_history
         }
 
     @staticmethod
     def fromDb(game: list, preSettings=False):
-        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=game[9],completed=game[10],settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
+        gameObj = TraditionalGame(id=game[0],players=[TraditionalPlayer.fromDb(player) for player in json.loads(game[1])], hand_pot=game[2], sabacc_pot=game[3], phase=game[4], deck=TraditionalDeck.fromDb(game[5]), player_turn=game[6],p_act=game[7],cycle_count=game[8],shift=bool(game[9]),completed=bool(game[10]),settings=defaultSettings,created_at=game[12],move_history=None if not game[13] else json.loads(game[13]))
         if preSettings == False:
             gameObj.settings = json.loads(game[11])
         return gameObj
-    
+
     @staticmethod
     def fromDict(dict:dict):
         return TraditionalGame(id=dict['id'],players=[TraditionalPlayer.fromDict(player) for player in dict['players']],deck=TraditionalDeck.fromDict(dict['deck']),player_turn=dict['player_turn'],p_act=dict['p_act'],hand_pot=dict['hand_pot'],sabacc_pot=dict['sabacc_pot'],phase=dict['phase'],cycle_count=dict['cycle_count'],shift=dict['shift'],completed=dict['completed'],settings=dict['settings'],created_at=dict['created_at'],move_history=dict['move_history'])
-            
+
     def _reshuffle(self):
         # exclude cards in (active) players' hands
         cardsToExclude = []
@@ -309,7 +312,7 @@ class TraditionalGame(Game):
         self.deck.shuffle()
 
     # replace every unprotected card in every player's hand
-    def shift(self):
+    def doShift(self):
         # loop thru players
         for player in self.players:
             hand = player.hand.cards

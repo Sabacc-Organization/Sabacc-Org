@@ -23,13 +23,6 @@
         }
     }
 
-    // let gamesData: {[id:string] : any} = {
-    //     "traditional_games": [],
-    //     "traditional_player_turn_usernames": [],
-    //     "corellian_spike_games": [],
-    //     "corellian_spike_player_turn_usernames": []
-    // };
-
     let vidX = 420;
 
     let viewportProbe: undefined|HTMLElement = undefined;
@@ -37,7 +30,6 @@
     onMount( async () => {
         viewportProbe = document.getElementById('viewportProbe')!;
         let viewportSize = [viewportProbe?.clientWidth, viewportProbe?.clientHeight];
-        // console.log(viewportSize);
         if (viewportSize[0] < 560){
             vidX = viewportSize[0] - 120;
         }

@@ -569,7 +569,7 @@ class TraditionalGame(Game):
             ]
             db.execute("UPDATE traditional_games SET players = ?, p_act = ? WHERE game_id = ?", dbList)
 
-        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
+        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise", "allIn"] and self.player_turn == player.id) or params['action'] == "quit"):
             self.betPhaseAction(params, player, db)
 
         elif (self.phase in ["card", "alderaan"] and self.completed == False) and ((params["action"] in ["draw", "trade", "stand", "alderaan"] and self.player_turn == player.id) or params["action"] == "quit"):
@@ -583,7 +583,7 @@ class TraditionalGame(Game):
 
             dbList = [
                 self.playersToDb(),
-                self.hand_pot,
+                self.hand_pot.toDb(),
                 self.sabacc_pot,
                 self.phase,
                 self.deck.toDb(),

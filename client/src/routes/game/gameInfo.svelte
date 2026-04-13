@@ -22,6 +22,24 @@
         dieChoice
     } from "./gameLogic";
 
+    $: handPot = ($game["hand_pot"] ?? []) as { credits: number; eligiblePlayers: number[] }[];
+    $: handPotTotal = handPot.reduce((sum, pot) => sum + pot.credits, 0);
+    $: handPotBreakdown = (() => {
+        if (handPot.length <= 1) return "";
+        const usernameById: {[id: number]: string} = {};
+        for (const p of ($game["players"] ?? [])) {
+            usernameById[p.id] = p.username;
+        }
+        const lines: string[] = [];
+        for (let i = 0; i < handPot.length; i++) {
+            const pot = handPot[i];
+            const label = i === handPot.length - 1 ? "Main" : `Side ${i + 1}`;
+            const names = pot.eligiblePlayers.map((id) => usernameById[id] ?? `#${id}`).join(", ");
+            lines.push(`${label}: ${pot.credits} (${names})`);
+        }
+        return lines.join("<br>");
+    })();
+
     $: {
         if ($game["player_turn"] === $user_id) {
 
@@ -55,7 +73,10 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div on:dblclick={check} class:active={$potsActive} id="pots" class="child {$potsActive}">
             <h5>Sabacc: <span id="sabacc_pot">{$game["sabacc_pot"]}</span></h5>
-            <h5>Hand: <span id="hand_pot">{$game["hand_pot"]}</span></h5>
+            <h5
+                on:mouseenter={() => { if (handPot.length > 1) $tooltip = handPotBreakdown; }}
+                on:mouseleave={() => { if (handPot.length > 1) $tooltip = ""; }}
+            >Hand: <span id="hand_pot">{handPotTotal}</span>{#if handPot.length > 1} <span class="sidePotIndicator">({handPot.length})</span>{/if}</h5>
         </div>
     {/if}
 

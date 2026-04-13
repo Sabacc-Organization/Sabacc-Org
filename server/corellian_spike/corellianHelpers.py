@@ -732,7 +732,7 @@ class CorellianSpikeGame(Game):
             ]
             db.execute("UPDATE corellian_spike_games SET deck = ?, discard_pile = ?, players = ?, hand_pot = ?, sabacc_pot = ?, phase = ?, player_turn = ?, p_act = ?, completed = ? WHERE game_id = ?", dbList)
 
-        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise"] and self.player_turn == player.id) or params['action'] == "quit"):
+        elif (self.phase == "betting" and self.completed == False) and ((params['action'] in ["fold", "check", "bet", "call", "raise", "allIn"] and self.player_turn == player.id) or params['action'] == "quit"):
             self.betPhaseAction(params, player, db)
 
         elif (self.phase == "shift" and self.completed == False) and ((params["action"] == "shift" and self.player_turn == player.id) or params["action"] == "quit"):

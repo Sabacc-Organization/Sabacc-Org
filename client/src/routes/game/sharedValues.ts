@@ -17,10 +17,12 @@ export const game_id = derived(page, (value) => value.params.game_id);
 export const dataToRender = writable(false);
 export const header = writable("");
 
+export type HandPot = { credits: number; eligiblePlayers: number[] }[];
+
 export const game: Writable<{[id: string]: any}> = writable({
     "p_act": "",
     "players": [],
-    "hand_pot": 0,
+    "hand_pot": [{ credits: 0, eligiblePlayers: [] }],
     "sabacc_pot": 0,
     "phase": "",
     "shift": 0,
@@ -88,7 +90,7 @@ export function resetGameStores() {
   game.set({
     "p_act": "",
     "players": [],
-    "hand_pot": 0,
+    "hand_pot": [{ credits: 0, eligiblePlayers: [] }],
     "sabacc_pot": 0,
     "phase": "",
     "shift": 0,

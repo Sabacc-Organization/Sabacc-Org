@@ -207,6 +207,20 @@ export function call() {
     bet("call");
 }
 
+export function allIn() {
+    if (get(potsActive) !== true) return;
+    let clientInfo = {
+        "username": get(username),
+        "password": get(password),
+        "game_id": get(game_id),
+        "game_variant": get(game_variant),
+        "action": "allIn"
+    }
+    get(socket)!.emit('gameAction', clientInfo);
+    raising.set(false);
+    betCreds.set(0);
+}
+
 export function raise() {
     if (get(betCreds)! > get(raiseAmount) && get(betCreds)! <= get(game)["players"][get(u_dex)]['credits']) {
         bet("raise");

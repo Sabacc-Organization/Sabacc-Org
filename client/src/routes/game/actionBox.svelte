@@ -31,6 +31,7 @@
         check,
         fold,
         call,
+        allIn,
         raise,
         tradeBtn,
         stand,
@@ -38,6 +39,11 @@
         playAgain,
         nextHand
     } from "./gameLogic";
+
+    $: callRequiresAllIn = $game["players"]
+        && $u_dex >= 0
+        && $game["players"][$u_dex]
+        && $followAmount > $game["players"][$u_dex]['credits'];
 
     export let renderCard
 
@@ -150,7 +156,11 @@
                                 <button on:click={() => {$raising = true; $chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                 <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                             {:else if !$raising}
-                                <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                                {#if callRequiresAllIn}
+                                    <button on:click={allIn} type="button" id="allInOpt" class="btn btn-primary">All In</button>
+                                {:else}
+                                    <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                                {/if}
                                 <button on:click={() => {$raising = true; $chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                                 <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                             {:else}
@@ -171,7 +181,11 @@
                             <button on:click={() => {$raising = true; $chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                             <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                         {:else if $raising === false}
-                            <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                            {#if callRequiresAllIn}
+                                <button on:click={allIn} type="button" id="allInOpt" class="btn btn-primary">All In</button>
+                            {:else}
+                                <button on:click={call} type="button" id="callOpt" class="btn btn-primary">Call</button>
+                            {/if}
                             <button on:click={() => {$raising = true; $chipInput = true}} type="button" id="raiseOpt" class="btn btn-primary">Raise</button>
                             <button on:click={fold} type="button" id="foldOpt" class="btn btn-primary">Fold</button>
                         {:else}

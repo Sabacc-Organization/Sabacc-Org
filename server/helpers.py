@@ -586,14 +586,24 @@ class Game:
                 betAmount = max(betAmount)
                 for i in players:
                     iBet = i.bet if i.bet != None else -1
-                    if iBet < betAmount:
+                    if iBet < betAmount and i.credits > 0:
                         nextPlayer = i
                         break
             elif self.settings["PokerStyleBetting"]:
                 if simpleNextPlayer == None:
                     simpleNextPlayer = players[0]
-                if simpleNextPlayer.getBet() < self.getGreatestBet() or simpleNextPlayer.bet == None:
-                    nextPlayer = simpleNextPlayer
+                # Walk forward from the next seat, skipping all-in players (credits == 0).
+                # The first non-all-in player decides: if they still need to act, they're up;
+                # otherwise the round is over.
+                startIdx = players.index(simpleNextPlayer)
+                candidate = None
+                for offset in range(len(players)):
+                    c = players[(startIdx + offset) % len(players)]
+                    if c.credits > 0:
+                        candidate = c
+                        break
+                if candidate is not None and (candidate.bet == None or candidate.getBet() < self.getGreatestBet()):
+                    nextPlayer = candidate
 
             return nextPlayer
         else:
@@ -688,6 +698,11 @@ class Game:
         elif params["action"] == 'call':
             player.makeBet(self.getGreatestBet(), True)
             player.lastAction = 'calls'
+
+        elif params["action"] == 'allIn':
+            allInTotal = player.getBet() + player.credits
+            player.makeBet(allInTotal, True)
+            player.lastAction = f'goes all in ({allInTotal})'
 
         elif params["action"] == 'raise':
             player.makeBet(params["amount"], True)
@@ -890,11 +905,18 @@ class Game:
 
                 # Remove all losers from eligibility in remaining pots
                 winnerId = winner.id
+                loserIds = []
+                for p in eligiblePlayers:
+                    loserIds.append(p.id)
+                loserIds.remove(winnerId)
+                    
                 for j in range(i - 1, -1, -1):
-                    self.hand_pot.pots[j]["eligiblePlayers"] = [
-                        pid for pid in self.hand_pot.pots[j]["eligiblePlayers"]
-                        if pid == winnerId
-                    ]
+                    for loserId in loserIds:
+                        try:
+                            self.hand_pot.pots[j]["eligiblePlayers"].remove(loserId)
+                        except ValueError:
+                            pass
+
             else:
                 # No winner - variant's evaluatePotWinner handles what to do with credits
                 results.append({"credits": pot["credits"], "winner": None})

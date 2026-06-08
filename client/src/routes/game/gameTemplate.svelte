@@ -88,7 +88,7 @@
             updateClientInfo(serverInfo);
         });
 
-        // defining the Audio to be play apon your turn (it wouldnt work if i put it outside of onMount)
+        // defining the Audio to be play upon your turn (it wouldnt work if i put it outside of onMount)
         $turnSound = new Audio("/move-sound.mp3");
     });
 

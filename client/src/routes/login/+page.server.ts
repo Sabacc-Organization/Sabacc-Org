@@ -9,7 +9,7 @@ import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, platform }) {
-    if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
+    if (!cookies.get("username") || !cookies.get("password")) {
         return;
     }
     
@@ -48,21 +48,6 @@ export const actions = {
 	    httpOnly: false,
 	    secure: false,
 	});
-	cookies.delete('dark', {
-	    path: '/',
-	    httpOnly: false,
-	    secure: false,
-	});
-	cookies.delete('theme', {
-	    path: '/',
-	    httpOnly: false,
-	    secure: false,
-	});
-	cookies.delete('cardDesign', {
-	    path: '/',
-	    httpOnly: false,
-	    secure: false,
-	});
 
         cookies.set('username', username, {
             path: '/',
@@ -70,21 +55,6 @@ export const actions = {
             secure: false,
             maxAge: 60 * 60 * 24 * 30});
         cookies.set('password', password, {
-            path: '/',
-            httpOnly: false,
-            secure: false,
-            maxAge: 60 * 60 * 24 * 30});
-        cookies.set('dark', "false", {
-            path: '/',
-            httpOnly: false,
-            secure: false,
-            maxAge: 60 * 60 * 24 * 30});
-        cookies.set('theme', "modern", {
-            path: '/',
-            httpOnly: false,
-            secure: false,
-            maxAge: 60 * 60 * 24 * 30});
-        cookies.set('cardDesign', "auto", {
             path: '/',
             httpOnly: false,
             secure: false,

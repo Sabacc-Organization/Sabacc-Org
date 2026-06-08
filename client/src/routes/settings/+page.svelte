@@ -29,7 +29,6 @@
 <form method="POST" use:enhance>
     <div class="parent">
         <h5 class="child">Dark Mode</h5>
-        <!-- Rounded switch -->
         <label class="switch child">
             <input bind:checked={dark} name="dark" type="checkbox">
             <span class="slider round"></span>

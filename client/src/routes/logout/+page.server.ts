@@ -13,19 +13,4 @@ export async function load({ cookies }) {
         httpOnly: false,
         secure: false,
     });
-    cookies.delete('dark', {
-        path: '/',
-        httpOnly: false,
-        secure: false,
-    });
-    cookies.delete('theme', {
-        path: '/',
-        httpOnly: false,
-        secure: false,
-    });
-    cookies.delete('cardDesign', {
-        path: '/',
-        httpOnly: false,
-        secure: false,
-    });
 }

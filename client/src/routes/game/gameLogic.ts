@@ -35,16 +35,13 @@ import {
 
 export function requestGameUpdate() {
     // client info to send to server so it knows who its sending this info back to.
-    let clientInfo = {};
-
-    // If logged in user
-    clientInfo = {
+    // Only for logged in users
+    let clientInfo = {
         "username": get(username) != undefined? get(username):"",
         "game_id": get(game_id) != undefined? get(game_id):"invalid :(",
         "game_variant": get(game_variant)
     }
 
-    // Send info
     get(socket)!.emit('getGame', clientInfo);
 }
 
@@ -54,7 +51,6 @@ export function updateClientGame(serverInfo: any) {
 
     currentMove.set(null);
 
-    // Set game data
     for (let key in serverInfo['gata']){
         game.update((value) => {
             value[key] = serverInfo['gata'][key];
@@ -75,14 +71,13 @@ export function updateClientGame(serverInfo: any) {
 }
 
 export function updateGame(info:any) {
-    // sets all player specific elements, such as hands and whatnot
+    // sets all player specific elements, such as hands and bets
 
     let players: {[id: string]: any}[] = get(game)["players"];
     activePlayers.set([]);
 
     greatestBet.set(0);
     players.forEach((element : any) => {
-        //sets u_dex
         if (get(user_id) === element['id']) {
             u_dex.set(players.indexOf(element));
             thisPlayer.set(element);
@@ -95,7 +90,7 @@ export function updateGame(info:any) {
         }
     });
 
-    //sets players, and sets orderedPlayers to the correct length in case of a fold.
+    // sets players, and sets orderedPlayers to the correct length in case of a fold.
     orderedPlayers.set([... players]);
 
     // If player is in game, make orderedPlayers proper
@@ -108,23 +103,19 @@ export function updateGame(info:any) {
         }
     }
 
-    // Creat p(layer)s array
     let ps: any[] = [];
 
     // Prepare header var (p vs. p vs. p)
     header.set("");
 
-    // For every user in users
     for (let i = 0; i < players.length; i++) {
         // Add vs. except on first loop through
         if (i != 0) {
             header.update((value) => value + " vs. ");
         }
 
-        // Update player array
         ps[i] = players[i]["username"];
 
-        // Add username to header
         header.update((value) => value + players[i]["username"]);
     }
 }
@@ -244,7 +235,6 @@ export function kesselDiscard(keep: boolean){
 }
 
 export function card(action: string) {
-    console.log('ewehwherhewhwiiii')
     if (get(cardBool) === true) {
 
         let clientInfo = {

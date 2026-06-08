@@ -53,14 +53,12 @@
     export let renderCard;
     export let renderBack;
 
-    // URLs for Requests and Redirects
     export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
     export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
     let xMousePos = 0
     let yMousePos = 0
 
-    // Once page is mounted
     onMount(() => {
         onmousemove = (event) => {
             xMousePos = event.pageX;
@@ -70,7 +68,6 @@
         // defines a new socket object for real-time communication with server
         $socket = io(BACKEND_URL);
 
-        // code to catch errors
         $socket.io.on('error', (err: any) => {console.log(err)});
 
         // when there is a connection established with the server, it will explicitly ask the server for a game update. 
@@ -85,7 +82,7 @@
         });
 
         // sometimes the server wants to give the client information that only applies to them, such as their user ID.
-        // clientUpdate is accessed when the server doesnt want to give that info to every client. it also give the updated game in serverInfo
+        // clientUpdate is accessed when the server doesn't want to give that info to every client. it also give the updated game in serverInfo
         // updateClientGame is called within updateClientInfo. updateClientInfo is only called when first logging on.
         $socket.on('clientUpdate', (serverInfo: any) => {
             updateClientInfo(serverInfo);

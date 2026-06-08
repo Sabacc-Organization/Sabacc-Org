@@ -69,7 +69,6 @@
         const currentData = playerData.gameHistory[selectedTimeRange];
         console.log('Creating chart with data for', selectedTimeRange, ':', currentData);
         
-        // Destroy existing chart if it exists
         if (chart) {
             chart.destroy();
         }
@@ -175,13 +174,13 @@
             let lmA: Date;
             let lmB: Date;
 
-            if (valueA["move_history"] != null){
+            if (valueA["move_history"] !== null){
                 lmA = new Date(valueA["move_history"].at(-1)["timestamp"]);
             } else {
                 lmA = new Date(valueA["created_at"]);
             }
 
-            if (valueB["move_history"] != null){
+            if (valueB["move_history"] !== null){
                 lmB = new Date(valueB["move_history"].at(-1)["timestamp"]);
             } else {
                 lmB = new Date(valueB["created_at"]);

@@ -82,7 +82,6 @@ export function resetGameStores() {
   theme.set(null);
   cardDesign.set(null);
 
-  //   game_id.set(null);
   dataToRender.set(false);
   header.set("");
 

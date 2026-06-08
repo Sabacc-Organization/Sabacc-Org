@@ -9,7 +9,7 @@ import { redirect } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ cookies, platform }) {
-    if (!cookies.get("username") || !cookies.get("password") || !cookies.get("dark") || !cookies.get("theme") || !cookies.get("cardDesign")) {
+    if (!cookies.get("username") || !cookies.get("password")) {
         throw redirect(303, "/login");
     }
     

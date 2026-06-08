@@ -1,37 +1,25 @@
 nav .navbar-brand{
-    /* size for brand */
     font-size: xx-large;
 }
 
-/* Colors for brand */
 nav .navbar-brand .blue{
     color: rgb(14, 148, 201);
 }
 
 main .form-control{
-    /* Center form controls */
     display: inline-block;
-
-    /* Override Bootstrap's 100% width for form controls */
     width: auto;
 }
 
 main{
-    /* Scroll horizontally as needed */
     overflow-x: auto;
-
-    /* Center contents */
     text-align: center;
-
-
 }
 
 main img{
-    /* Constrain images on small screens */
     max-width: 100%;
 }
 
-/* Horizontal Alignment of divs and other tags */
 .parent{
     text-align: center;
 }
@@ -58,8 +46,6 @@ main img{
     max-width: 50%;
 }
 
-
-/* The switch - the box around the slider */
 .switch {
     position: relative;
     display: inline-block;
@@ -74,7 +60,6 @@ main img{
     height: 0;
 }
 
-/* The slider */
 .slider {
     position: absolute;
     cursor: pointer;
@@ -113,7 +98,6 @@ input:checked + .slider:before {
     transform: translateX(26px);
 }
 
-/* Rounded sliders */
 .slider.round {
     border-radius: 34px;
 }
@@ -122,7 +106,6 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* Table CSS */
 table {
     border-collapse: collapse;
     width: 100%;
@@ -179,7 +162,6 @@ td select {
     opacity: 0.6;
 }
 
-/* Container to center the buttons */
 .playback-buttons-container {
     display: flex;
     justify-content: center;

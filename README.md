@@ -5,13 +5,13 @@
 ## Description:
 Sabacc, the space card game. A fast-paced, high-risk, perfect mixture of skill and luck. Engage in this perfect blend of deception, quick calculation, and strategy, with over 300 other users at http://sabacc.samuelanes.com
 
-This web application currently contains two Sabacc variants **Traditional Sabacc**, and **Corellian Spike Sabacc**. You can learn more about how to play by visiting http://sabacc.samuelanes.com/how-to-play.
+This web application currently contains three Sabacc variants **Traditional Sabacc**, **Corellian Spike Sabacc**, & **Kessel Sabacc**!. You can learn more about how to play by visiting http://sabacc.samuelanes.com/how-to-play.
 
 ## Tech Specs
 - Backend (Flask)
     - Python
         - Werkzeug
-    - PostgreSQL
+    - SQLite
 - Frontend (SvelteKit)
     - HTML
     - CSS
@@ -33,8 +33,8 @@ The door is wide open for new gameplay features. Ideas include:
 - Leaderboards
 - Persistent Credits between games
 - Different planets to play on
-- Better playing UX and GUI (Click add credits, manual dice rolling, images of cards, etc.)
-- Other Sabacc Variants (Coruscant Shift, Kessel Sabacc)
+- Better playing UX and GUI (Click add credits, manual dice rolling, etc.)
+- Other Sabacc Variants (Coruscant Shift)
 - Prized Items for the Sabacc Pot
 
 ## Running the Project Locally

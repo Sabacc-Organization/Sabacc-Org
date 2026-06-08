@@ -11,6 +11,9 @@ export default defineConfig({
 				'/move-sound.mp3',
 			],
 		},
+		allowedHosts: [
+			"sabacc.paishofish49.net"
+		]
 	},
 	plugins: [sveltekit()],
 	optimizeDeps: {
